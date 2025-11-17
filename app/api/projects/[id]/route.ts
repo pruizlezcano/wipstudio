@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { project } from "@/lib/db/schema";
+import { project, track } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { updateProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
+import { deleteS3File } from "@/lib/storage/s3";
 
 // GET /api/projects/[id] - Get single project
 export async function GET(
@@ -125,6 +126,25 @@ export async function DELETE(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    // Fetch all tracks for this project to delete their S3 files
+    const tracks = await db
+      .select()
+      .from(track)
+      .where(eq(track.projectId, id));
+
+    // Delete all track files from S3
+    const deletePromises = tracks.map(async (t) => {
+      try {
+        await deleteS3File(t.audioUrl);
+      } catch (error) {
+        console.error(`Failed to delete S3 file ${t.audioUrl}:`, error);
+        // Continue deletion even if S3 deletion fails
+      }
+    });
+
+    await Promise.allSettled(deletePromises);
+
+    // Delete the project (tracks will be deleted automatically via cascade)
     await db.delete(project).where(eq(project.id, id));
 
     return NextResponse.json({ message: "Project deleted successfully" });

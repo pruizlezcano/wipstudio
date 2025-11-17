@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RedirectToSignIn, SignedIn } from "@daveyplate/better-auth-ui";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,6 +42,7 @@ import {
 } from "@/lib/hooks/use-projects";
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -106,22 +107,14 @@ export default function ProjectsPage() {
 
   if (isLoading) {
     return (
-      <>
-        <RedirectToSignIn />
-        <SignedIn>
-          <div className="container mx-auto py-8 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        </SignedIn>
-      </>
+      <div className="container mx-auto py-8 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
   return (
-    <>
-      <RedirectToSignIn />
-      <SignedIn>
-        <div className="container mx-auto py-8 max-w-6xl">
+    <div className="container mx-auto py-8 max-w-6xl">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold">Projects</h1>
@@ -246,9 +239,18 @@ export default function ProjectsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Created {new Date(project.createdAt).toLocaleDateString()}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        Created {new Date(project.createdAt).toLocaleDateString()}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/projects/${project.id}`)}
+                      >
+                        View Tracks
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -366,7 +368,5 @@ export default function ProjectsPage() {
             </AlertDialogContent>
           </AlertDialog>
         </div>
-      </SignedIn>
-    </>
   );
 }
