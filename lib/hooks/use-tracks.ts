@@ -2,13 +2,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CreateTrackInput, UpdateTrackInput, UploadRequestInput } from "@/lib/validations/track";
 
+export interface TrackVersion {
+  id: string;
+  trackId: string;
+  versionNumber: number;
+  audioUrl: string;
+  notes: string | null;
+  createdAt: string;
+}
+
 export interface Track {
   id: string;
   name: string;
-  audioUrl: string;
   projectId: string;
   createdAt: string;
   updatedAt: string;
+  latestVersion: TrackVersion | null;
 }
 
 export interface PresignedUrlResponse {
@@ -23,6 +32,7 @@ export const trackKeys = {
   list: (projectId: string) => [...trackKeys.lists(), projectId] as const,
   details: () => [...trackKeys.all, "detail"] as const,
   detail: (id: string) => [...trackKeys.details(), id] as const,
+  versions: (trackId: string) => [...trackKeys.all, "versions", trackId] as const,
 };
 
 // Fetch all tracks for a project
@@ -207,10 +217,12 @@ export function useUploadTrack() {
       file,
       trackName,
       projectId,
+      notes,
     }: {
       file: File;
       trackName: string;
       projectId: string;
+      notes?: string;
     }) => {
       // Step 1: Get presigned URL
       const { uploadUrl, objectUrl } = await getPresignedUrl({
@@ -222,12 +234,13 @@ export function useUploadTrack() {
       // Step 2: Upload file to MinIO
       await uploadFile(file, uploadUrl);
 
-      // Step 3: Create track record in database
+      // Step 3: Create track record in database with initial version
       return createTrackMutation.mutateAsync({
         projectId,
         data: {
           name: trackName,
           audioUrl: objectUrl,
+          notes,
         },
       });
     },
@@ -236,3 +249,184 @@ export function useUploadTrack() {
     },
   });
 }
+
+// ===== VERSION MANAGEMENT =====
+
+// Fetch all versions for a track
+async function fetchVersions(trackId: string): Promise<TrackVersion[]> {
+  const response = await fetch(`/api/tracks/${trackId}/versions`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch versions");
+  }
+  return response.json();
+}
+
+// Create a new version
+async function createVersion({
+  trackId,
+  data,
+}: {
+  trackId: string;
+  data: { audioUrl: string; notes?: string };
+}): Promise<TrackVersion> {
+  const response = await fetch(`/api/tracks/${trackId}/versions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create version");
+  }
+
+  return response.json();
+}
+
+// Update version notes
+async function updateVersion({
+  trackId,
+  versionId,
+  notes,
+}: {
+  trackId: string;
+  versionId: string;
+  notes?: string;
+}): Promise<TrackVersion> {
+  const response = await fetch(`/api/tracks/${trackId}/versions/${versionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notes }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update version");
+  }
+
+  return response.json();
+}
+
+// Delete a version
+async function deleteVersion({
+  trackId,
+  versionId,
+}: {
+  trackId: string;
+  versionId: string;
+}): Promise<void> {
+  const response = await fetch(`/api/tracks/${trackId}/versions/${versionId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete version");
+  }
+}
+
+// Version hooks
+export function useVersions(trackId: string) {
+  return useQuery({
+    queryKey: trackKeys.versions(trackId),
+    queryFn: () => fetchVersions(trackId),
+    enabled: !!trackId,
+  });
+}
+
+export function useCreateVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createVersion,
+    onSuccess: (newVersion) => {
+      // Invalidate versions list
+      queryClient.invalidateQueries({
+        queryKey: trackKeys.versions(newVersion.trackId),
+      });
+      // Invalidate track lists to update latest version
+      queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
+      toast.success("New version created successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useUpdateVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateVersion,
+    onSuccess: (updatedVersion) => {
+      // Invalidate versions list
+      queryClient.invalidateQueries({
+        queryKey: trackKeys.versions(updatedVersion.trackId),
+      });
+      toast.success("Version updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useDeleteVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteVersion,
+    onSuccess: (_, { trackId }) => {
+      // Invalidate versions list
+      queryClient.invalidateQueries({ queryKey: trackKeys.versions(trackId) });
+      // Invalidate track lists to update latest version
+      queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
+      toast.success("Version deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useUploadVersion() {
+  const createVersionMutation = useCreateVersion();
+
+  return useMutation({
+    mutationFn: async ({
+      file,
+      trackId,
+      projectId,
+      notes,
+    }: {
+      file: File;
+      trackId: string;
+      projectId: string;
+      notes?: string;
+    }) => {
+      // Step 1: Get presigned URL
+      const { uploadUrl, objectUrl } = await getPresignedUrl({
+        fileName: file.name,
+        fileType: file.type,
+        projectId,
+      });
+
+      // Step 2: Upload file to MinIO
+      await uploadFile(file, uploadUrl);
+
+      // Step 3: Create version record in database
+      return createVersionMutation.mutateAsync({
+        trackId,
+        data: {
+          audioUrl: objectUrl,
+          notes,
+        },
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to upload version");
+    },
+  });
+}
+

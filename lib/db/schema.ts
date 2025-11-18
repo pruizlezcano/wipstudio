@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
     id: text("id").primaryKey(),
@@ -77,10 +77,24 @@ export const project = pgTable("project", {
 export const track = pgTable("track", {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
-    audioUrl: text("audio_url").notNull(),
     projectId: text("project_id")
         .notNull()
         .references(() => project.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => /* @__PURE__ */ new Date())
+        .notNull(),
+});
+
+export const trackVersion = pgTable("track_version", {
+    id: text("id").primaryKey(),
+    trackId: text("track_id")
+        .notNull()
+        .references(() => track.id, { onDelete: "cascade" }),
+    versionNumber: integer("version_number").notNull(),
+    audioUrl: text("audio_url").notNull(), // S3 object key
+    notes: text("notes"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .defaultNow()

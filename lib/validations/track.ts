@@ -2,8 +2,10 @@ import { z } from "zod";
 
 export const createTrackSchema = z.object({
   name: z.string().min(1, "Track name is required").max(100, "Track name must be less than 100 characters"),
-  audioUrl: z.string().min(1, "Audio URL is required"),
   projectId: z.uuid("Invalid project ID"),
+  // Initial version data
+  audioUrl: z.string().min(1, "Audio URL is required"), // S3 object key
+  notes: z.string().optional(),
 });
 
 export const updateTrackSchema = z.object({

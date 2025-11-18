@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { track, project } from "@/lib/db/schema";
+import { track, project, trackVersion } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { updateTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { deleteS3File } from "@/lib/storage/s3";
 
-// PATCH /api/tracks/[id] - Update track
+// PATCH /api/tracks/[trackId] - Update track
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ trackId: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -22,7 +22,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id: trackId } = await params;
+    const { trackId } = await params;
 
     // Fetch the track and verify ownership through project
     const trackRecord = await db
@@ -71,10 +71,10 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/tracks/[id] - Delete track and associated file
+// DELETE /api/tracks/[trackId] - Delete track and associated file
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ trackId: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -85,7 +85,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id: trackId } = await params;
+    const { trackId } = await params;
 
     // Fetch the track and verify ownership through project
     const trackRecord = await db
@@ -106,15 +106,26 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Extract the object key from the audioUrl
-    const objectKey = trackRecord[0].track.audioUrl;
-    try {
-      // Delete the file from S3
-      await deleteS3File(objectKey);
-    } catch (error) {
-      console.error("Error deleting file from S3:", error);
-      // Continue with database deletion even if S3 deletion fails
-    }
+    // Get all versions for this track
+    const versions = await db
+      .select()
+      .from(trackVersion)
+      .where(eq(trackVersion.trackId, trackId));
+
+    // Delete all version files from S3
+    const versionDeletePromises = versions.map(async (version) => {
+      try {
+        await deleteS3File(version.audioUrl);
+      } catch (error) {
+        console.error(`Failed to delete version file ${version.audioUrl}:`, error);
+        // Continue deletion even if S3 deletion fails
+      }
+    });
+
+    await Promise.allSettled(versionDeletePromises);
+
+    // Delete all versions from database (will cascade due to FK)
+    await db.delete(trackVersion).where(eq(trackVersion.trackId, trackId));
 
     // Delete the track from database
     await db.delete(track).where(eq(track.id, trackId));

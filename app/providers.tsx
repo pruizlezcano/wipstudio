@@ -34,7 +34,7 @@ export function Providers({ children }: { children: ReactNode }) {
           router.refresh();
         }}
         Link={Link}
-        redirectTo="/user"
+        redirectTo="/projects"
         viewPaths={{
           SIGN_IN: "login",
           SIGN_OUT: "logout",

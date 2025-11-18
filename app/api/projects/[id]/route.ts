@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { project, track } from "@/lib/db/schema";
+import { project, track, trackVersion } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { updateProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
@@ -126,25 +126,36 @@ export async function DELETE(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Fetch all tracks for this project to delete their S3 files
+    // Fetch all tracks for this project
     const tracks = await db
       .select()
       .from(track)
       .where(eq(track.projectId, id));
 
-    // Delete all track files from S3
-    const deletePromises = tracks.map(async (t) => {
-      try {
-        await deleteS3File(t.audioUrl);
-      } catch (error) {
-        console.error(`Failed to delete S3 file ${t.audioUrl}:`, error);
-        // Continue deletion even if S3 deletion fails
-      }
-    });
+    // For each track, fetch and delete all version files from S3
+    const allVersionDeletePromises = tracks.flatMap((t) =>
+      db
+        .select()
+        .from(trackVersion)
+        .where(eq(trackVersion.trackId, t.id))
+        .then((versions) =>
+          versions.map(async (version) => {
+            try {
+              await deleteS3File(version.audioUrl);
+            } catch (error) {
+              console.error(
+                `Failed to delete version file ${version.audioUrl}:`,
+                error
+              );
+            }
+          })
+        )
+        .then((promises) => Promise.allSettled(promises))
+    );
 
-    await Promise.allSettled(deletePromises);
+    await Promise.all(allVersionDeletePromises);
 
-    // Delete the project (tracks will be deleted automatically via cascade)
+    // Delete the project (tracks and versions will be deleted automatically via cascade)
     await db.delete(project).where(eq(project.id, id));
 
     return NextResponse.json({ message: "Project deleted successfully" });
