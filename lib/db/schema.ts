@@ -120,3 +120,38 @@ export const comment = pgTable("comment", {
         .$onUpdate(() => /* @__PURE__ */ new Date())
         .notNull(),
 });
+
+export const projectCollaborator = pgTable("project_collaborator", {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+        .notNull()
+        .references(() => project.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => /* @__PURE__ */ new Date())
+        .notNull(),
+});
+
+export const projectInvitation = pgTable("project_invitation", {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+        .notNull()
+        .references(() => project.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    createdById: text("created_by_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    email: text("email"), // Optional: invite specific email
+    maxUses: integer("max_uses"), // null = unlimited
+    currentUses: integer("current_uses").notNull().default(0),
+    expiresAt: timestamp("expires_at"), // null = never expires
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => /* @__PURE__ */ new Date())
+        .notNull(),
+});

@@ -3,10 +3,11 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
 import { project, track, trackVersion } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { updateProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
 import { deleteS3File } from "@/lib/storage/s3";
+import { checkProjectAccess } from "@/lib/access-control";
 
 // GET /api/projects/[id] - Get single project
 export async function GET(
@@ -24,17 +25,13 @@ export async function GET(
 
     const { id } = await params;
 
-    const projectData = await db
-      .select()
-      .from(project)
-      .where(and(eq(project.id, id), eq(project.ownerId, session.user.id)))
-      .limit(1);
+    const { hasAccess, project } = await checkProjectAccess(id, session.user.id);
 
-    if (projectData.length === 0) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Project not found or access denied." }, { status: 404 });
     }
 
-    return NextResponse.json(projectData[0]);
+    return NextResponse.json(project);
   } catch (error) {
     console.error("Error fetching project:", error);
     return NextResponse.json(
@@ -44,7 +41,7 @@ export async function GET(
   }
 }
 
-// PATCH /api/projects/[id] - Update project
+// PATCH /api/projects/[id] - Update project (owners only)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -62,15 +59,10 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = updateProjectSchema.parse(body);
 
-    // Check if project exists and belongs to user
-    const existingProject = await db
-      .select()
-      .from(project)
-      .where(and(eq(project.id, id), eq(project.ownerId, session.user.id)))
-      .limit(1);
+    const access = await checkProjectAccess(id, session.user.id);
 
-    if (existingProject.length === 0) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    if (!access.hasAccess) {
+      return NextResponse.json({ error: "Project not found or access denied. Only owners can update." }, { status: 404 });
     }
 
     const updatedProject = await db
@@ -99,9 +91,9 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/projects/[id] - Delete project
+// DELETE /api/projects/[id] - Delete project (owner only)
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -115,15 +107,10 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Check if project exists and belongs to user
-    const existingProject = await db
-      .select()
-      .from(project)
-      .where(and(eq(project.id, id), eq(project.ownerId, session.user.id)))
-      .limit(1);
+    const { isOwner } = await checkProjectAccess(id, session.user.id);
 
-    if (existingProject.length === 0) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    if (!isOwner) {
+      return NextResponse.json({ error: "Project not found or access denied. Only owners can delete." }, { status: 404 });
     }
 
     // Fetch all tracks for this project

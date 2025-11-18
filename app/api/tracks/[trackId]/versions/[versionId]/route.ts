@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { updateTrackVersionSchema } from "@/lib/validations/track-version";
 import { z } from "zod";
 import { deleteS3File } from "@/lib/storage/s3";
+import { checkProjectAccess } from "@/lib/access-control";
 
 // PATCH /api/tracks/[trackId]/versions/[versionId] - Update version notes
 export async function PATCH(
@@ -24,7 +25,7 @@ export async function PATCH(
 
     const { trackId, versionId } = await params;
 
-    // Verify track exists and user owns the project
+    // Get track and its project
     const trackRecord = await db
       .select({
         track,
@@ -39,8 +40,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Track not found" }, { status: 404 });
     }
 
-    if (trackRecord[0].project.ownerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check if user has access to project (owner or collaborator)
+    const { hasAccess } = await checkProjectAccess(
+      trackRecord[0].project.id,
+      session.user.id
+    );
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
     }
 
     const body = await request.json();
@@ -94,7 +101,7 @@ export async function DELETE(
 
     const { trackId, versionId } = await params;
 
-    // Verify track exists and user owns the project
+    // Get track and its project
     const trackRecord = await db
       .select({
         track,
@@ -109,8 +116,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Track not found" }, { status: 404 });
     }
 
-    if (trackRecord[0].project.ownerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check if user is owner of the project
+    const { isOwner } = await checkProjectAccess(
+      trackRecord[0].project.id,
+      session.user.id
+    );
+
+    if (!isOwner) {
+      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
     }
 
     // Get the version to delete

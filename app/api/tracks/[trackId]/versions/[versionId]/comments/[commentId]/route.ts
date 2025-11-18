@@ -6,6 +6,7 @@ import { comment, trackVersion, track, project } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { updateCommentSchema } from "@/lib/validations/comment";
 import { z } from "zod";
+import { checkProjectAccess } from "@/lib/access-control";
 
 // PATCH /api/tracks/[trackId]/versions/[versionId]/comments/[commentId] - Update a comment
 export async function PATCH(
@@ -27,37 +28,47 @@ export async function PATCH(
 
     const { trackId, versionId, commentId } = await params;
 
-    // Verify comment exists and user owns it
+    // Verify track exists and get its project
+    const trackRecord = await db
+      .select({ track, project })
+      .from(track)
+      .innerJoin(project, eq(track.projectId, project.id))
+      .where(eq(track.id, trackId))
+      .limit(1);
+
+    if (trackRecord.length === 0) {
+      return NextResponse.json({ error: "Track not found" }, { status: 404 });
+    }
+
+    // Check if user has access to the project (owner or collaborator)
+    const { isOwner } = await checkProjectAccess(
+      trackRecord[0].project.id,
+      session.user.id
+    );
+
+    // Verify user owns the comment OR the project
+    if (
+      !isOwner && session.user.id !== trackRecord[0].project.ownerId
+    ) {
+      return NextResponse.json({ error: "Track not found or access denied. Only owners can update." }, { status: 404 });
+    }
+
+    // Verify comment exists
     const commentRecord = await db
-      .select({
-        comment,
-        version: trackVersion,
-        track,
-        project,
-      })
+      .select()
       .from(comment)
       .innerJoin(trackVersion, eq(comment.versionId, trackVersion.id))
-      .innerJoin(track, eq(trackVersion.trackId, track.id))
-      .innerJoin(project, eq(track.projectId, project.id))
       .where(
         and(
           eq(comment.id, commentId),
           eq(trackVersion.id, versionId),
-          eq(track.id, trackId)
+          eq(trackVersion.trackId, trackId)
         )
       )
       .limit(1);
 
     if (commentRecord.length === 0) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
-    }
-
-    // Verify user owns the comment OR owns the project
-    if (
-      commentRecord[0].comment.userId !== session.user.id &&
-      commentRecord[0].project.ownerId !== session.user.id
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -108,37 +119,47 @@ export async function DELETE(
 
     const { trackId, versionId, commentId } = await params;
 
-    // Verify comment exists and user owns it
+    // Verify track exists and get its project
+    const trackRecord = await db
+      .select({ track, project })
+      .from(track)
+      .innerJoin(project, eq(track.projectId, project.id))
+      .where(eq(track.id, trackId))
+      .limit(1);
+
+    if (trackRecord.length === 0) {
+      return NextResponse.json({ error: "Track not found" }, { status: 404 });
+    }
+
+    // Check if user has access to the project (owner or collaborator)
+    const { isOwner } = await checkProjectAccess(
+      trackRecord[0].project.id,
+      session.user.id
+    );
+
+    // Verify user owns the comment OR the project
+    if (
+      !isOwner && session.user.id !== trackRecord[0].project.ownerId
+    ) {
+      return NextResponse.json({ error: "Track not found or access denied. Only owners can delete." }, { status: 404 });
+    }
+
+    // Verify comment exists
     const commentRecord = await db
-      .select({
-        comment,
-        version: trackVersion,
-        track,
-        project,
-      })
+      .select()
       .from(comment)
       .innerJoin(trackVersion, eq(comment.versionId, trackVersion.id))
-      .innerJoin(track, eq(trackVersion.trackId, track.id))
-      .innerJoin(project, eq(track.projectId, project.id))
       .where(
         and(
           eq(comment.id, commentId),
           eq(trackVersion.id, versionId),
-          eq(track.id, trackId)
+          eq(trackVersion.trackId, trackId)
         )
       )
       .limit(1);
 
     if (commentRecord.length === 0) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
-    }
-
-    // Verify user owns the comment OR owns the project
-    if (
-      commentRecord[0].comment.userId !== session.user.id &&
-      commentRecord[0].project.ownerId !== session.user.id
-    ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Delete the comment (will cascade to replies)

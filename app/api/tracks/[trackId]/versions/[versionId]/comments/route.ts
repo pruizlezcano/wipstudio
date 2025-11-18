@@ -7,6 +7,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { createCommentSchema } from "@/lib/validations/comment";
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { checkProjectAccess } from "@/lib/access-control";
 
 // Type for comment with user and nested replies
 type CommentWithUserAndReplies = {
@@ -60,8 +61,14 @@ export async function GET(
       return NextResponse.json({ error: "Version not found" }, { status: 404 });
     }
 
-    if (versionRecord[0].project.ownerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check if user has access to the project (owner or collaborator)
+    const { hasAccess } = await checkProjectAccess(
+      versionRecord[0].project.id,
+      session.user.id
+    );
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
     }
 
     // Fetch all comments with user info and replies
@@ -149,8 +156,14 @@ export async function POST(
       return NextResponse.json({ error: "Version not found" }, { status: 404 });
     }
 
-    if (versionRecord[0].project.ownerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check if user has access to the project (owner or collaborator)
+    const { hasAccess } = await checkProjectAccess(
+      versionRecord[0].project.id,
+      session.user.id
+    );
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
     }
 
     const body = await request.json();

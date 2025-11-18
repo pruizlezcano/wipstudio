@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { project } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { project, projectCollaborator, user } from "@/lib/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { createProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
 
-// GET /api/projects - List all projects for authenticated user
+// GET /api/projects - List all projects for authenticated user (owned + collaborated)
 export async function GET() {
   try {
     const session = await auth.api.getSession({
@@ -18,13 +18,44 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const projects = await db
-      .select()
+    // Get owned projects
+    const ownedProjects = await db
+      .select({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        ownerId: project.ownerId,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+        role: sql<string>`'owner'`.as('role'),
+        ownerName: user.name,
+      })
       .from(project)
+      .leftJoin(user, eq(project.ownerId, user.id))
       .where(eq(project.ownerId, session.user.id))
       .orderBy(project.createdAt);
 
-    return NextResponse.json(projects);
+    // Get collaborated projects
+    const collaboratedProjects = await db
+      .select({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        ownerId: project.ownerId,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+        role: sql<string>`'collaborator'`.as('role'),
+        ownerName: user.name,
+      })
+      .from(projectCollaborator)
+      .innerJoin(project, eq(projectCollaborator.projectId, project.id))
+      .leftJoin(user, eq(project.ownerId, user.id))
+      .where(eq(projectCollaborator.userId, session.user.id))
+      .orderBy(project.createdAt);
+
+    // Combine and return
+    const allProjects = [...ownedProjects, ...collaboratedProjects];
+    return NextResponse.json(allProjects);
   } catch (error) {
     console.error("Error fetching projects:", error);
     return NextResponse.json(

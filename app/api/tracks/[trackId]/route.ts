@@ -7,6 +7,7 @@ import { eq, desc } from "drizzle-orm";
 import { updateTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { deleteS3File, generatePresignedGetUrl } from "@/lib/storage/s3";
+import { checkProjectAccess } from "@/lib/access-control";
 
 // GET /api/tracks/[trackId] - Get track by ID
 export async function GET(
@@ -24,7 +25,7 @@ export async function GET(
 
     const { trackId } = await params;
 
-    // Fetch the track with latest version and verify ownership
+    // Get track and its project
     const trackRecord = await db
       .select({
         track,
@@ -39,8 +40,14 @@ export async function GET(
       return NextResponse.json({ error: "Track not found" }, { status: 404 });
     }
 
-    if (trackRecord[0].project.ownerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check if user has access to project (owner or collaborator)
+    const { hasAccess } = await checkProjectAccess(
+      trackRecord[0].project.id,
+      session.user.id
+    );
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
     }
 
     // Get latest version
@@ -57,12 +64,12 @@ export async function GET(
       ...trackRecord[0].track,
       latestVersion: latestVersion
         ? {
-            ...latestVersion,
-            audioUrl: await generatePresignedGetUrl(
-              latestVersion.audioUrl,
-              60 * 60
-            ), // 1 hour expiry
-          }
+          ...latestVersion,
+          audioUrl: await generatePresignedGetUrl(
+            latestVersion.audioUrl,
+            60 * 60
+          ), // 1 hour expiry
+        }
         : null,
     });
   } catch (error) {
@@ -90,7 +97,7 @@ export async function PATCH(
 
     const { trackId } = await params;
 
-    // Fetch the track and verify ownership through project
+    // Get track and its project
     const trackRecord = await db
       .select({
         track,
@@ -105,8 +112,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Track not found" }, { status: 404 });
     }
 
-    if (trackRecord[0].project.ownerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check if user has access to project (owner or collaborator)
+    const { hasAccess } = await checkProjectAccess(
+      trackRecord[0].project.id,
+      session.user.id
+    );
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
     }
 
     const body = await request.json();
@@ -153,7 +166,7 @@ export async function DELETE(
 
     const { trackId } = await params;
 
-    // Fetch the track and verify ownership through project
+    // Get track and its project
     const trackRecord = await db
       .select({
         track,
@@ -168,8 +181,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Track not found" }, { status: 404 });
     }
 
-    if (trackRecord[0].project.ownerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check if user is owner (only owners can delete tracks)
+    const { hasAccess } = await checkProjectAccess(
+      trackRecord[0].project.id,
+      session.user.id
+    );
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
     }
 
     // Get all versions for this track

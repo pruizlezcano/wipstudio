@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { track, project, trackVersion } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { track, trackVersion } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { createTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { generatePresignedGetUrl } from "@/lib/storage/s3";
 import { nanoid } from "nanoid";
+import { checkProjectAccess } from "@/lib/access-control";
 
 // GET /api/projects/[id]/tracks - List all tracks for a project
 export async function GET(
@@ -25,18 +26,12 @@ export async function GET(
 
     const { id: projectId } = await params;
 
-    // Verify project ownership
-    const projectRecord = await db
-      .select()
-      .from(project)
-      .where(
-        and(eq(project.id, projectId), eq(project.ownerId, session.user.id))
-      )
-      .limit(1);
+    // Check if user has access to project (owner or collaborator)
+    const { hasAccess } = await checkProjectAccess(projectId, session.user.id);
 
-    if (projectRecord.length === 0) {
+    if (!hasAccess) {
       return NextResponse.json(
-        { error: "Project not found" },
+        { error: "Project not found or access denied." },
         { status: 404 }
       );
     }
@@ -64,12 +59,12 @@ export async function GET(
           ...t,
           latestVersion: latestVersion
             ? {
-                ...latestVersion,
-                audioUrl: await generatePresignedGetUrl(
-                  latestVersion.audioUrl,
-                  60 * 60
-                ), // 1 hour expiry
-              }
+              ...latestVersion,
+              audioUrl: await generatePresignedGetUrl(
+                latestVersion.audioUrl,
+                60 * 60
+              ), // 1 hour expiry
+            }
             : null,
         };
       })
@@ -101,18 +96,12 @@ export async function POST(
 
     const { id: projectId } = await params;
 
-    // Verify project ownership
-    const projectRecord = await db
-      .select()
-      .from(project)
-      .where(
-        and(eq(project.id, projectId), eq(project.ownerId, session.user.id))
-      )
-      .limit(1);
+    // Check if user has access to project (owner or collaborator)
+    const { hasAccess } = await checkProjectAccess(projectId, session.user.id);
 
-    if (projectRecord.length === 0) {
+    if (!hasAccess) {
       return NextResponse.json(
-        { error: "Project not found" },
+        { error: "Project not found or access denied." },
         { status: 404 }
       );
     }

@@ -4,9 +4,7 @@ import { headers } from "next/headers";
 import { generatePresignedPutUrl } from "@/lib/storage/s3";
 import { uploadRequestSchema } from "@/lib/validations/track";
 import { z } from "zod";
-import { db } from "@/lib/db/db";
-import { project } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { checkProjectAccess } from "@/lib/access-control";
 
 // POST /api/upload/presigned - Generate presigned URL for file upload
 export async function POST(request: NextRequest) {
@@ -23,22 +21,13 @@ export async function POST(request: NextRequest) {
     const validatedData = uploadRequestSchema.parse(body);
 
     // Verify user owns the project
-    const projectData = await db
-      .select()
-      .from(project)
-      .where(
-        and(
-          eq(project.id, validatedData.projectId),
-          eq(project.ownerId, session.user.id)
-        )
-      )
-      .limit(1);
+    const { hasAccess } = await checkProjectAccess(
+      validatedData.projectId,
+      session.user.id
+    );
 
-    if (projectData.length === 0) {
-      return NextResponse.json(
-        { error: "Project not found or access denied" },
-        { status: 404 }
-      );
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Project not found or access denied." }, { status: 404 });
     }
 
     // Generate unique file name
