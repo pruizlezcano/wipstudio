@@ -3,10 +3,76 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
 import { track, project, trackVersion } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { updateTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
-import { deleteS3File } from "@/lib/storage/s3";
+import { deleteS3File, generatePresignedGetUrl } from "@/lib/storage/s3";
+
+// GET /api/tracks/[trackId] - Get track by ID
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ trackId: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { trackId } = await params;
+
+    // Fetch the track with latest version and verify ownership
+    const trackRecord = await db
+      .select({
+        track,
+        project,
+      })
+      .from(track)
+      .innerJoin(project, eq(track.projectId, project.id))
+      .where(eq(track.id, trackId))
+      .limit(1);
+
+    if (trackRecord.length === 0) {
+      return NextResponse.json({ error: "Track not found" }, { status: 404 });
+    }
+
+    if (trackRecord[0].project.ownerId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Get latest version
+    const latestVersionResult = await db
+      .select()
+      .from(trackVersion)
+      .where(eq(trackVersion.trackId, trackId))
+      .orderBy(desc(trackVersion.versionNumber))
+      .limit(1);
+
+    const latestVersion = latestVersionResult[0];
+
+    return NextResponse.json({
+      ...trackRecord[0].track,
+      latestVersion: latestVersion
+        ? {
+            ...latestVersion,
+            audioUrl: await generatePresignedGetUrl(
+              latestVersion.audioUrl,
+              60 * 60
+            ), // 1 hour expiry
+          }
+        : null,
+    });
+  } catch (error) {
+    console.error("Error fetching track:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch track" },
+      { status: 500 }
+    );
+  }
+}
 
 // PATCH /api/tracks/[trackId] - Update track
 export async function PATCH(

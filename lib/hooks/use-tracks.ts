@@ -44,6 +44,15 @@ async function fetchTracks(projectId: string): Promise<Track[]> {
   return response.json();
 }
 
+// Fetch a single track
+async function fetchTrack(trackId: string): Promise<Track> {
+  const response = await fetch(`/api/tracks/${trackId}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch track");
+  }
+  return response.json();
+}
+
 // Create track
 async function createTrack({
   projectId,
@@ -139,6 +148,14 @@ export function useTracks(projectId: string) {
     queryKey: trackKeys.list(projectId),
     queryFn: () => fetchTracks(projectId),
     enabled: !!projectId,
+  });
+}
+
+export function useTrack(trackId: string) {
+  return useQuery({
+    queryKey: trackKeys.detail(trackId),
+    queryFn: () => fetchTrack(trackId),
+    enabled: !!trackId,
   });
 }
 
