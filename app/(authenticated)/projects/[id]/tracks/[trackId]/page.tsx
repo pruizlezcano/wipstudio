@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
+import { UserAvatar } from "@daveyplate/better-auth-ui";
 import { useParams, useRouter } from "next/navigation";
 import WaveSurfer from "wavesurfer.js";
 import { Button } from "@/components/ui/button";
@@ -41,14 +49,258 @@ import {
   useUpdateVersion,
   useDeleteVersion,
 } from "@/lib/hooks/use-tracks";
+import {
+  Comment,
+  useComments,
+  useCreateComment,
+  useDeleteComment,
+} from "@/lib/hooks/use-comments";
 
-// Waveform component using WaveSurfer.js
-function Waveform({ audioUrl }: { audioUrl: string }) {
+// Comment Thread Component
+function CommentThread({
+  comment,
+  trackId,
+  versionId,
+  onSeek,
+}: {
+  comment: Comment;
+  trackId: string;
+  versionId: string;
+  onSeek?: (time: number) => void;
+}) {
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+  const createComment = useCreateComment();
+  const deleteComment = useDeleteComment();
+
+  const handleReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyContent.trim()) return;
+
+    await createComment.mutateAsync({
+      trackId,
+      versionId,
+      data: {
+        content: replyContent,
+        parentId: comment.id,
+      },
+    });
+    setReplyContent("");
+    setIsReplying(false);
+  };
+
+  const handleDelete = async (commentId: string) => {
+    await deleteComment.mutateAsync({ trackId, versionId, commentId });
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="space-y-3" id={`comment-${comment.id}`}>
+      <div className="flex gap-3">
+        <div className="shrink-0">
+          <UserAvatar user={comment.user} />
+        </div>
+        <div className="flex-1 space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">{comment.user.name}</span>
+            {comment.timestamp !== null && (
+              <button
+                onClick={() => onSeek?.(comment.timestamp!)}
+                className="text-xs text-orange-600 hover:text-orange-700 font-medium"
+              >
+                {formatTime(comment.timestamp)}
+              </button>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {new Date(comment.createdAt).toLocaleDateString()}
+            </span>
+          </div>
+          <p className="text-sm">{comment.content}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsReplying(!isReplying)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Reply
+            </button>
+            <button
+              onClick={() => handleDelete(comment.id)}
+              className="text-xs text-red-600 hover:text-red-700"
+            >
+              Delete
+            </button>
+          </div>
+
+          {isReplying && (
+            <form onSubmit={handleReply} className="mt-2 space-y-2">
+              <Textarea
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                placeholder="Write a reply..."
+                rows={2}
+                className="text-sm"
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!replyContent.trim() || createComment.isPending}
+                >
+                  {createComment.isPending ? "Posting..." : "Post Reply"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIsReplying(false);
+                    setReplyContent("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* Render replies */}
+          {comment.replies && comment.replies.length > 0 && (
+            <div className="mt-3 space-y-3 pl-4 border-l-2 border-slate-200">
+              {comment.replies.map((reply) => (
+                <CommentThread
+                  key={reply.id}
+                  comment={reply}
+                  trackId={trackId}
+                  versionId={versionId}
+                  onSeek={onSeek}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Comment Form Component
+function CommentForm({
+  trackId,
+  versionId,
+  timestamp,
+  onCancel,
+}: {
+  trackId: string;
+  versionId: string;
+  timestamp?: number;
+  onCancel?: () => void;
+}) {
+  const [content, setContent] = useState("");
+  const createComment = useCreateComment();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim()) return;
+
+    await createComment.mutateAsync({
+      trackId,
+      versionId,
+      data: {
+        content,
+        timestamp,
+      },
+    });
+    setContent("");
+    onCancel?.();
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {timestamp !== undefined && (
+        <div className="text-sm text-muted-foreground">
+          Commenting at {formatTime(timestamp)}
+        </div>
+      )}
+      <Textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder={
+          timestamp !== undefined
+            ? "Add a comment at this timestamp..."
+            : "Add a general comment..."
+        }
+        rows={3}
+      />
+      <div className="flex gap-2">
+        <Button
+          type="submit"
+          disabled={!content.trim() || createComment.isPending}
+        >
+          {createComment.isPending ? "Posting..." : "Post Comment"}
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+// Define the ref type for Waveform
+export interface WaveformRef {
+  seekTo: (time: number) => void;
+}
+
+// Waveform component using WaveSurfer.js with comment markers
+const Waveform = forwardRef<
+  WaveformRef,
+  {
+    audioUrl: string;
+    comments?: Comment[];
+    onTimeClick?: (time: number) => void;
+    onCommentClick?: (commentId: string) => void;
+  }
+>(({ audioUrl, comments = [], onTimeClick, onCommentClick }, ref) => {
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
+  const onTimeClickRef = useRef(onTimeClick);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [duration, setDuration] = useState<number>(0);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+
+  // Expose seekTo method via ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      seekTo: (time: number) => {
+        if (wavesurferRef.current) {
+          wavesurferRef.current.seekTo(
+            time / wavesurferRef.current.getDuration()
+          );
+        }
+      },
+    }),
+    []
+  );
+
+  // Keep ref in sync with prop
+  useEffect(() => {
+    onTimeClickRef.current = onTimeClick;
+  }, [onTimeClick]);
 
   useEffect(() => {
     if (!waveformRef.current) return;
@@ -90,9 +342,21 @@ function Waveform({ audioUrl }: { audioUrl: string }) {
       setIsPlaying(false);
     });
 
+    wavesurfer.on("timeupdate", (time) => {
+      setCurrentTime(time);
+    });
+
     wavesurfer.on("error", (error) => {
       console.error("WaveSurfer error:", error);
       setIsLoading(false);
+    });
+
+    // Handle clicks on waveform to add comments
+    wavesurfer.on("click", (relativeX) => {
+      if (onTimeClickRef.current) {
+        const clickTime = relativeX * wavesurfer.getDuration();
+        onTimeClickRef.current(clickTime);
+      }
     });
 
     // Cleanup
@@ -110,15 +374,48 @@ function Waveform({ audioUrl }: { audioUrl: string }) {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
+  // Get top-level comments with timestamps
+  const timestampComments = comments.filter(
+    (c) => c.timestamp !== null && !c.parentId
+  );
 
   return (
     <div className="space-y-3">
-      <div 
-        ref={waveformRef} 
-        className="border rounded-lg overflow-hidden bg-slate-50"
-      />
+      <div className="relative">
+        <div
+          ref={waveformRef}
+          className="border rounded-lg overflow-visible bg-slate-50 relative pt-4"
+        />
+        {/* React-based comment markers */}
+        {!isLoading &&
+          duration > 0 &&
+          timestampComments.map((comment) => (
+            <div
+              key={comment.id}
+              className="absolute cursor-pointer group"
+              style={{
+                left: `${(comment.timestamp! / duration) * 100}%`,
+                top: "4px",
+                transform: "translateX(-50%)",
+                zIndex: 20,
+                height: "120px",
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCommentClick?.(comment.id);
+              }}
+            >
+              {/* Vertical line */}
+              <div className="absolute w-0.5 bg-orange-500 group-hover:bg-orange-600 transition-colors h-full left-1/2 -translate-x-1/2" />
+
+              {/* Avatar circle */}
+              <UserAvatar user={comment.user} size="sm" />
+            </div>
+          ))}
+      </div>
       {isLoading && (
         <div className="text-sm text-muted-foreground text-center">
           Loading waveform...
@@ -135,13 +432,21 @@ function Waveform({ audioUrl }: { audioUrl: string }) {
         </Button>
         {!isLoading && duration > 0 && (
           <span className="text-sm text-muted-foreground">
-            Duration: {formatTime(duration)}
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+        )}
+        {timestampComments.length > 0 && (
+          <span className="text-sm text-muted-foreground ml-auto">
+            {timestampComments.length} comment
+            {timestampComments.length !== 1 ? "s" : ""} on timeline
           </span>
         )}
       </div>
     </div>
   );
-}
+});
+
+Waveform.displayName = "Waveform";
 
 export default function TrackDetailPage() {
   const params = useParams();
@@ -151,11 +456,17 @@ export default function TrackDetailPage() {
 
   const { data: track, isLoading: trackLoading } = useTrack(trackId);
   const { data: versions, isLoading: versionsLoading } = useVersions(trackId);
+  const { data: comments = [], isLoading: commentsLoading } = useComments(
+    trackId,
+    track?.latestVersion?.id || ""
+  );
   const updateTrack = useUpdateTrack();
   const deleteTrack = useDeleteTrack();
   const uploadVersion = useUploadVersion();
   const updateVersion = useUpdateVersion();
   const deleteVersion = useDeleteVersion();
+
+  const waveformRef = useRef<WaveformRef>(null);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -171,6 +482,10 @@ export default function TrackDetailPage() {
     notes: string;
   } | null>(null);
   const [isEditVersionDialogOpen, setIsEditVersionDialogOpen] = useState(false);
+
+  const [commentTimestamp, setCommentTimestamp] = useState<number | undefined>(
+    0
+  );
 
   const handleEditTrack = () => {
     if (track) {
@@ -226,7 +541,10 @@ export default function TrackDetailPage() {
     }
   };
 
-  const handleEditVersion = (versionId: string, currentNotes: string | null) => {
+  const handleEditVersion = (
+    versionId: string,
+    currentNotes: string | null
+  ) => {
     setEditingVersion({
       versionId,
       notes: currentNotes || "",
@@ -251,6 +569,41 @@ export default function TrackDetailPage() {
     await deleteVersion.mutateAsync({ trackId, versionId });
   };
 
+  const handleWaveformClick = useCallback((time: number) => {
+    setCommentTimestamp(time);
+  }, []);
+
+  const handleSeekToTime = useCallback((time: number) => {
+    // Seek the waveform to the specified time
+    if (waveformRef.current) {
+      waveformRef.current.seekTo(time);
+      // Scroll to the waveform so user can see the playback position
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, []);
+
+  const handleCommentClick = useCallback((commentId: string) => {
+    const commentElement = document.getElementById(`comment-${commentId}`);
+    if (commentElement) {
+      commentElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Add a subtle highlight effect
+      commentElement.classList.add(
+        "ring-2",
+        "ring-orange-500",
+        "ring-opacity-50",
+        "rounded-lg"
+      );
+      setTimeout(() => {
+        commentElement.classList.remove(
+          "ring-2",
+          "ring-orange-500",
+          "ring-opacity-50",
+          "rounded-lg"
+        );
+      }, 2000);
+    }
+  }, []);
+
   if (trackLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -263,7 +616,10 @@ export default function TrackDetailPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <p>Track not found</p>
-        <Button onClick={() => router.push(`/projects/${projectId}`)} className="mt-4">
+        <Button
+          onClick={() => router.push(`/projects/${projectId}`)}
+          className="mt-4"
+        >
           Back to Project
         </Button>
       </div>
@@ -321,9 +677,12 @@ export default function TrackDetailPage() {
         <>
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Latest Version (v{track.latestVersion.versionNumber})</CardTitle>
+              <CardTitle>
+                Latest Version (v{track.latestVersion.versionNumber})
+              </CardTitle>
               <CardDescription>
-                Uploaded {new Date(track.latestVersion.createdAt).toLocaleString()}
+                Uploaded{" "}
+                {new Date(track.latestVersion.createdAt).toLocaleString()}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -335,8 +694,61 @@ export default function TrackDetailPage() {
                   </p>
                 </div>
               )}
-              
-              <Waveform audioUrl={track.latestVersion.audioUrl} />
+
+              <Waveform
+                ref={waveformRef}
+                audioUrl={track.latestVersion.audioUrl}
+                comments={comments}
+                onTimeClick={handleWaveformClick}
+                onCommentClick={handleCommentClick}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Comments Section */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Comments ({comments.length})</CardTitle>
+              <CardDescription>
+                Click on the waveform to add a comment at a specific time
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {track.latestVersion && (
+                <div className="border rounded-lg p-4 bg-slate-50">
+                  <CommentForm
+                    trackId={trackId}
+                    versionId={track.latestVersion.id}
+                    timestamp={commentTimestamp}
+                    onCancel={() => {
+                      setCommentTimestamp(0);
+                    }}
+                  />
+                </div>
+              )}
+
+              {commentsLoading ? (
+                <p className="text-sm text-muted-foreground">
+                  Loading comments...
+                </p>
+              ) : comments.length > 0 ? (
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <CommentThread
+                      key={comment.id}
+                      comment={comment}
+                      trackId={trackId}
+                      versionId={track.latestVersion!.id}
+                      onSeek={handleSeekToTime}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No comments yet. Click on the waveform to add a comment at a
+                  specific time.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -385,7 +797,9 @@ export default function TrackDetailPage() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Version</AlertDialogTitle>
+                                <AlertDialogTitle>
+                                  Delete Version
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
                                   Are you sure you want to delete version{" "}
                                   {version.versionNumber}? This action cannot be
@@ -395,7 +809,9 @@ export default function TrackDetailPage() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => handleDeleteVersion(version.id)}
+                                  onClick={() =>
+                                    handleDeleteVersion(version.id)
+                                  }
                                 >
                                   Delete
                                 </AlertDialogAction>

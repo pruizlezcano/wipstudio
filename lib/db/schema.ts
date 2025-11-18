@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, real, AnyPgColumn } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
     id: text("id").primaryKey(),
@@ -95,6 +95,25 @@ export const trackVersion = pgTable("track_version", {
     versionNumber: integer("version_number").notNull(),
     audioUrl: text("audio_url").notNull(), // S3 object key
     notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => /* @__PURE__ */ new Date())
+        .notNull(),
+});
+
+export const comment = pgTable("comment", {
+    id: text("id").primaryKey(),
+    versionId: text("version_id")
+        .notNull()
+        .references(() => trackVersion.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    timestamp: real("timestamp"), // Audio timestamp in seconds. null == reply
+    parentId: text("parent_id")
+        .references((): AnyPgColumn => comment.id, { onDelete: "cascade" }), // For threaded replies
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .defaultNow()
