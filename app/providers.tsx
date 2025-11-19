@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import { ThemeProvider } from "@/components/theme-provider";
 
 import { authClient } from "@/lib/auth/auth-client";
 
@@ -41,7 +42,14 @@ export function Providers({ children }: { children: ReactNode }) {
           SIGN_UP: "register",
         }}
       >
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </AuthUIProvider>
     </QueryClientProvider>
   );

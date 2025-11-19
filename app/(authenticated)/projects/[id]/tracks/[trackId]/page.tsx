@@ -55,6 +55,7 @@ import {
   useCreateComment,
   useDeleteComment,
 } from "@/lib/hooks/use-comments";
+import { useTheme } from "next-themes";
 
 // Comment Thread Component
 function CommentThread({
@@ -170,7 +171,7 @@ function CommentThread({
 
           {/* Render replies */}
           {comment.replies && comment.replies.length > 0 && (
-            <div className="mt-3 space-y-3 pl-4 border-l-2 border-slate-200">
+            <div className="mt-3 space-y-3 pl-4 border-l">
               {comment.replies.map((reply) => (
                 <CommentThread
                   key={reply.id}
@@ -281,6 +282,7 @@ const Waveform = forwardRef<
   const [isLoading, setIsLoading] = useState(true);
   const [duration, setDuration] = useState<number>(0);
   const [currentTime, setCurrentTime] = useState<number>(0);
+  const { theme } = useTheme();
 
   // Expose seekTo method via ref
   useImperativeHandle(
@@ -305,15 +307,19 @@ const Waveform = forwardRef<
   useEffect(() => {
     if (!waveformRef.current) return;
 
+    // Get theme-aware colors
+    const isDark = theme === "dark";
+
+    const waveColor = isDark ? "hsl(0 0% 35%)" : "hsl(0 0% 65%)";
+    const progressColor = isDark ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)";
+    const cursorColor = isDark ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)";
+
     // Initialize WaveSurfer
     const wavesurfer = WaveSurfer.create({
       container: waveformRef.current,
-      waveColor: "#93c5fd",
-      progressColor: "#3b82f6",
-      cursorColor: "#1e40af",
-      barWidth: 2,
-      barGap: 1,
-      barRadius: 3,
+      waveColor,
+      progressColor,
+      cursorColor,
       height: 120,
       normalize: true,
       backend: "WebAudio",
@@ -363,7 +369,7 @@ const Waveform = forwardRef<
     return () => {
       wavesurfer.destroy();
     };
-  }, [audioUrl]);
+  }, [audioUrl, theme]);
 
   const handlePlayPause = () => {
     if (wavesurferRef.current) {
@@ -385,11 +391,12 @@ const Waveform = forwardRef<
   return (
     <div className="space-y-3">
       <div className="relative">
-        <div
-          ref={waveformRef}
-          className="border rounded-lg overflow-visible bg-slate-50 relative pt-4"
-        />
-        {/* React-based comment markers */}
+        <div ref={waveformRef} className="overflow-visible relative pt-4" />
+        {isLoading && (
+          <div className="container mx-auto py-12 flex flex-col items-center justify-center gap-4">
+            <div className="size-12 border border-foreground/50 animate-spin" />
+          </div>
+        )}
         {!isLoading &&
           duration > 0 &&
           timestampComments.map((comment) => (
@@ -416,11 +423,6 @@ const Waveform = forwardRef<
             </div>
           ))}
       </div>
-      {isLoading && (
-        <div className="text-sm text-muted-foreground text-center">
-          Loading waveform...
-        </div>
-      )}
       <div className="flex items-center gap-2">
         <Button
           onClick={handlePlayPause}
@@ -589,16 +591,14 @@ export default function TrackDetailPage() {
       // Add a subtle highlight effect
       commentElement.classList.add(
         "ring-2",
-        "ring-orange-500",
-        "ring-opacity-50",
-        "rounded-lg"
+        "ring-foreground",
+        "ring-opacity-50"
       );
       setTimeout(() => {
         commentElement.classList.remove(
           "ring-2",
-          "ring-orange-500",
-          "ring-opacity-50",
-          "rounded-lg"
+          "ring-foreground",
+          "ring-opacity-50"
         );
       }, 2000);
     }
@@ -606,8 +606,11 @@ export default function TrackDetailPage() {
 
   if (trackLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p>Loading track...</p>
+      <div className="container mx-auto py-12 flex flex-col items-center justify-center gap-4 min-h-screen">
+        <div className="size-12 border border-foreground/50 animate-spin" />
+        <h1 className="text-2xl font-bold uppercase tracking-tighter mb-2">
+          BACKSTAGE
+        </h1>
       </div>
     );
   }
@@ -627,7 +630,7 @@ export default function TrackDetailPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto py-12 max-w-6xl px-6 min-h-screen">
       <div className="mb-6">
         <Button
           variant="outline"
@@ -639,8 +642,10 @@ export default function TrackDetailPage() {
 
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{track.name}</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold mb-2 uppercase tracking-tighter">
+              {track.name}
+            </h1>
+            <p className="text-muted-foreground text-xs font-medium uppercase tracking-tight">
               Created {new Date(track.createdAt).toLocaleDateString()}
             </p>
           </div>
@@ -715,7 +720,7 @@ export default function TrackDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {track.latestVersion && (
-                <div className="border rounded-lg p-4 bg-slate-50">
+                <div className="border rounded-lg p-4">
                   <CommentForm
                     trackId={trackId}
                     versionId={track.latestVersion.id}
@@ -744,7 +749,7 @@ export default function TrackDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground uppercase font-medium tracking-tight">
                   No comments yet. Click on the waveform to add a comment at a
                   specific time.
                 </p>
@@ -755,7 +760,7 @@ export default function TrackDetailPage() {
           {/* Version History */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold">
+              <h2 className="text-2xl font-bold uppercase tracking-tighter">
                 All Versions ({versions?.length || 0})
               </h2>
               <Button onClick={() => setIsUploadDialogOpen(true)}>
@@ -764,7 +769,9 @@ export default function TrackDetailPage() {
             </div>
 
             {versionsLoading ? (
-              <p>Loading versions...</p>
+              <div className="flex items-center justify-center py-12">
+                <div className="h-8 w-8 animate-spin border-2 border-foreground border-t-transparent" />
+              </div>
             ) : versions && versions.length > 0 ? (
               <div className="space-y-4">
                 {versions.map((version) => (

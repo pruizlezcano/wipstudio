@@ -107,25 +107,30 @@ export default function ProjectsPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="container mx-auto py-12 flex flex-col items-center justify-center gap-4 min-h-screen">
+        <div className="size-12 border border-foreground/50 animate-spin" />
+        <h1 className="text-2xl font-bold uppercase tracking-tighter mb-2">
+          BACKSTAGE
+        </h1>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
-      <div className="flex items-center justify-between mb-8">
+    <div className="container mx-auto py-12 max-w-6xl px-6 min-h-screen">
+      <div className="flex items-start justify-between mb-12 flex-col sm:flex-row gap-6 sm:gap-0">
         <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground">
-            Manage your audio collaboration projects
+          <h1 className="text-2xl font-bold uppercase tracking-tighter mb-2">
+            PROJECTS
+          </h1>
+          <p className="text-muted-foreground text-xs font-medium">
+            AUDIO COLLABORATION WORKSPACE
           </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="h-4 w-4" />
               New Project
             </Button>
           </DialogTrigger>
@@ -146,12 +151,12 @@ export default function ProjectsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    placeholder="My Awesome Track"
+                    placeholder="MY AWESOME TRACK"
                     required
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
@@ -178,11 +183,11 @@ export default function ProjectsPage() {
                 <Button type="submit" disabled={createProject.isPending}>
                   {createProject.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Creating...
                     </>
                   ) : (
-                    "Create Project"
+                    "Create"
                   )}
                 </Button>
               </DialogFooter>
@@ -192,57 +197,86 @@ export default function ProjectsPage() {
       </div>
 
       {!projects || projects.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Music className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-center mb-4">
-              No projects yet. Create your first audio collaboration project!
+        <Card className="py-16">
+          <CardContent className="flex flex-col items-center justify-center">
+            <div className="w-16 h-16 border border-border flex items-center justify-center mb-6">
+              <Music className="h-8 w-8 text-foreground" />
+            </div>
+            <p className="text-muted-foreground text-xs text-center mb-6 font-medium uppercase tracking-tight">
+              No projects yet
             </p>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button
+              onClick={() => setIsCreateDialogOpen(true)}
+              variant="accent"
+            >
+              <Plus className="h-4 w-4" />
               Create Project
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Card key={project.id}>
-              <CardHeader>
-                <CardTitle className="flex items-start justify-between">
-                  <span className="line-clamp-1">{project.name}</span>
-                  <div className="flex gap-1">
+            <Card
+              key={project.id}
+              className="hover:border-foreground transition-[border-color] duration-0 cursor-pointer"
+              onClick={() => router.push(`/projects/${project.id}`)}
+            >
+              <CardHeader className="border-b">
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="flex-1 line-clamp-1">
+                    {project.name}
+                  </CardTitle>
+                  <div
+                    className="flex gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Button
                       variant="ghost"
-                      size="icon"
-                      onClick={() => openEditDialog(project)}
+                      size="icon-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditDialog(project);
+                      }}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-3 w-3" />
                     </Button>
                     <Button
                       variant="ghost"
-                      size="icon"
-                      onClick={() => openDeleteDialog(project)}
+                      size="icon-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeleteDialog(project);
+                      }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
-                </CardTitle>
+                </div>
                 <CardDescription className="line-clamp-2">
-                  {project.description || "No description"}
+                  {project.description || "NO DESCRIPTION"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    Created {new Date(project.createdAt).toLocaleDateString()}
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {new Date(project.createdAt)
+                      .toLocaleDateString("en-US", {
+                        year: "2-digit",
+                        month: "2-digit",
+                        day: "2-digit",
+                      })
+                      .replace(/\//g, ".")}
                   </p>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={() => router.push(`/projects/${project.id}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/projects/${project.id}`);
+                    }}
                   >
-                    View Tracks
+                    View →
                   </Button>
                 </div>
               </CardContent>
@@ -270,12 +304,12 @@ export default function ProjectsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  placeholder="My Awesome Track"
+                  placeholder="MY AWESOME TRACK"
                   required
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-description">Description (Optional)</Label>
+                <Label htmlFor="edit-description">Description</Label>
                 <Textarea
                   id="edit-description"
                   value={formData.description}
@@ -306,11 +340,11 @@ export default function ProjectsPage() {
               <Button type="submit" disabled={updateProject.isPending}>
                 {updateProject.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Updating...
                   </>
                 ) : (
-                  "Update Project"
+                  "Update"
                 )}
               </Button>
             </DialogFooter>
@@ -325,11 +359,10 @@ export default function ProjectsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Project?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the project &quot;
-              {selectedProject?.name}
-              &quot;. This action cannot be undone.
+              This will permanently delete &quot;{selectedProject?.name}&quot;.
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -345,11 +378,11 @@ export default function ProjectsPage() {
             <AlertDialogAction
               onClick={handleDeleteProject}
               disabled={deleteProject.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white border-destructive hover:bg-white hover:text-destructive hover:border-destructive"
             >
               {deleteProject.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Deleting...
                 </>
               ) : (

@@ -44,34 +44,51 @@ import {
 } from "@/lib/hooks/use-collaborators";
 import { toast } from "sonner";
 
-// Simple TrackCard component for grid view
-function TrackCard({ track, projectId }: { track: Track; projectId: string }) {
+// Track list item component with TE aesthetic
+function TrackListItem({
+  track,
+  projectId,
+}: {
+  track: Track;
+  projectId: string;
+}) {
   const router = useRouter();
 
   return (
-    <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow"
+    <div
+      className="border border-border bg-card hover:border-foreground transition-colors cursor-pointer flex items-center justify-between p-4 gap-4"
       onClick={() => router.push(`/projects/${projectId}/tracks/${track.id}`)}
     >
-      <CardHeader>
-        <CardTitle>{track.name}</CardTitle>
-        <CardDescription>
-          Created {new Date(track.createdAt).toLocaleDateString()}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-3">
+          <h3 className="text-sm font-bold uppercase tracking-tight truncate">
+            {track.name}
+          </h3>
           {track.latestVersion && (
-            <span className="ml-2">
-              • Version {track.latestVersion.versionNumber}
+            <span className="text-xs font-mono text-muted-foreground shrink-0">
+              V{track.latestVersion.versionNumber}
             </span>
           )}
-        </CardDescription>
-      </CardHeader>
-      {track.latestVersion?.notes && (
-        <CardContent>
-          <p className="text-sm text-muted-foreground line-clamp-2">
+        </div>
+        {track.latestVersion?.notes && (
+          <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
             {track.latestVersion.notes}
           </p>
-        </CardContent>
-      )}
-    </Card>
+        )}
+      </div>
+      <div className="flex items-center gap-4 shrink-0">
+        <span className="text-xs font-mono text-muted-foreground">
+          {new Date(track.createdAt)
+            .toLocaleDateString("en-US", {
+              year: "2-digit",
+              month: "2-digit",
+              day: "2-digit",
+            })
+            .replace(/\//g, ".")}
+        </span>
+        <div className="text-xs font-bold uppercase tracking-tight">VIEW →</div>
+      </div>
+    </div>
   );
 }
 
@@ -211,8 +228,11 @@ export default function ProjectDetailPage() {
 
   if (projectLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p>Loading project...</p>
+      <div className="container mx-auto py-12 flex flex-col items-center justify-center gap-4 min-h-screen">
+        <div className="size-12 border border-foreground/50 animate-spin" />
+        <h1 className="text-2xl font-bold uppercase tracking-tighter mb-2">
+          BACKSTAGE
+        </h1>
       </div>
     );
   }
@@ -229,7 +249,7 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto py-12 max-w-6xl px-6 min-h-screen">
       <div className="mb-6">
         <Button
           variant="outline"
@@ -327,17 +347,19 @@ export default function ProjectDetailPage() {
       </div>
 
       {tracksLoading ? (
-        <p>Loading tracks...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="size-12 border border-foreground/50 animate-spin" />
+        </div>
       ) : tracks && tracks.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col gap-2">
           {tracks.map((track) => (
-            <TrackCard key={track.id} track={track} projectId={projectId} />
+            <TrackListItem key={track.id} track={track} projectId={projectId} />
           ))}
         </div>
       ) : (
         <Card>
           <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground mb-4 uppercase text-xs font-bold tracking-tight">
               No tracks yet. Upload your first track to get started.
             </p>
           </CardContent>
