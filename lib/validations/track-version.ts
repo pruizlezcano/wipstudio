@@ -8,3 +8,7 @@ export const createTrackVersionSchema = z.object({
 export const updateTrackVersionSchema = z.object({
   notes: z.string().optional(),
 });
+
+export const setMasterVersionSchema = z.object({
+  isMaster: z.boolean(),
+});

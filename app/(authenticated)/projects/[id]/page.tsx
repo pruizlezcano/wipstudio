@@ -64,17 +64,10 @@ function TrackListItem({
           <h3 className="text-sm font-bold uppercase tracking-tight truncate">
             {track.name}
           </h3>
-          {track.latestVersion && (
-            <span className="text-xs font-mono text-muted-foreground shrink-0">
-              V{track.latestVersion.versionNumber}
-            </span>
-          )}
+          <span className="text-xs font-mono text-muted-foreground shrink-0">
+            {track.versionCount} versions
+          </span>
         </div>
-        {track.latestVersion?.notes && (
-          <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
-            {track.latestVersion.notes}
-          </p>
-        )}
       </div>
       <div className="flex items-center gap-4 shrink-0">
         <span className="text-xs font-mono text-muted-foreground">

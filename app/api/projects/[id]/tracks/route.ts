@@ -3,10 +3,9 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
 import { track, trackVersion } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { createTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
-import { generatePresignedGetUrl } from "@/lib/storage/s3";
 import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
 
@@ -43,29 +42,20 @@ export async function GET(
       .where(eq(track.projectId, projectId))
       .orderBy(track.createdAt);
 
-    // For each track, fetch the latest version
+    // For each track, fetch the master version (or latest) and version count
     const tracksWithVersions = await Promise.all(
       tracks.map(async (t) => {
-        const versions = await db
-          .select()
+        // Get version count
+        const versionCountResult = await db
+          .select({ count: count() })
           .from(trackVersion)
-          .where(eq(trackVersion.trackId, t.id))
-          .orderBy(desc(trackVersion.versionNumber))
-          .limit(1);
+          .where(eq(trackVersion.trackId, t.id));
 
-        const latestVersion = versions[0];
+        const versionCount = versionCountResult[0]?.count || 0;
 
         return {
           ...t,
-          latestVersion: latestVersion
-            ? {
-              ...latestVersion,
-              audioUrl: await generatePresignedGetUrl(
-                latestVersion.audioUrl,
-                60 * 60
-              ), // 1 hour expiry
-            }
-            : null,
+          versionCount,
         };
       })
     );
@@ -123,7 +113,7 @@ export async function POST(
       .returning();
 
     // Create initial version (version 1) with the audio file
-    const initialVersion = await db
+    await db
       .insert(trackVersion)
       .values({
         id: nanoid(),
@@ -132,12 +122,11 @@ export async function POST(
         audioUrl: validatedData.audioUrl,
         notes: validatedData.notes,
       })
-      .returning();
 
     return NextResponse.json(
       {
         ...newTrack[0],
-        latestVersion: initialVersion[0],
+        versionCount: 1,
       },
       { status: 201 }
     );

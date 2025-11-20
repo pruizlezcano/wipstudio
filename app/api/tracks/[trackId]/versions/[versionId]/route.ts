@@ -3,13 +3,13 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
 import { trackVersion, track, project } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { updateTrackVersionSchema } from "@/lib/validations/track-version";
+import { desc, eq } from "drizzle-orm";
+import { updateTrackVersionSchema, setMasterVersionSchema } from "@/lib/validations/track-version";
 import { z } from "zod";
 import { deleteS3File } from "@/lib/storage/s3";
 import { checkProjectAccess } from "@/lib/access-control";
 
-// PATCH /api/tracks/[trackId]/versions/[versionId] - Update version notes
+// PATCH /api/tracks/[trackId]/versions/[versionId] - Update version notes or set as master
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ trackId: string; versionId: string }> }
@@ -51,6 +51,37 @@ export async function PATCH(
     }
 
     const body = await request.json();
+
+    // Check if this is a setMaster request
+    if ('isMaster' in body) {
+      const validatedData = setMasterVersionSchema.parse(body);
+
+      if (validatedData.isMaster) {
+        // First, unset any existing master for this track
+        await db
+          .update(trackVersion)
+          .set({ isMaster: false })
+          .where(eq(trackVersion.trackId, trackId));
+
+        // Then set this version as master
+        const updatedVersion = await db
+          .update(trackVersion)
+          .set({ isMaster: true })
+          .where(eq(trackVersion.id, versionId))
+          .returning();
+
+        if (updatedVersion.length === 0) {
+          return NextResponse.json(
+            { error: "Version not found" },
+            { status: 404 }
+          );
+        }
+
+        return NextResponse.json(updatedVersion[0]);
+      }
+    }
+
+    // Otherwise, update notes
     const validatedData = updateTrackVersionSchema.parse(body);
 
     const updatedVersion = await db
@@ -150,6 +181,23 @@ export async function DELETE(
 
     // Delete the version from database
     await db.delete(trackVersion).where(eq(trackVersion.id, versionId));
+
+    // Set latest version as master if the deleted one was master
+    if (versionRecord[0].isMaster) {
+      const latestVersion = await db
+        .select()
+        .from(trackVersion)
+        .where(eq(trackVersion.trackId, trackId))
+        .orderBy(desc(trackVersion.createdAt))
+        .limit(1);
+
+      if (latestVersion.length > 0) {
+        await db
+          .update(trackVersion)
+          .set({ isMaster: true })
+          .where(eq(trackVersion.id, latestVersion[0].id));
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

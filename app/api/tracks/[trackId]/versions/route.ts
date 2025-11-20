@@ -134,7 +134,13 @@ export async function POST(
     const nextVersionNumber =
       latestVersion.length > 0 ? latestVersion[0].versionNumber + 1 : 1;
 
-    // Create new version
+    // Unset any existing master for this track
+    await db
+      .update(trackVersion)
+      .set({ isMaster: false })
+      .where(eq(trackVersion.trackId, trackId));
+
+    // Create new version as master
     const newVersion = await db
       .insert(trackVersion)
       .values({
@@ -143,6 +149,7 @@ export async function POST(
         versionNumber: nextVersionNumber,
         audioUrl: validatedData.audioUrl,
         notes: validatedData.notes,
+        isMaster: true,
       })
       .returning();
 

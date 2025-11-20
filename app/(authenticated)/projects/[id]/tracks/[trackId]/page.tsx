@@ -20,6 +20,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -37,6 +44,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +56,7 @@ import {
   useUploadVersion,
   useUpdateVersion,
   useDeleteVersion,
+  useSetMasterVersion,
 } from "@/lib/hooks/use-tracks";
 import {
   Comment,
@@ -458,17 +467,38 @@ export default function TrackDetailPage() {
 
   const { data: track, isLoading: trackLoading } = useTrack(trackId);
   const { data: versions, isLoading: versionsLoading } = useVersions(trackId);
-  const { data: comments = [], isLoading: commentsLoading } = useComments(
-    trackId,
-    track?.latestVersion?.id || ""
-  );
   const updateTrack = useUpdateTrack();
   const deleteTrack = useDeleteTrack();
   const uploadVersion = useUploadVersion();
   const updateVersion = useUpdateVersion();
   const deleteVersion = useDeleteVersion();
+  const setMasterVersion = useSetMasterVersion();
 
   const waveformRef = useRef<WaveformRef>(null);
+
+  // Find master version
+  const defaultVersion = versions?.find((v) => v.isMaster);
+
+  // State for selected version (for viewing waveform/comments)
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
+    null
+  );
+
+  // Update selectedVersionId when defaultVersion changes
+  useEffect(() => {
+    if (defaultVersion && !selectedVersionId) {
+      setSelectedVersionId(defaultVersion.id);
+    }
+  }, [defaultVersion, selectedVersionId]);
+
+  // Get the currently selected version object
+  const selectedVersion = versions?.find((v) => v.id === selectedVersionId);
+
+  // Fetch comments for the selected version
+  const { data: comments = [], isLoading: commentsLoading } = useComments(
+    trackId,
+    selectedVersionId || ""
+  );
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -568,7 +598,27 @@ export default function TrackDetailPage() {
   };
 
   const handleDeleteVersion = async (versionId: string) => {
+    // If deleting the currently selected version, switch to another one first
+    if (versionId === selectedVersionId) {
+      const remainingVersions = versions?.filter((v) => v.id !== versionId);
+      if (remainingVersions && remainingVersions.length > 0) {
+        // Select master version if available, otherwise the first one
+        const nextVersion =
+          remainingVersions.find((v) => v.isMaster) || remainingVersions[0];
+        setSelectedVersionId(nextVersion.id);
+      }
+    }
     await deleteVersion.mutateAsync({ trackId, versionId });
+  };
+
+  const handleSetMasterVersion = async (versionId: string) => {
+    await setMasterVersion.mutateAsync({ trackId, versionId });
+  };
+
+  const handleSelectVersion = (versionId: string) => {
+    setSelectedVersionId(versionId);
+    // Scroll to the waveform smoothly
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleWaveformClick = useCallback((time: number) => {
@@ -629,6 +679,17 @@ export default function TrackDetailPage() {
     );
   }
 
+  if (versionsLoading) {
+    return (
+      <div className="container mx-auto py-12 flex flex-col items-center justify-center gap-4 min-h-screen">
+        <div className="size-12 border border-foreground/50 animate-spin" />
+        <h1 className="text-2xl font-bold uppercase tracking-tighter mb-2">
+          BACKSTAGE
+        </h1>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-12 max-w-6xl px-6 min-h-screen">
       <div className="mb-6">
@@ -678,40 +739,120 @@ export default function TrackDetailPage() {
         </div>
       </div>
 
-      {track.latestVersion ? (
+      {track.versionCount > 0 ? (
         <>
+          {/* Version Selector */}
+          <div className="mb-2 flex items-center gap-2 flex-wrap">
+            <Select
+              value={selectedVersionId || ""}
+              onValueChange={handleSelectVersion}
+            >
+              <SelectTrigger className="border-foreground" size="sm">
+                <SelectValue placeholder="Select version" />
+              </SelectTrigger>
+              <SelectContent>
+                {versions?.map((version) => (
+                  <SelectItem key={version.id} value={version.id}>
+                    v{version.versionNumber}
+                    {version.isMaster && (
+                      <Badge className="ml-2 text-xs">MASTER</Badge>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedVersion && !selectedVersion.isMaster && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSetMasterVersion(selectedVersion.id)}
+                disabled={setMasterVersion.isPending}
+              >
+                Set as Master
+              </Button>
+            )}
+            {selectedVersion && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleEditVersion(selectedVersion.id, selectedVersion.notes)
+                }
+              >
+                Edit Notes
+              </Button>
+            )}
+            {selectedVersion && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    Delete Version
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Version</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete version{" "}
+                      {selectedVersion.versionNumber}? This action cannot be
+                      undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => handleDeleteVersion(selectedVersion.id)}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <div className="ml-auto">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsUploadDialogOpen(true)}
+              >
+                + New Version
+              </Button>
+            </div>
+          </div>
+
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>
-                Latest Version (v{track.latestVersion.versionNumber})
-              </CardTitle>
-              <CardDescription>
-                Uploaded{" "}
-                {new Date(track.latestVersion.createdAt).toLocaleString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {track.latestVersion.notes && (
-                <div>
-                  <p className="text-sm font-medium mb-1">Notes:</p>
-                  <p className="text-sm text-muted-foreground">
-                    {track.latestVersion.notes}
-                  </p>
-                </div>
+              <div className="flex items-center gap-2">
+                <CardTitle>
+                  {selectedVersion
+                    ? `v${selectedVersion.versionNumber}`
+                    : "Select a version"}
+                </CardTitle>
+                {selectedVersion?.isMaster && (
+                  <Badge className="text-xs">MASTER</Badge>
+                )}
+              </div>
+              {selectedVersion?.notes && (
+                <CardDescription className="mt-2">
+                  {selectedVersion.notes}
+                </CardDescription>
               )}
-
-              <Waveform
-                ref={waveformRef}
-                audioUrl={track.latestVersion.audioUrl}
-                comments={comments}
-                onTimeClick={handleWaveformClick}
-                onCommentClick={handleCommentClick}
-              />
+            </CardHeader>
+            <CardContent>
+              {selectedVersion && (
+                <Waveform
+                  ref={waveformRef}
+                  audioUrl={selectedVersion.audioUrl}
+                  comments={comments}
+                  onTimeClick={handleWaveformClick}
+                  onCommentClick={handleCommentClick}
+                />
+              )}
             </CardContent>
           </Card>
 
           {/* Comments Section */}
-          <Card className="mb-6">
+          <Card>
             <CardHeader>
               <CardTitle>Comments ({comments.length})</CardTitle>
               <CardDescription>
@@ -719,11 +860,11 @@ export default function TrackDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {track.latestVersion && (
-                <div className="border rounded-lg p-4">
+              {selectedVersion && (
+                <div className="rounded-lg border bg-card p-4">
                   <CommentForm
                     trackId={trackId}
-                    versionId={track.latestVersion.id}
+                    versionId={selectedVersion.id}
                     timestamp={commentTimestamp}
                     onCancel={() => {
                       setCommentTimestamp(0);
@@ -743,7 +884,7 @@ export default function TrackDetailPage() {
                       key={comment.id}
                       comment={comment}
                       trackId={trackId}
-                      versionId={track.latestVersion!.id}
+                      versionId={selectedVersion!.id}
                       onSeek={handleSeekToTime}
                     />
                   ))}
@@ -756,96 +897,6 @@ export default function TrackDetailPage() {
               )}
             </CardContent>
           </Card>
-
-          {/* Version History */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold uppercase tracking-tighter">
-                All Versions ({versions?.length || 0})
-              </h2>
-              <Button onClick={() => setIsUploadDialogOpen(true)}>
-                + New Version
-              </Button>
-            </div>
-
-            {versionsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="h-8 w-8 animate-spin border-2 border-foreground border-t-transparent" />
-              </div>
-            ) : versions && versions.length > 0 ? (
-              <div className="space-y-4">
-                {versions.map((version) => (
-                  <Card key={version.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-lg">
-                            Version {version.versionNumber}
-                          </CardTitle>
-                          <CardDescription>
-                            {new Date(version.createdAt).toLocaleString()}
-                          </CardDescription>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              handleEditVersion(version.id, version.notes)
-                            }
-                          >
-                            Edit Notes
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm">
-                                Delete
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete Version
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete version{" "}
-                                  {version.versionNumber}? This action cannot be
-                                  undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDeleteVersion(version.id)
-                                  }
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {version.notes && (
-                        <p className="text-sm text-muted-foreground">
-                          {version.notes}
-                        </p>
-                      )}
-                      <audio controls className="w-full">
-                        <source src={version.audioUrl} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                      </audio>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No versions found</p>
-            )}
-          </div>
         </>
       ) : (
         <Card>

@@ -8,6 +8,7 @@ export interface TrackVersion {
   versionNumber: number;
   audioUrl: string;
   notes: string | null;
+  isMaster: boolean;
   createdAt: string;
 }
 
@@ -17,7 +18,7 @@ export interface Track {
   projectId: string;
   createdAt: string;
   updatedAt: string;
-  latestVersion: TrackVersion | null;
+  versionCount: number;
 }
 
 export interface PresignedUrlResponse {
@@ -443,6 +444,52 @@ export function useUploadVersion() {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to upload version");
+    },
+  });
+}
+
+// Set version as master
+async function setMasterVersion({
+  trackId,
+  versionId,
+}: {
+  trackId: string;
+  versionId: string;
+}): Promise<TrackVersion> {
+  const response = await fetch(`/api/tracks/${trackId}/versions/${versionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isMaster: true }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to set master version");
+  }
+
+  return response.json();
+}
+
+export function useSetMasterVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: setMasterVersion,
+    onSuccess: (updatedVersion) => {
+      // Invalidate versions list to reflect master change
+      queryClient.invalidateQueries({
+        queryKey: trackKeys.versions(updatedVersion.trackId),
+      });
+      // Invalidate track detail to update UI
+      queryClient.invalidateQueries({
+        queryKey: trackKeys.detail(updatedVersion.trackId),
+      });
+      // Invalidate track lists to update latest version
+      queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
+      toast.success("Master version updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }

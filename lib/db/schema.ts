@@ -95,6 +95,7 @@ export const trackVersion = pgTable("track_version", {
     versionNumber: integer("version_number").notNull(),
     audioUrl: text("audio_url").notNull(), // S3 object key
     notes: text("notes"),
+    isMaster: boolean("is_master").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .defaultNow()

@@ -3,10 +3,10 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
 import { track, project, trackVersion } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { updateTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
-import { deleteS3File, generatePresignedGetUrl } from "@/lib/storage/s3";
+import { deleteS3File } from "@/lib/storage/s3";
 import { checkProjectAccess } from "@/lib/access-control";
 
 // GET /api/tracks/[trackId] - Get track by ID
@@ -50,27 +50,17 @@ export async function GET(
       return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
     }
 
-    // Get latest version
-    const latestVersionResult = await db
-      .select()
+    // Get version count
+    const versionCountResult = await db
+      .select({ count: count() })
       .from(trackVersion)
-      .where(eq(trackVersion.trackId, trackId))
-      .orderBy(desc(trackVersion.versionNumber))
-      .limit(1);
+      .where(eq(trackVersion.trackId, trackId));
 
-    const latestVersion = latestVersionResult[0];
+    const versionCount = versionCountResult[0]?.count || 0;
 
     return NextResponse.json({
       ...trackRecord[0].track,
-      latestVersion: latestVersion
-        ? {
-          ...latestVersion,
-          audioUrl: await generatePresignedGetUrl(
-            latestVersion.audioUrl,
-            60 * 60
-          ), // 1 hour expiry
-        }
-        : null,
+      versionCount,
     });
   } catch (error) {
     console.error("Error fetching track:", error);
