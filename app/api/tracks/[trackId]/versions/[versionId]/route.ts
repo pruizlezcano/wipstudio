@@ -171,6 +171,19 @@ export async function DELETE(
       );
     }
 
+    // Check if this is the only version for the track
+    const versionCount = await db
+      .select()
+      .from(trackVersion)
+      .where(eq(trackVersion.trackId, trackId));
+
+    if (versionCount.length === 1) {
+      return NextResponse.json(
+        { error: "Cannot delete the only version of a track" },
+        { status: 400 }
+      );
+    }
+
     // Delete the file from S3
     try {
       await deleteS3File(versionRecord[0].audioUrl);

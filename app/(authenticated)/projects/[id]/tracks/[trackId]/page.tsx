@@ -792,7 +792,11 @@ export default function TrackDetailPage() {
             {selectedVersion && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={versions?.length === 1}
+                  >
                     Delete Version
                   </Button>
                 </AlertDialogTrigger>
