@@ -413,6 +413,12 @@ function Waveform({
             ws.setVolume(0);
             setWaveSurfer(ws);
             setIsLoading(false);
+
+            // Add click handler that always works, independent of global player
+            ws.on("click", (relativeTime) => {
+              const absoluteTime = relativeTime * ws.getDuration();
+              onTimeClick?.(absoluteTime);
+            });
           }}
           onPlay={() => {
             if (playerVersion?.id !== version.id) {
@@ -475,9 +481,10 @@ export default function TrackDetailPage() {
 
   // Get the currently selected version object based on URL param
   // If no param, default to master version
-  const selectedVersion = versionNumberParam !== null
-    ? versions?.find((v) => v.versionNumber === versionNumberParam)
-    : defaultVersion;
+  const selectedVersion =
+    versionNumberParam !== null
+      ? versions?.find((v) => v.versionNumber === versionNumberParam)
+      : defaultVersion;
 
   // Track the previous master version ID to detect new uploads
   const previousMasterIdRef = useRef<string | null>(null);
@@ -647,11 +654,12 @@ export default function TrackDetailPage() {
 
   const handleSelectVersion = (versionNumber: number) => {
     setVersionNumberParam(versionNumber);
+    setCommentTimestamp(0);
   };
 
-  const handleWaveformClick = (time: number) => {
+  const handleWaveformClick = useCallback((time: number) => {
     setCommentTimestamp(time);
-  };
+  }, []);
 
   const handleSeekToTime = (time: number) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
