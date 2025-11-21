@@ -43,6 +43,7 @@ import {
   useRemoveCollaborator,
 } from "@/lib/hooks/use-collaborators";
 import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 // Track list item component with TE aesthetic
 function TrackListItem({
@@ -106,6 +107,7 @@ export default function ProjectDetailPage() {
   const [trackName, setTrackName] = useState("");
   const [trackNotes, setTrackNotes] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Invitation dialog state
@@ -141,17 +143,22 @@ export default function ProjectDetailPage() {
     if (!selectedFile || !trackName) return;
 
     setIsUploading(true);
+    setUploadProgress(0);
     try {
       await uploadTrack.mutateAsync({
         file: selectedFile,
         trackName,
         projectId,
         notes: trackNotes || undefined,
+        onProgress: (loaded, total) => {
+          setUploadProgress(Math.round((loaded / total) * 100));
+        },
       });
       setIsUploadDialogOpen(false);
       setSelectedFile(null);
       setTrackName("");
       setTrackNotes("");
+      setUploadProgress(0);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -321,6 +328,15 @@ export default function ProjectDetailPage() {
                   rows={3}
                 />
               </div>
+              {isUploading && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Uploading...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <Progress value={uploadProgress} />
+                </div>
+              )}
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"

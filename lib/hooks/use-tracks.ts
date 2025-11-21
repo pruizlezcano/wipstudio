@@ -26,6 +26,15 @@ export interface PresignedUrlResponse {
   objectUrl: string;
 }
 
+export interface MultipartUploadResponse {
+  uploadId: string;
+  objectUrl: string;
+}
+
+export interface ChunkUrlsResponse {
+  chunkUrls: Array<{ partNumber: number; url: string }>;
+}
+
 // Query keys
 export const trackKeys = {
   all: ["tracks"] as const,
@@ -128,18 +137,238 @@ async function getPresignedUrl(
   return response.json();
 }
 
-// Upload file to S3
-async function uploadFile(file: File, uploadUrl: string): Promise<void> {
-  const response = await fetch(uploadUrl, {
-    method: "PUT",
-    body: file,
-    headers: {
-      "Content-Type": file.type,
-    },
+// Upload file to S3 (simple upload)
+async function uploadFile(
+  file: File,
+  uploadUrl: string,
+  onProgress?: (loaded: number, total: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    if (onProgress) {
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          onProgress(e.loaded, e.total);
+        }
+      });
+    }
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Network error during upload"));
+    });
+
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.send(file);
+  });
+}
+
+// Get chunk size from environment (default: disabled - very large value)
+const getChunkSize = (): number => {
+  const envChunkSize = process.env.NEXT_PUBLIC_UPLOAD_CHUNK_SIZE;
+  // Default to 5GB (effectively disabling chunking unless explicitly configured)
+  return envChunkSize ? parseInt(envChunkSize, 10) : 5 * 1024 * 1024 * 1024;
+};
+
+// Initiate multipart upload
+async function initiateMultipartUpload(
+  projectId: string,
+  fileName: string,
+  fileType: string
+): Promise<MultipartUploadResponse> {
+  const response = await fetch("/api/upload/multipart/initiate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectId, fileName, fileType }),
   });
 
   if (!response.ok) {
-    throw new Error("Failed to upload file");
+    const error = await response.json();
+    throw new Error(error.error || "Failed to initiate multipart upload");
+  }
+
+  return response.json();
+}
+
+// Get presigned URLs for chunks
+async function getChunkUrls(
+  projectId: string,
+  objectKey: string,
+  uploadId: string,
+  partNumbers: number[]
+): Promise<ChunkUrlsResponse> {
+  const response = await fetch("/api/upload/multipart/chunk-urls", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectId, objectKey, uploadId, partNumbers }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get chunk URLs");
+  }
+
+  return response.json();
+}
+
+// Upload a single chunk and return its ETag
+async function uploadChunk(
+  chunk: Blob,
+  url: string,
+  onProgress?: (loaded: number, total: number) => void
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(e.loaded, e.total);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const etag = xhr.getResponseHeader("ETag");
+        if (!etag) {
+          reject(new Error("No ETag returned from upload"));
+          return;
+        }
+        resolve(etag);
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Network error during upload"));
+    });
+
+    xhr.open("PUT", url);
+    xhr.send(chunk);
+  });
+}
+
+// Complete multipart upload
+async function completeMultipartUpload(
+  projectId: string,
+  objectKey: string,
+  uploadId: string,
+  parts: Array<{ PartNumber: number; ETag: string }>
+): Promise<void> {
+  const response = await fetch("/api/upload/multipart/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectId, objectKey, uploadId, parts }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to complete multipart upload");
+  }
+}
+
+// Abort multipart upload
+async function abortMultipartUpload(
+  projectId: string,
+  objectKey: string,
+  uploadId: string
+): Promise<void> {
+  try {
+    await fetch("/api/upload/multipart/abort", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, objectKey, uploadId }),
+    });
+  } catch (error) {
+    console.error("Failed to abort multipart upload:", error);
+  }
+}
+
+// Smart upload function that chooses between simple and multipart upload
+async function uploadFileWithChunking(
+  file: File,
+  projectId: string,
+  onProgress?: (loaded: number, total: number) => void
+): Promise<string> {
+  const chunkSize = getChunkSize();
+
+  // Use simple upload for small files
+  if (file.size < chunkSize) {
+    const { uploadUrl, objectUrl } = await getPresignedUrl({
+      fileName: file.name,
+      fileType: file.type,
+      projectId,
+    });
+
+    await uploadFile(file, uploadUrl, onProgress);
+    return objectUrl;
+  }
+
+  // Use multipart upload for large files
+  const { uploadId, objectUrl } = await initiateMultipartUpload(
+    projectId,
+    file.name,
+    file.type
+  );
+
+  try {
+    // Split file into chunks
+    const chunks: Blob[] = [];
+    let offset = 0;
+    while (offset < file.size) {
+      chunks.push(file.slice(offset, offset + chunkSize));
+      offset += chunkSize;
+    }
+
+    // Get presigned URLs for all chunks
+    const partNumbers = chunks.map((_, index) => index + 1);
+    const { chunkUrls } = await getChunkUrls(projectId, objectUrl, uploadId, partNumbers);
+
+    // Upload all chunks with progress tracking
+    let totalUploaded = 0;
+    const parts: Array<{ PartNumber: number; ETag: string }> = [];
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const chunkUrl = chunkUrls.find((c) => c.partNumber === i + 1);
+
+      if (!chunkUrl) {
+        throw new Error(`Missing URL for chunk ${i + 1}`);
+      }
+
+      const etag = await uploadChunk(chunk, chunkUrl.url, (loaded) => {
+        if (onProgress) {
+          const chunkProgress = totalUploaded + loaded;
+          onProgress(chunkProgress, file.size);
+        }
+      });
+
+      totalUploaded += chunk.size;
+      parts.push({ PartNumber: i + 1, ETag: etag });
+
+      // Report overall progress after chunk completes
+      if (onProgress) {
+        onProgress(totalUploaded, file.size);
+      }
+    }
+
+    // Complete the multipart upload
+    await completeMultipartUpload(projectId, objectUrl, uploadId, parts);
+
+    return objectUrl;
+  } catch (error) {
+    // Abort the multipart upload on failure
+    await abortMultipartUpload(projectId, objectUrl, uploadId);
+    throw error;
   }
 }
 
@@ -236,23 +465,18 @@ export function useUploadTrack() {
       trackName,
       projectId,
       notes,
+      onProgress,
     }: {
       file: File;
       trackName: string;
       projectId: string;
       notes?: string;
+      onProgress?: (loaded: number, total: number) => void;
     }) => {
-      // Step 1: Get presigned URL
-      const { uploadUrl, objectUrl } = await getPresignedUrl({
-        fileName: file.name,
-        fileType: file.type,
-        projectId,
-      });
+      // Upload file (automatically handles chunking if needed)
+      const objectUrl = await uploadFileWithChunking(file, projectId, onProgress);
 
-      // Step 2: Upload file to MinIO
-      await uploadFile(file, uploadUrl);
-
-      // Step 3: Create track record in database with initial version
+      // Create track record in database with initial version
       return createTrackMutation.mutateAsync({
         projectId,
         data: {
@@ -417,23 +641,18 @@ export function useUploadVersion() {
       trackId,
       projectId,
       notes,
+      onProgress,
     }: {
       file: File;
       trackId: string;
       projectId: string;
       notes?: string;
+      onProgress?: (loaded: number, total: number) => void;
     }) => {
-      // Step 1: Get presigned URL
-      const { uploadUrl, objectUrl } = await getPresignedUrl({
-        fileName: file.name,
-        fileType: file.type,
-        projectId,
-      });
+      // Upload file (automatically handles chunking if needed)
+      const objectUrl = await uploadFileWithChunking(file, projectId, onProgress);
 
-      // Step 2: Upload file to MinIO
-      await uploadFile(file, uploadUrl);
-
-      // Step 3: Create version record in database
+      // Create version record in database
       return createVersionMutation.mutateAsync({
         trackId,
         data: {

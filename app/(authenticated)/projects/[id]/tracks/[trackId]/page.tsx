@@ -65,6 +65,7 @@ import {
   useDeleteComment,
 } from "@/lib/hooks/use-comments";
 import { useTheme } from "next-themes";
+import { Progress } from "@/components/ui/progress";
 
 // Comment Thread Component
 function CommentThread({
@@ -507,6 +508,7 @@ export default function TrackDetailPage() {
   const [versionFile, setVersionFile] = useState<File | null>(null);
   const [versionNotes, setVersionNotes] = useState("");
   const [isUploadingVersion, setIsUploadingVersion] = useState(false);
+  const [versionUploadProgress, setVersionUploadProgress] = useState(0);
   const versionFileInputRef = useRef<HTMLInputElement>(null);
 
   const [editingVersion, setEditingVersion] = useState<{
@@ -555,16 +557,21 @@ export default function TrackDetailPage() {
     if (!versionFile) return;
 
     setIsUploadingVersion(true);
+    setVersionUploadProgress(0);
     try {
       await uploadVersion.mutateAsync({
         file: versionFile,
         trackId,
         projectId,
         notes: versionNotes || undefined,
+        onProgress: (loaded, total) => {
+          setVersionUploadProgress(Math.round((loaded / total) * 100));
+        },
       });
       setIsUploadDialogOpen(false);
       setVersionFile(null);
       setVersionNotes("");
+      setVersionUploadProgress(0);
       if (versionFileInputRef.current) {
         versionFileInputRef.current.value = "";
       }
@@ -974,6 +981,15 @@ export default function TrackDetailPage() {
                 rows={3}
               />
             </div>
+            {isUploadingVersion && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Uploading...</span>
+                  <span>{versionUploadProgress}%</span>
+                </div>
+                <Progress value={versionUploadProgress} className="h-full" />
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
