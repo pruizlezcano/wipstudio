@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { authClient } from "@/lib/auth/auth-client";
 
@@ -25,32 +26,34 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthUIProvider
-        authClient={authClient}
-        navigate={router.push}
-        replace={router.replace}
-        onSessionChange={() => {
-          // Clear router cache (protected routes)
-          router.refresh();
-        }}
-        Link={Link}
-        redirectTo="/projects"
-        viewPaths={{
-          SIGN_IN: "login",
-          SIGN_OUT: "logout",
-          SIGN_UP: "register",
-        }}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+    <NuqsAdapter>
+      <QueryClientProvider client={queryClient}>
+        <AuthUIProvider
+          authClient={authClient}
+          navigate={router.push}
+          replace={router.replace}
+          onSessionChange={() => {
+            // Clear router cache (protected routes)
+            router.refresh();
+          }}
+          Link={Link}
+          redirectTo="/projects"
+          viewPaths={{
+            SIGN_IN: "login",
+            SIGN_OUT: "logout",
+            SIGN_UP: "register",
+          }}
         >
-          {children}
-        </ThemeProvider>
-      </AuthUIProvider>
-    </QueryClientProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </AuthUIProvider>
+      </QueryClientProvider>
+    </NuqsAdapter>
   );
 }

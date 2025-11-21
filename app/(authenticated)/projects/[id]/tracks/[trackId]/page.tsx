@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryState, parseAsInteger } from "nuqs";
 import WaveSurfer from "wavesurfer.js";
 import { Button } from "@/components/ui/button";
 import {
@@ -466,37 +467,61 @@ export default function TrackDetailPage() {
   // Find master version
   const defaultVersion = versions?.find((v) => v.isMaster);
 
-  // State for selected version (for viewing waveform/comments)
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
-    null
+  // Use URL query param for selected version number
+  const [versionNumberParam, setVersionNumberParam] = useQueryState(
+    "v",
+    parseAsInteger
   );
+
+  // Get the currently selected version object based on URL param
+  // If no param, default to master version
+  const selectedVersion = versionNumberParam !== null
+    ? versions?.find((v) => v.versionNumber === versionNumberParam)
+    : defaultVersion;
 
   // Track the previous master version ID to detect new uploads
   const previousMasterIdRef = useRef<string | null>(null);
+  const hasInitializedRef = useRef(false);
 
-  // Update selectedVersionId when defaultVersion changes
+  // Update URL param when defaultVersion changes (new upload or initial load)
   useEffect(() => {
-    if (defaultVersion) {
-      // Auto-select in two cases:
-      // 1. No version is selected yet (initial load)
-      // 2. Master version ID changed (new version uploaded)
-      if (
-        !selectedVersionId ||
-        previousMasterIdRef.current !== defaultVersion.id
-      ) {
-        setSelectedVersionId(defaultVersion.id);
-        previousMasterIdRef.current = defaultVersion.id;
+    if (defaultVersion && versions) {
+      const masterId = defaultVersion.id;
+      const masterVersionNumber = defaultVersion.versionNumber;
+
+      // On initial load, set the previousMasterIdRef and respect the URL param if valid
+      if (!hasInitializedRef.current) {
+        hasInitializedRef.current = true;
+        previousMasterIdRef.current = masterId;
+
+        // If URL has a valid version param, don't override it
+        if (versionNumberParam !== null) {
+          const hasValidSelection = versions.some(
+            (v) => v.versionNumber === versionNumberParam
+          );
+
+          if (!hasValidSelection) {
+            // Invalid version number in URL, redirect to master
+            setVersionNumberParam(masterVersionNumber);
+          }
+          // Otherwise, respect the valid URL param
+        }
+        // If versionNumberParam is null, we don't set it - let it stay null to show master
+        return;
+      }
+
+      // After initialization, only auto-switch if master version changed (new upload)
+      if (previousMasterIdRef.current !== masterId) {
+        setVersionNumberParam(masterVersionNumber);
+        previousMasterIdRef.current = masterId;
       }
     }
-  }, [defaultVersion, selectedVersionId]);
-
-  // Get the currently selected version object
-  const selectedVersion = versions?.find((v) => v.id === selectedVersionId);
+  }, [defaultVersion, versions, versionNumberParam, setVersionNumberParam]);
 
   // Fetch comments for the selected version
   const { data: comments = [], isLoading: commentsLoading } = useComments(
     trackId,
-    selectedVersionId || ""
+    selectedVersion?.id || ""
   );
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -604,13 +629,13 @@ export default function TrackDetailPage() {
 
   const handleDeleteVersion = async (versionId: string) => {
     // If deleting the currently selected version, switch to another one first
-    if (versionId === selectedVersionId) {
+    if (versionId === selectedVersion?.id) {
       const remainingVersions = versions?.filter((v) => v.id !== versionId);
       if (remainingVersions && remainingVersions.length > 0) {
         // Select master version if available, otherwise the first one
         const nextVersion =
           remainingVersions.find((v) => v.isMaster) || remainingVersions[0];
-        setSelectedVersionId(nextVersion.id);
+        setVersionNumberParam(nextVersion.versionNumber);
       }
     }
     await deleteVersion.mutateAsync({ trackId, versionId });
@@ -620,8 +645,8 @@ export default function TrackDetailPage() {
     await setMasterVersion.mutateAsync({ trackId, versionId });
   };
 
-  const handleSelectVersion = (versionId: string) => {
-    setSelectedVersionId(versionId);
+  const handleSelectVersion = (versionNumber: number) => {
+    setVersionNumberParam(versionNumber);
   };
 
   const handleWaveformClick = (time: number) => {
@@ -766,15 +791,18 @@ export default function TrackDetailPage() {
           {/* Version Selector */}
           <div className="mb-2 flex items-center gap-2 flex-wrap">
             <Select
-              value={selectedVersionId || ""}
-              onValueChange={handleSelectVersion}
+              value={selectedVersion?.versionNumber.toString() || ""}
+              onValueChange={(value) => handleSelectVersion(parseInt(value))}
             >
               <SelectTrigger className="border-foreground" size="sm">
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
               <SelectContent>
                 {versions?.map((version) => (
-                  <SelectItem key={version.id} value={version.id}>
+                  <SelectItem
+                    key={version.id}
+                    value={version.versionNumber.toString()}
+                  >
                     v{version.versionNumber}
                     {version.isMaster && (
                       <Badge className="ml-2 text-xs">MASTER</Badge>
