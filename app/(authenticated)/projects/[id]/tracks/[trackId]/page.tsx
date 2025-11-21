@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
 import { useParams, useRouter } from "next/navigation";
 import WaveSurfer from "wavesurfer.js";
@@ -57,6 +50,8 @@ import {
   useUpdateVersion,
   useDeleteVersion,
   useSetMasterVersion,
+  Track,
+  TrackVersion,
 } from "@/lib/hooks/use-tracks";
 import {
   Comment,
@@ -66,6 +61,9 @@ import {
 } from "@/lib/hooks/use-comments";
 import { useTheme } from "next-themes";
 import { Progress } from "@/components/ui/progress";
+import { usePlayerStore } from "@/lib/stores/playerStore";
+import { formatTime } from "@/lib/utils";
+import WavesurferPlayer from "@wavesurfer/react";
 
 // Comment Thread Component
 function CommentThread({
@@ -270,195 +268,179 @@ function CommentForm({
   );
 }
 
-// Define the ref type for Waveform
-export interface WaveformRef {
-  seekTo: (time: number) => void;
-}
-
 // Waveform component using WaveSurfer.js with comment markers
-const Waveform = forwardRef<
-  WaveformRef,
-  {
-    audioUrl: string;
-    comments?: Comment[];
-    onTimeClick?: (time: number) => void;
-    onCommentClick?: (commentId: string) => void;
-  }
->(({ audioUrl, comments = [], onTimeClick, onCommentClick }, ref) => {
-  const waveformRef = useRef<HTMLDivElement>(null);
-  const wavesurferRef = useRef<WaveSurfer | null>(null);
-  const onTimeClickRef = useRef(onTimeClick);
+function Waveform({
+  track,
+  version,
+  comments,
+  onTimeClick,
+  onCommentClick,
+}: {
+  track: Track;
+  version: TrackVersion;
+  comments?: Comment[];
+  onTimeClick?: (time: number) => void;
+  onCommentClick?: (commentId: string) => void;
+}) {
+  const {
+    waveSurfer: playerWaveSurfer,
+    version: playerVersion,
+    setIsPlaying: setPlayerIsPlaying,
+    isPlaying: playerIsPlaying,
+    isLoading: playerIsLoading,
+    loadVersion,
+  } = usePlayerStore();
+  const [waveSurfer, setWaveSurfer] = useState<WaveSurfer>();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [duration, setDuration] = useState<number>(0);
-  const [currentTime, setCurrentTime] = useState<number>(0);
   const { theme } = useTheme();
 
-  // Expose seekTo method via ref
-  useImperativeHandle(
-    ref,
-    () => ({
-      seekTo: (time: number) => {
-        if (wavesurferRef.current) {
-          wavesurferRef.current.seekTo(
-            time / wavesurferRef.current.getDuration()
-          );
-        }
-      },
-    }),
-    []
-  );
-
-  // Keep ref in sync with prop
+  // Sync global player with local player
   useEffect(() => {
-    onTimeClickRef.current = onTimeClick;
-  }, [onTimeClick]);
+    if (playerWaveSurfer && waveSurfer && playerVersion?.id === version.id) {
+      const cleanupEvents = () => {
+        playerWaveSurfer.un("play", () => {});
+        playerWaveSurfer.un("pause", () => {});
+        playerWaveSurfer.un("timeupdate", () => {});
+        waveSurfer.un("click", () => {});
+      };
 
-  useEffect(() => {
-    if (!waveformRef.current) return;
+      cleanupEvents();
 
-    // Get theme-aware colors
-    const isDark = theme === "dark";
+      // Global player handlers
+      const handleGlobalPlay = () => {
+        setIsPlaying(true);
+        const currentTime = playerWaveSurfer.getCurrentTime();
+        waveSurfer.setTime(currentTime);
+      };
 
-    const waveColor = isDark ? "hsl(0 0% 35%)" : "hsl(0 0% 65%)";
-    const progressColor = isDark ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)";
-    const cursorColor = isDark ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)";
+      const handleGlobalPause = () => {
+        setIsPlaying(false);
+        waveSurfer.pause();
+      };
 
-    // Initialize WaveSurfer
-    const wavesurfer = WaveSurfer.create({
-      container: waveformRef.current,
-      waveColor,
-      progressColor,
-      cursorColor,
-      height: 120,
-      normalize: true,
-      backend: "WebAudio",
-    });
+      const handleGlobalTimeUpdate = () => {
+        waveSurfer.setTime(playerWaveSurfer.getCurrentTime());
+      };
 
-    wavesurferRef.current = wavesurfer;
+      // Local player handlers
+      const handleLocalClick = (time: number) => {
+        const absoluteTime = time * waveSurfer.getDuration();
+        playerWaveSurfer.setTime(absoluteTime);
+        onTimeClick?.(absoluteTime);
+      };
 
-    // Load audio
-    wavesurfer.load(audioUrl);
+      // Listen to global player events
+      playerWaveSurfer.on("play", handleGlobalPlay);
+      playerWaveSurfer.on("pause", handleGlobalPause);
+      playerWaveSurfer.on("timeupdate", handleGlobalTimeUpdate);
 
-    // Event listeners
-    wavesurfer.on("ready", () => {
-      setIsLoading(false);
-      setDuration(wavesurfer.getDuration());
-    });
+      // Listen to local player events
+      waveSurfer.on("click", handleLocalClick);
 
-    wavesurfer.on("play", () => {
-      setIsPlaying(true);
-    });
-
-    wavesurfer.on("pause", () => {
-      setIsPlaying(false);
-    });
-
-    wavesurfer.on("finish", () => {
-      setIsPlaying(false);
-    });
-
-    wavesurfer.on("timeupdate", (time) => {
-      setCurrentTime(time);
-    });
-
-    wavesurfer.on("error", (error) => {
-      console.error("WaveSurfer error:", error);
-      setIsLoading(false);
-    });
-
-    // Handle clicks on waveform to add comments
-    wavesurfer.on("click", (relativeX) => {
-      if (onTimeClickRef.current) {
-        const clickTime = relativeX * wavesurfer.getDuration();
-        onTimeClickRef.current(clickTime);
+      // Initial sync
+      if (playerIsPlaying) {
+        handleGlobalPlay();
       }
-    });
 
-    // Cleanup
-    return () => {
-      wavesurfer.destroy();
-    };
-  }, [audioUrl, theme]);
+      return cleanupEvents;
+    }
+  }, [
+    onTimeClick,
+    playerIsPlaying,
+    playerVersion,
+    playerWaveSurfer,
+    waveSurfer,
+    version,
+  ]);
 
   const handlePlayPause = () => {
-    if (wavesurferRef.current) {
-      wavesurferRef.current.playPause();
+    // If no player loaded yet, or different version, load it
+    if (!playerWaveSurfer || playerVersion?.id !== version.id) {
+      loadVersion(track, version, true);
+    } else {
+      // Same version already loaded, just toggle play/pause
+      if (playerIsPlaying) {
+        playerWaveSurfer.pause();
+        setPlayerIsPlaying(false);
+      } else {
+        playerWaveSurfer.play();
+        setPlayerIsPlaying(true);
+      }
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   // Get top-level comments with timestamps
-  const timestampComments = comments.filter(
+  const timestampComments = comments?.filter(
     (c) => c.timestamp !== null && !c.parentId
   );
 
   return (
     <div className="space-y-3">
       <div className="relative">
-        <div ref={waveformRef} className="overflow-visible relative pt-4" />
         {isLoading && (
-          <div className="container mx-auto py-12 flex flex-col items-center justify-center gap-4">
+          <div className="z-10 flex items-center justify-center h-30">
             <div className="size-12 border border-foreground/50 animate-spin" />
           </div>
         )}
-        {!isLoading &&
-          duration > 0 &&
-          timestampComments.map((comment) => (
-            <div
-              key={comment.id}
-              className="absolute cursor-pointer group"
-              style={{
-                left: `${(comment.timestamp! / duration) * 100}%`,
-                top: "4px",
-                transform: "translateX(-50%)",
-                zIndex: 20,
-                height: "120px",
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onCommentClick?.(comment.id);
-              }}
-            >
-              {/* Vertical line */}
-              <div className="absolute w-0.5 bg-orange-500 group-hover:bg-orange-600 transition-colors h-full left-1/2 -translate-x-1/2" />
-
-              {/* Avatar circle */}
-              <UserAvatar user={comment.user} size="sm" />
-            </div>
-          ))}
+        {waveSurfer && !isLoading && (
+          <div className="flex">
+            {timestampComments?.map((comment) => (
+              <div
+                key={comment.id}
+                className="absolute z-10 transform -translate-x-1/2 hover:scale-110 transition-transform cursor-pointer"
+                style={{
+                  left: `${(comment.timestamp! / waveSurfer.getDuration()) * 100}%`,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCommentClick?.(comment.id);
+                }}
+              >
+                <UserAvatar user={comment.user} className="size-5" />
+              </div>
+            ))}
+          </div>
+        )}
+        <WavesurferPlayer
+          height={isLoading ? 0 : 120}
+          waveColor={theme === "dark" ? "hsl(0 0% 35%)" : "hsl(0 0% 65%)"}
+          progressColor={theme === "dark" ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)"}
+          cursorColor={theme === "dark" ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)"}
+          url={version.audioUrl}
+          onReady={(ws) => {
+            ws.setVolume(0);
+            setWaveSurfer(ws);
+            setIsLoading(false);
+          }}
+          onPlay={() => {
+            if (playerVersion?.id !== version.id) {
+              loadVersion(track, version, true);
+            }
+            setIsPlaying(true);
+          }}
+          onPause={() => setIsPlaying(false)}
+        />
       </div>
       <div className="flex items-center gap-2">
         <Button
           onClick={handlePlayPause}
           variant="outline"
           size="sm"
-          disabled={isLoading}
+          disabled={playerIsLoading && playerVersion?.id === version.id}
         >
-          {isPlaying ? "Pause" : "Play"}
+          {isPlaying && playerVersion?.id === version.id ? "Pause" : "Play"}
         </Button>
-        {!isLoading && duration > 0 && (
+        {waveSurfer && waveSurfer.getDuration() > 0 && (
           <span className="text-sm text-muted-foreground">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </span>
-        )}
-        {timestampComments.length > 0 && (
-          <span className="text-sm text-muted-foreground ml-auto">
-            {timestampComments.length} comment
-            {timestampComments.length !== 1 ? "s" : ""} on timeline
+            {formatTime(waveSurfer.getCurrentTime())} /{" "}
+            {formatTime(waveSurfer.getDuration())}
           </span>
         )}
       </div>
     </div>
   );
-});
-
-Waveform.displayName = "Waveform";
+}
 
 export default function TrackDetailPage() {
   const params = useParams();
@@ -474,8 +456,12 @@ export default function TrackDetailPage() {
   const updateVersion = useUpdateVersion();
   const deleteVersion = useDeleteVersion();
   const setMasterVersion = useSetMasterVersion();
-
-  const waveformRef = useRef<WaveformRef>(null);
+  const {
+    waveSurfer: playerWaveSurfer,
+    version: playerVersion,
+    loadVersion,
+    setIsPlaying,
+  } = usePlayerStore();
 
   // Find master version
   const defaultVersion = versions?.find((v) => v.isMaster);
@@ -624,22 +610,39 @@ export default function TrackDetailPage() {
 
   const handleSelectVersion = (versionId: string) => {
     setSelectedVersionId(versionId);
-    // Scroll to the waveform smoothly
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleWaveformClick = useCallback((time: number) => {
+  const handleWaveformClick = (time: number) => {
     setCommentTimestamp(time);
-  }, []);
+  };
 
-  const handleSeekToTime = useCallback((time: number) => {
-    // Seek the waveform to the specified time
-    if (waveformRef.current) {
-      waveformRef.current.seekTo(time);
-      // Scroll to the waveform so user can see the playback position
-      window.scrollTo({ top: 0, behavior: "smooth" });
+  const handleSeekToTime = (time: number) => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // If no player or wrong version loaded, load the correct version first
+    if (!playerWaveSurfer || playerVersion?.id !== selectedVersion?.id) {
+      if (selectedVersion && track) {
+        loadVersion(track, selectedVersion, false);
+        // Wait for the player to be ready, then seek and play
+        const checkInterval = setInterval(() => {
+          const { waveSurfer, isLoading } = usePlayerStore.getState();
+          if (waveSurfer && !isLoading) {
+            clearInterval(checkInterval);
+            waveSurfer.setTime(time);
+            waveSurfer.play();
+            setIsPlaying(true);
+          }
+        }, 100);
+        // Clear interval after 5 seconds if player doesn't load
+        setTimeout(() => clearInterval(checkInterval), 5000);
+      }
+    } else {
+      // Player is already loaded with the correct version
+      playerWaveSurfer.setTime(time);
+      playerWaveSurfer.play();
+      setIsPlaying(true);
     }
-  }, []);
+  };
 
   const handleCommentClick = useCallback((commentId: string) => {
     const commentElement = document.getElementById(`comment-${commentId}`);
@@ -852,8 +855,8 @@ export default function TrackDetailPage() {
             <CardContent>
               {selectedVersion && (
                 <Waveform
-                  ref={waveformRef}
-                  audioUrl={selectedVersion.audioUrl}
+                  track={track}
+                  version={selectedVersion}
                   comments={comments}
                   onTimeClick={handleWaveformClick}
                   onCommentClick={handleCommentClick}
