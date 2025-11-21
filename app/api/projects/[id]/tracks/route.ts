@@ -121,6 +121,7 @@ export async function POST(
         versionNumber: 1,
         audioUrl: validatedData.audioUrl,
         notes: validatedData.notes,
+        isMaster: true,
       })
 
     return NextResponse.json(
