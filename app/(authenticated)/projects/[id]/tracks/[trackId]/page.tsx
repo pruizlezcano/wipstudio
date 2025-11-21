@@ -471,10 +471,22 @@ export default function TrackDetailPage() {
     null
   );
 
+  // Track the previous master version ID to detect new uploads
+  const previousMasterIdRef = useRef<string | null>(null);
+
   // Update selectedVersionId when defaultVersion changes
   useEffect(() => {
-    if (defaultVersion && !selectedVersionId) {
-      setSelectedVersionId(defaultVersion.id);
+    if (defaultVersion) {
+      // Auto-select in two cases:
+      // 1. No version is selected yet (initial load)
+      // 2. Master version ID changed (new version uploaded)
+      if (
+        !selectedVersionId ||
+        previousMasterIdRef.current !== defaultVersion.id
+      ) {
+        setSelectedVersionId(defaultVersion.id);
+        previousMasterIdRef.current = defaultVersion.id;
+      }
     }
   }, [defaultVersion, selectedVersionId]);
 
