@@ -54,7 +54,9 @@ export default function InvitationAcceptPage() {
         const data = await response.json();
         setInvitation(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load invitation");
+        setError(
+          err instanceof Error ? err.message : "Failed to load invitation"
+        );
       } finally {
         setLoading(false);
       }
@@ -83,12 +85,14 @@ export default function InvitationAcceptPage() {
 
       const data = await response.json();
       toast.success("Invitation accepted! Redirecting to project...");
-      
+
       setTimeout(() => {
         router.push(`/projects/${data.projectId}`);
       }, 1000);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to accept invitation");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to accept invitation"
+      );
       setAccepting(false);
     }
   };
@@ -110,7 +114,9 @@ export default function InvitationAcceptPage() {
       <div className="container mx-auto px-4 py-16 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-destructive">Invalid Invitation</CardTitle>
+            <CardTitle className="text-destructive">
+              Invalid Invitation
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">{error}</p>
@@ -143,15 +149,19 @@ export default function InvitationAcceptPage() {
     );
   }
 
-  const isExpired = invitation.expiresAt && new Date(invitation.expiresAt) < new Date();
-  const isMaxUsesReached = invitation.maxUses !== null && invitation.currentUses >= invitation.maxUses;
+  const isExpired =
+    invitation.expiresAt && new Date(invitation.expiresAt) < new Date();
+  const isMaxUsesReached =
+    invitation.maxUses !== null && invitation.currentUses >= invitation.maxUses;
 
   if (isExpired || isMaxUsesReached) {
     return (
       <div className="container mx-auto px-4 py-16 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-destructive">Invitation Expired</CardTitle>
+            <CardTitle className="text-destructive">
+              Invitation Expired
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
@@ -185,22 +195,9 @@ export default function InvitationAcceptPage() {
             </p>
           </div>
 
-          {invitation.email && (
-            <div className="text-sm text-muted-foreground">
-              This invitation is for: <span className="font-medium">{invitation.email}</span>
-            </div>
-          )}
-
           <div className="text-xs text-muted-foreground space-y-1">
-            {invitation.maxUses !== null && (
-              <p>
-                Uses: {invitation.currentUses} / {invitation.maxUses}
-              </p>
-            )}
             {invitation.expiresAt && (
-              <p>
-                Expires: {new Date(invitation.expiresAt).toLocaleString()}
-              </p>
+              <p>Expires: {new Date(invitation.expiresAt).toLocaleString()}</p>
             )}
           </div>
 
@@ -218,8 +215,8 @@ export default function InvitationAcceptPage() {
               {accepting
                 ? "Accepting..."
                 : isAuthenticated
-                ? "Accept Invitation"
-                : "Sign In to Accept"}
+                  ? "Accept Invitation"
+                  : "Sign In to Accept"}
             </Button>
             <Button
               variant="outline"
