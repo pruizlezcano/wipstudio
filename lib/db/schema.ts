@@ -1,4 +1,12 @@
-import { pgTable, text, timestamp, boolean, integer, real, AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, real, AnyPgColumn, pgEnum } from "drizzle-orm/pg-core";
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+    "invitation",
+    "new_track",
+    "new_version",
+    "new_comment",
+    "comment_reply",
+]);
 
 export const user = pgTable("user", {
     id: text("id").primaryKey(),
@@ -162,4 +170,17 @@ export const projectInvitation = pgTable("project_invitation", {
         .defaultNow()
         .$onUpdate(() => /* @__PURE__ */ new Date())
         .notNull(),
+});
+
+export const notification = pgTable("notification", {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    metadata: text("metadata"), // JSON string with additional data (projectId, trackId, etc.)
+    readAt: timestamp("read_at"), // null = unread
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });

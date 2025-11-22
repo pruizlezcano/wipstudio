@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { projectInvitation } from "@/lib/db/schema";
+import { projectInvitation, project } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createInvitationSchema } from "@/lib/validations/invitation";
 import { z } from "zod";
 import { checkProjectAccess } from "@/lib/access-control";
+import { createNotification } from "@/lib/notifications/service";
 
 // GET /api/projects/[id]/invitations - List all invitations for a project
 export async function GET(
@@ -70,13 +71,27 @@ export async function POST(
 
     if (!isOwner) {
       return NextResponse.json(
-        { error: "Project not found or access denied. Only owners can create invitations." },
+        {
+          error:
+            "Project not found or access denied. Only owners can create invitations.",
+        },
         { status: 404 }
       );
     }
 
     const body = await request.json();
     const validatedData = createInvitationSchema.parse(body);
+
+    // Get project details for notification
+    const projectRecord = await db
+      .select()
+      .from(project)
+      .where(eq(project.id, id))
+      .limit(1);
+
+    if (projectRecord.length === 0) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
 
     // Create the invitation
     const newInvitation = await db
@@ -89,9 +104,33 @@ export async function POST(
         email: validatedData.email || null,
         maxUses: validatedData.maxUses || null,
         currentUses: 0,
-        expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : null,
+        expiresAt: validatedData.expiresAt
+          ? new Date(validatedData.expiresAt)
+          : null,
       })
       .returning();
+
+    // Send notification email (if email is specified)
+    if (validatedData.email) {
+      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const invitationUrl = `${appUrl}/invitations/${newInvitation[0].token}`;
+
+      await createNotification({
+        type: "invitation",
+        recipientUserIds: [], // No in-app notification for non-users
+        recipientEmails: [validatedData.email],
+        title: `You've been invited to ${projectRecord[0].name}`,
+        message: `${session.user.name} has invited you to join the project ${projectRecord[0].name}.`,
+        metadata: {
+          projectId: id,
+          projectName: projectRecord[0].name,
+          invitationToken: newInvitation[0].token,
+          actorId: session.user.id,
+          actorName: session.user.name,
+          url: invitationUrl,
+        },
+      });
+    }
 
     return NextResponse.json(newInvitation[0], { status: 201 });
   } catch (error) {

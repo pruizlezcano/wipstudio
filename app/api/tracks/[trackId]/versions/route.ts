@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { trackVersion, track, project } from "@/lib/db/schema";
+import {
+  trackVersion,
+  track,
+  project,
+  projectCollaborator,
+} from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { createTrackVersionSchema } from "@/lib/validations/track-version";
 import { z } from "zod";
 import { generatePresignedGetUrl } from "@/lib/storage/s3";
 import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
+import { createNotification } from "@/lib/notifications/service";
 
 // GET /api/tracks/[trackId]/versions - Get all versions for a track
 export async function GET(
@@ -48,7 +54,10 @@ export async function GET(
     );
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Track not found or access denied." },
+        { status: 404 }
+      );
     }
 
     // Fetch all versions
@@ -117,7 +126,10 @@ export async function POST(
     );
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Track not found or access denied." },
+        { status: 404 }
+      );
     }
 
     const body = await request.json();
@@ -153,6 +165,46 @@ export async function POST(
         uploadedById: session.user.id,
       })
       .returning();
+
+    // Get all collaborators (except the uploader) to notify
+    const collaborators = await db
+      .select({ userId: projectCollaborator.userId })
+      .from(projectCollaborator)
+      .where(eq(projectCollaborator.projectId, trackRecord[0].project.id));
+
+    const recipientIds = collaborators
+      .map((c) => c.userId)
+      .filter((userId) => userId !== session.user.id);
+
+    // Also notify the project owner if they're not the uploader
+    if (trackRecord[0].project.ownerId !== session.user.id) {
+      recipientIds.push(trackRecord[0].project.ownerId);
+    }
+
+    // Send notifications
+    if (recipientIds.length > 0) {
+      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const versionUrl = `${appUrl}/projects/${trackRecord[0].project.id}/tracks/${trackId}`;
+
+      await createNotification({
+        type: "new_version",
+        recipientUserIds: recipientIds,
+        title: `New version of ${trackRecord[0].track.name}`,
+        message: `${session.user.name} uploaded version ${nextVersionNumber} of "${trackRecord[0].track.name}".`,
+        metadata: {
+          projectId: trackRecord[0].project.id,
+          projectName: trackRecord[0].project.name,
+          trackId: trackId,
+          trackName: trackRecord[0].track.name,
+          versionId: newVersion[0].id,
+          versionNumber: nextVersionNumber,
+          versionNotes: validatedData.notes,
+          actorId: session.user.id,
+          actorName: session.user.name,
+          url: versionUrl,
+        },
+      });
+    }
 
     return NextResponse.json(newVersion[0], { status: 201 });
   } catch (error) {

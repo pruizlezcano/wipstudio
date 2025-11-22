@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { comment, trackVersion, track, project, user } from "@/lib/db/schema";
-import { eq, and, desc, isNull, or } from "drizzle-orm";
+import {
+  comment,
+  trackVersion,
+  track,
+  project,
+  user,
+  projectCollaborator,
+} from "@/lib/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { createCommentSchema } from "@/lib/validations/comment";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
+import { createNotification } from "@/lib/notifications/service";
 
 // Type for comment with user and nested replies
 type CommentWithUserAndReplies = {
@@ -45,7 +53,7 @@ export async function GET(
     }
 
     const { trackId, versionId } = await params;
-    
+
     // Get query parameter to optionally include resolved comments
     const { searchParams } = new URL(request.url);
     const includeResolved = searchParams.get("includeResolved") === "true";
@@ -74,7 +82,10 @@ export async function GET(
     );
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Track not found or access denied." },
+        { status: 404 }
+      );
     }
 
     // Fetch all comments with user info
@@ -106,7 +117,7 @@ export async function GET(
         user: c.user,
         replies: [],
       });
-      
+
       // Track top-level resolved comments
       if (c.comment.resolvedAt !== null && c.comment.parentId === null) {
         resolvedParentIds.add(c.comment.id);
@@ -116,20 +127,24 @@ export async function GET(
     // Second pass: organize into threads and filter based on resolved status
     comments.forEach((c) => {
       const commentWithUser = commentMap.get(c.comment.id);
-      
+
       if (!commentWithUser) return;
-      
+
       // Skip if this is a resolved top-level comment and we're not including resolved
-      if (!includeResolved && c.comment.resolvedAt !== null && c.comment.parentId === null) {
+      if (
+        !includeResolved &&
+        c.comment.resolvedAt !== null &&
+        c.comment.parentId === null
+      ) {
         return;
       }
-      
+
       if (c.comment.parentId) {
         // Skip if parent is resolved and we're not including resolved
         if (!includeResolved && resolvedParentIds.has(c.comment.parentId)) {
           return;
         }
-        
+
         const parent = commentMap.get(c.comment.parentId);
         if (parent) {
           parent.replies.push(commentWithUser);
@@ -189,7 +204,10 @@ export async function POST(
     );
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Track not found or access denied." },
+        { status: 404 }
+      );
     }
 
     const body = await request.json();
@@ -245,6 +263,82 @@ export async function POST(
       .innerJoin(user, eq(comment.userId, user.id))
       .where(eq(comment.id, newComment[0].id))
       .limit(1);
+
+    // Send notifications
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const commentUrl = `${appUrl}/projects/${versionRecord[0].project.id}/tracks/${trackId}`;
+
+    if (validatedData.parentId) {
+      // This is a reply - notify the parent comment author
+      const parentComment = await db
+        .select()
+        .from(comment)
+        .where(eq(comment.id, validatedData.parentId))
+        .limit(1);
+
+      if (
+        parentComment.length > 0 &&
+        parentComment[0].userId !== session.user.id
+      ) {
+        await createNotification({
+          type: "comment_reply",
+          recipientUserIds: [parentComment[0].userId],
+          title: `${session.user.name} replied to your comment`,
+          message: `${session.user.name} replied to your comment on "${versionRecord[0].track.name}".`,
+          metadata: {
+            projectId: versionRecord[0].project.id,
+            projectName: versionRecord[0].project.name,
+            trackId: trackId,
+            trackName: versionRecord[0].track.name,
+            versionId: versionId,
+            commentId: newComment[0].id,
+            parentCommentContent: parentComment[0].content,
+            replyContent: validatedData.content,
+            commentTimestamp: validatedData.timestamp ?? null,
+            actorId: session.user.id,
+            actorName: session.user.name,
+            url: commentUrl,
+          },
+        });
+      }
+    } else {
+      // This is a new comment - notify all collaborators
+      const collaborators = await db
+        .select({ userId: projectCollaborator.userId })
+        .from(projectCollaborator)
+        .where(eq(projectCollaborator.projectId, versionRecord[0].project.id));
+
+      const recipientIds = collaborators
+        .map((c) => c.userId)
+        .filter((userId) => userId !== session.user.id);
+
+      // Also notify the project owner if they're not the commenter
+      if (versionRecord[0].project.ownerId !== session.user.id) {
+        recipientIds.push(versionRecord[0].project.ownerId);
+      }
+
+      if (recipientIds.length > 0) {
+        await createNotification({
+          type: "new_comment",
+          recipientUserIds: recipientIds,
+          title: `New comment on ${versionRecord[0].track.name}`,
+          message: `${session.user.name} commented on "${versionRecord[0].track.name}".`,
+          metadata: {
+            projectId: versionRecord[0].project.id,
+            projectName: versionRecord[0].project.name,
+            trackId: trackId,
+            trackName: versionRecord[0].track.name,
+            versionId: versionId,
+            commentId: newComment[0].id,
+            commentContent: validatedData.content,
+            commentTimestamp: validatedData.timestamp ?? null,
+            actorId: session.user.id,
+            actorName: session.user.name,
+            url: commentUrl,
+          },
+        });
+      }
+    }
 
     return NextResponse.json({
       ...commentWithUser[0].comment,

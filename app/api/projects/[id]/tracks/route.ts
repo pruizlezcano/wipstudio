@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { track, trackVersion } from "@/lib/db/schema";
+import {
+  track,
+  trackVersion,
+  project,
+  projectCollaborator,
+} from "@/lib/db/schema";
 import { eq, count } from "drizzle-orm";
 import { createTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
+import { createNotification } from "@/lib/notifications/service";
 
 // GET /api/projects/[id]/tracks - List all tracks for a project
 export async function GET(
@@ -114,17 +120,59 @@ export async function POST(
       .returning();
 
     // Create initial version (version 1) with the audio file
-    await db
-      .insert(trackVersion)
-      .values({
-        id: nanoid(),
-        trackId: newTrack[0].id,
-        versionNumber: 1,
-        audioUrl: validatedData.audioUrl,
-        notes: validatedData.notes,
-        isMaster: true,
-        uploadedById: session.user.id,
-      })
+    await db.insert(trackVersion).values({
+      id: nanoid(),
+      trackId: newTrack[0].id,
+      versionNumber: 1,
+      audioUrl: validatedData.audioUrl,
+      notes: validatedData.notes,
+      isMaster: true,
+      uploadedById: session.user.id,
+    });
+
+    // Get project details for notification
+    const projectRecord = await db
+      .select()
+      .from(project)
+      .where(eq(project.id, projectId))
+      .limit(1);
+
+    // Get all collaborators (except the creator) to notify
+    const collaborators = await db
+      .select({ userId: projectCollaborator.userId })
+      .from(projectCollaborator)
+      .where(eq(projectCollaborator.projectId, projectId));
+
+    const recipientIds = collaborators
+      .map((c) => c.userId)
+      .filter((userId) => userId !== session.user.id);
+
+    // Also notify the project owner if they're not the creator
+    if (projectRecord[0].ownerId !== session.user.id) {
+      recipientIds.push(projectRecord[0].ownerId);
+    }
+
+    // Send notifications
+    if (recipientIds.length > 0) {
+      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const trackUrl = `${appUrl}/projects/${projectId}/tracks/${newTrack[0].id}`;
+
+      await createNotification({
+        type: "new_track",
+        recipientUserIds: recipientIds,
+        title: `New track: ${validatedData.name}`,
+        message: `${session.user.name} added a new track "${validatedData.name}" to ${projectRecord[0].name}.`,
+        metadata: {
+          projectId: projectId,
+          projectName: projectRecord[0].name,
+          trackId: newTrack[0].id,
+          trackName: validatedData.name,
+          actorId: session.user.id,
+          actorName: session.user.name,
+          url: trackUrl,
+        },
+      });
+    }
 
     return NextResponse.json(
       {

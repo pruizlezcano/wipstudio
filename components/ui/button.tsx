@@ -17,7 +17,8 @@ const buttonVariants = cva(
           "border-foreground bg-inherit hover:bg-foreground hover:text-background",
         secondary:
           "bg-secondary text-secondary-foreground border-secondary hover:bg-foreground hover:text-background hover:border-foreground",
-        ghost: "border-transparent hover:border-foreground hover:bg-foreground",
+        ghost:
+          "border-transparent hover:border-foreground hover:bg-foreground hover:text-background",
         link: "border-transparent text-foreground underline-offset-4 hover:underline uppercase",
         accent:
           "bg-accent text-accent-foreground border-accent hover:bg-foreground hover:text-background hover:border-foreground",

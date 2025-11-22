@@ -47,10 +47,11 @@ export async function PATCH(
     );
 
     // Verify user owns the comment OR the project
-    if (
-      !isOwner && session.user.id !== trackRecord[0].project.ownerId
-    ) {
-      return NextResponse.json({ error: "Track not found or access denied. Only owners can update." }, { status: 404 });
+    if (!isOwner && session.user.id !== trackRecord[0].project.ownerId) {
+      return NextResponse.json(
+        { error: "Track not found or access denied. Only owners can update." },
+        { status: 404 }
+      );
     }
 
     // Verify comment exists
@@ -137,13 +138,6 @@ export async function DELETE(
       session.user.id
     );
 
-    // Verify user owns the comment OR the project
-    if (
-      !isOwner && session.user.id !== trackRecord[0].project.ownerId
-    ) {
-      return NextResponse.json({ error: "Track not found or access denied. Only owners can delete." }, { status: 404 });
-    }
-
     // Verify comment exists
     const commentRecord = await db
       .select()
@@ -160,6 +154,13 @@ export async function DELETE(
 
     if (commentRecord.length === 0) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+    }
+
+    if (!isOwner && session.user.id !== commentRecord[0].comment.userId) {
+      return NextResponse.json(
+        { error: "Track not found or access denied. Only owners can delete." },
+        { status: 404 }
+      );
     }
 
     // Delete the comment (will cascade to replies)
