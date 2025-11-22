@@ -40,6 +40,9 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       if (!res.ok) throw new Error("Failed to fetch notifications");
       return res.json();
     },
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+    structuralSharing: true,
   });
 
   const markAsReadMutation = useMutation({

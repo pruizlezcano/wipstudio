@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { CreateTrackInput, UpdateTrackInput, UploadRequestInput } from "@/lib/validations/track";
+import type {
+  CreateTrackInput,
+  UpdateTrackInput,
+  UploadRequestInput,
+} from "@/lib/validations/track";
 
 export interface TrackVersion {
   id: string;
@@ -42,7 +46,8 @@ export const trackKeys = {
   list: (projectId: string) => [...trackKeys.lists(), projectId] as const,
   details: () => [...trackKeys.all, "detail"] as const,
   detail: (id: string) => [...trackKeys.details(), id] as const,
-  versions: (trackId: string) => [...trackKeys.all, "versions", trackId] as const,
+  versions: (trackId: string) =>
+    [...trackKeys.all, "versions", trackId] as const,
 };
 
 // Fetch all tracks for a project
@@ -331,7 +336,12 @@ async function uploadFileWithChunking(
 
     // Get presigned URLs for all chunks
     const partNumbers = chunks.map((_, index) => index + 1);
-    const { chunkUrls } = await getChunkUrls(projectId, objectUrl, uploadId, partNumbers);
+    const { chunkUrls } = await getChunkUrls(
+      projectId,
+      objectUrl,
+      uploadId,
+      partNumbers
+    );
 
     // Upload all chunks with progress tracking
     let totalUploaded = 0;
@@ -378,6 +388,8 @@ export function useTracks(projectId: string) {
     queryKey: trackKeys.list(projectId),
     queryFn: () => fetchTracks(projectId),
     enabled: !!projectId,
+    refetchOnWindowFocus: true,
+    structuralSharing: true,
   });
 }
 
@@ -386,6 +398,8 @@ export function useTrack(trackId: string) {
     queryKey: trackKeys.detail(trackId),
     queryFn: () => fetchTrack(trackId),
     enabled: !!trackId,
+    refetchOnWindowFocus: true,
+    structuralSharing: true,
   });
 }
 
@@ -426,10 +440,7 @@ export function useUpdateTrack() {
         }
       );
       // Update the detail cache
-      queryClient.setQueryData(
-        trackKeys.detail(updatedTrack.id),
-        updatedTrack
-      );
+      queryClient.setQueryData(trackKeys.detail(updatedTrack.id), updatedTrack);
       toast.success("Track updated successfully");
     },
     onError: (error: Error) => {
@@ -474,7 +485,11 @@ export function useUploadTrack() {
       onProgress?: (loaded: number, total: number) => void;
     }) => {
       // Upload file (automatically handles chunking if needed)
-      const objectUrl = await uploadFileWithChunking(file, projectId, onProgress);
+      const objectUrl = await uploadFileWithChunking(
+        file,
+        projectId,
+        onProgress
+      );
 
       // Create track record in database with initial version
       return createTrackMutation.mutateAsync({
@@ -573,6 +588,8 @@ export function useVersions(trackId: string) {
     queryKey: trackKeys.versions(trackId),
     queryFn: () => fetchVersions(trackId),
     enabled: !!trackId,
+    refetchOnWindowFocus: true,
+    structuralSharing: true,
   });
 }
 
@@ -650,7 +667,11 @@ export function useUploadVersion() {
       onProgress?: (loaded: number, total: number) => void;
     }) => {
       // Upload file (automatically handles chunking if needed)
-      const objectUrl = await uploadFileWithChunking(file, projectId, onProgress);
+      const objectUrl = await uploadFileWithChunking(
+        file,
+        projectId,
+        onProgress
+      );
 
       // Create version record in database
       return createVersionMutation.mutateAsync({
@@ -712,4 +733,3 @@ export function useSetMasterVersion() {
     },
   });
 }
-

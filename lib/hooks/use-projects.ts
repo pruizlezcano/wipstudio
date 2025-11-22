@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { CreateProjectInput, UpdateProjectInput } from "@/lib/validations/project";
+import type {
+  CreateProjectInput,
+  UpdateProjectInput,
+} from "@/lib/validations/project";
 
 export interface Project {
   id: string;
@@ -93,6 +96,8 @@ export function useProjects() {
   return useQuery({
     queryKey: projectKeys.list(),
     queryFn: fetchProjects,
+    refetchOnWindowFocus: true,
+    structuralSharing: true,
   });
 }
 
@@ -101,6 +106,8 @@ export function useProject(id: string) {
     queryKey: projectKeys.detail(id),
     queryFn: () => fetchProject(id),
     enabled: !!id,
+    refetchOnWindowFocus: true,
+    structuralSharing: true,
   });
 }
 

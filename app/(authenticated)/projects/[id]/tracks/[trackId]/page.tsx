@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryState, parseAsInteger } from "nuqs";
@@ -316,7 +316,7 @@ function CommentForm({
 }
 
 // Waveform component using WaveSurfer.js with comment markers
-function Waveform({
+const Waveform = memo(function Waveform({
   track,
   version,
   comments,
@@ -493,7 +493,19 @@ function Waveform({
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders
+  // Only re-render if version ID or comments actually changed
+  const prevComments = prevProps.comments ?? [];
+  const nextComments = nextProps.comments ?? [];
+
+  return (
+    prevProps.version.id === nextProps.version.id &&
+    prevProps.track.id === nextProps.track.id &&
+    prevComments.length === nextComments.length &&
+    prevComments.every((c, i) => c.id === nextComments[i]?.id)
+  );
+});
 
 export default function TrackDetailPage() {
   const params = useParams();

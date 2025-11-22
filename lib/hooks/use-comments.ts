@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { CreateCommentInput, UpdateCommentInput } from "@/lib/validations/comment";
+import type {
+  CreateCommentInput,
+  UpdateCommentInput,
+} from "@/lib/validations/comment";
 
 export interface Comment {
   id: string;
@@ -173,11 +176,18 @@ async function unresolveComment({
 }
 
 // Hooks
-export function useComments(trackId: string, versionId: string, includeResolved: boolean = false) {
+export function useComments(
+  trackId: string,
+  versionId: string,
+  includeResolved: boolean = false
+) {
   return useQuery({
     queryKey: [...commentKeys.list(versionId), includeResolved],
     queryFn: () => fetchComments(trackId, versionId, includeResolved),
     enabled: !!trackId && !!versionId,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+    structuralSharing: true,
   });
 }
 
