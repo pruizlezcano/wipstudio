@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createInvitationSchema = z.object({
   email: z.email({ message: "Invalid email" }).optional(),
   maxUses: z.number().int().positive("Max uses must be a positive number").optional().nullable(),
-  expiresAt: z.date().optional().nullable(),
+  expiresAt: z.coerce.date().optional().nullable(),
 });
 
 export const acceptInvitationSchema = z.object({
