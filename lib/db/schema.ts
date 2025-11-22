@@ -80,6 +80,8 @@ export const track = pgTable("track", {
     projectId: text("project_id")
         .notNull()
         .references(() => project.id, { onDelete: "cascade" }),
+    createdById: text("created_by_id")
+        .references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .defaultNow()
@@ -96,6 +98,8 @@ export const trackVersion = pgTable("track_version", {
     audioUrl: text("audio_url").notNull(), // S3 object key
     notes: text("notes"),
     isMaster: boolean("is_master").default(false).notNull(),
+    uploadedById: text("uploaded_by_id")
+        .references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .defaultNow()

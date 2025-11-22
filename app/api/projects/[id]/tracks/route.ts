@@ -109,6 +109,7 @@ export async function POST(
         id: crypto.randomUUID(),
         name: validatedData.name,
         projectId: validatedData.projectId,
+        createdById: session.user.id,
       })
       .returning();
 
@@ -122,6 +123,7 @@ export async function POST(
         audioUrl: validatedData.audioUrl,
         notes: validatedData.notes,
         isMaster: true,
+        uploadedById: session.user.id,
       })
 
     return NextResponse.json(

@@ -150,6 +150,7 @@ export async function POST(
         audioUrl: validatedData.audioUrl,
         notes: validatedData.notes,
         isMaster: true,
+        uploadedById: session.user.id,
       })
       .returning();
 
