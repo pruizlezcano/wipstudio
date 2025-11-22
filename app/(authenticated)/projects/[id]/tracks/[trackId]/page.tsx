@@ -525,6 +525,9 @@ export default function TrackDetailPage() {
     parseAsInteger
   );
 
+  // Use URL query param for comment ID to enable direct linking to comments
+  const [commentIdParam, setCommentIdParam] = useQueryState("c");
+
   // Get the currently selected version object based on URL param
   // If no param, default to master version
   const selectedVersion =
@@ -580,6 +583,33 @@ export default function TrackDetailPage() {
     selectedVersion?.id || "",
     showResolvedComments
   );
+
+  // Auto-scroll to comment when commentId is in URL
+  useEffect(() => {
+    if (commentIdParam && selectedVersion) {
+      // Add a small delay to ensure DOM is ready and comments are rendered
+      const timer = setTimeout(() => {
+        const commentElement = document.getElementById(`comment-${commentIdParam}`);
+        if (commentElement) {
+          commentElement.scrollIntoView({ behavior: "smooth", block: "center" });
+          // Add a subtle highlight effect
+          commentElement.classList.add(
+            "ring-2",
+            "ring-foreground",
+            "ring-opacity-50"
+          );
+          setTimeout(() => {
+            commentElement.classList.remove(
+              "ring-2",
+              "ring-foreground",
+              "ring-opacity-50"
+            );
+          }, 2000);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [commentIdParam, selectedVersion, comments]);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -740,24 +770,9 @@ export default function TrackDetailPage() {
   };
 
   const handleCommentClick = useCallback((commentId: string) => {
-    const commentElement = document.getElementById(`comment-${commentId}`);
-    if (commentElement) {
-      commentElement.scrollIntoView({ behavior: "smooth", block: "center" });
-      // Add a subtle highlight effect
-      commentElement.classList.add(
-        "ring-2",
-        "ring-foreground",
-        "ring-opacity-50"
-      );
-      setTimeout(() => {
-        commentElement.classList.remove(
-          "ring-2",
-          "ring-foreground",
-          "ring-opacity-50"
-        );
-      }, 2000);
-    }
-  }, []);
+    setCommentIdParam(commentId);
+    // The useEffect will handle scrolling automatically
+  }, [setCommentIdParam]);
 
   if (trackLoading) {
     return (

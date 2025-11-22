@@ -266,7 +266,7 @@ export async function POST(
 
     // Send notifications
     const appUrl = process.env.APP_URL || "http://localhost:3000";
-    const commentUrl = `${appUrl}/projects/${versionRecord[0].project.id}/tracks/${trackId}`;
+    const commentUrl = `${appUrl}/projects/${versionRecord[0].project.id}/tracks/${trackId}?v=${versionRecord[0].version.versionNumber}&c=${newComment[0].id}`;
 
     if (validatedData.parentId) {
       // This is a reply - notify the parent comment author
