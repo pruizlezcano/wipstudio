@@ -115,6 +115,9 @@ export const comment = pgTable("comment", {
     timestamp: real("timestamp"), // Audio timestamp in seconds. null == reply
     parentId: text("parent_id")
         .references((): AnyPgColumn => comment.id, { onDelete: "cascade" }), // For threaded replies
+    resolvedAt: timestamp("resolved_at"), // When comment was resolved
+    resolvedById: text("resolved_by_id")
+        .references(() => user.id, { onDelete: "set null" }), // Who resolved the comment
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .defaultNow()

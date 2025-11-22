@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
 import { comment, trackVersion, track, project, user } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull, or } from "drizzle-orm";
 import { createCommentSchema } from "@/lib/validations/comment";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -17,6 +17,8 @@ type CommentWithUserAndReplies = {
   content: string;
   timestamp: number | null;
   parentId: string | null;
+  resolvedAt: Date | null;
+  resolvedById: string | null;
   createdAt: Date;
   updatedAt: Date;
   user: {
@@ -30,7 +32,7 @@ type CommentWithUserAndReplies = {
 
 // GET /api/tracks/[trackId]/versions/[versionId]/comments - Get all comments for a version
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ trackId: string; versionId: string }> }
 ) {
   try {
@@ -43,6 +45,10 @@ export async function GET(
     }
 
     const { trackId, versionId } = await params;
+    
+    // Get query parameter to optionally include resolved comments
+    const { searchParams } = new URL(request.url);
+    const includeResolved = searchParams.get("includeResolved") === "true";
 
     // Verify version exists and user has access through project ownership
     const versionRecord = await db
@@ -71,7 +77,8 @@ export async function GET(
       return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
     }
 
-    // Fetch all comments with user info and replies
+    // Fetch all comments with user info
+    // By default, exclude resolved top-level comments and their replies
     const comments = await db
       .select({
         comment,
@@ -87,29 +94,48 @@ export async function GET(
       .where(eq(comment.versionId, versionId))
       .orderBy(desc(comment.createdAt));
 
-    // Organize comments into threads
+    // Organize comments into threads and filter resolved ones
     const commentMap = new Map<string, CommentWithUserAndReplies>();
+    const resolvedParentIds = new Set<string>();
     const topLevelComments: CommentWithUserAndReplies[] = [];
 
-    // First pass: create map of all comments
+    // First pass: create map of all comments and identify resolved parents
     comments.forEach((c) => {
       commentMap.set(c.comment.id, {
         ...c.comment,
         user: c.user,
         replies: [],
       });
+      
+      // Track top-level resolved comments
+      if (c.comment.resolvedAt !== null && c.comment.parentId === null) {
+        resolvedParentIds.add(c.comment.id);
+      }
     });
 
-    // Second pass: organize into threads
+    // Second pass: organize into threads and filter based on resolved status
     comments.forEach((c) => {
       const commentWithUser = commentMap.get(c.comment.id);
+      
+      if (!commentWithUser) return;
+      
+      // Skip if this is a resolved top-level comment and we're not including resolved
+      if (!includeResolved && c.comment.resolvedAt !== null && c.comment.parentId === null) {
+        return;
+      }
+      
       if (c.comment.parentId) {
+        // Skip if parent is resolved and we're not including resolved
+        if (!includeResolved && resolvedParentIds.has(c.comment.parentId)) {
+          return;
+        }
+        
         const parent = commentMap.get(c.comment.parentId);
         if (parent) {
-          parent.replies.push(commentWithUser as CommentWithUserAndReplies);
+          parent.replies.push(commentWithUser);
         }
       } else {
-        topLevelComments.push(commentWithUser as CommentWithUserAndReplies);
+        topLevelComments.push(commentWithUser);
       }
     });
 

@@ -9,6 +9,8 @@ export interface Comment {
   content: string;
   timestamp: number | null;
   parentId: string | null;
+  resolvedAt: string | null;
+  resolvedById: string | null;
   createdAt: string;
   updatedAt: string;
   user: {
@@ -30,11 +32,11 @@ export const commentKeys = {
 // Fetch all comments for a version
 async function fetchComments(
   trackId: string,
-  versionId: string
+  versionId: string,
+  includeResolved: boolean = false
 ): Promise<Comment[]> {
-  const response = await fetch(
-    `/api/tracks/${trackId}/versions/${versionId}/comments`
-  );
+  const url = `/api/tracks/${trackId}/versions/${versionId}/comments${includeResolved ? "?includeResolved=true" : ""}`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error("Failed to fetch comments");
   }
@@ -120,11 +122,61 @@ async function deleteComment({
   }
 }
 
+// Resolve comment
+async function resolveComment({
+  trackId,
+  versionId,
+  commentId,
+}: {
+  trackId: string;
+  versionId: string;
+  commentId: string;
+}): Promise<Comment> {
+  const response = await fetch(
+    `/api/tracks/${trackId}/versions/${versionId}/comments/${commentId}/resolve`,
+    {
+      method: "POST",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to resolve comment");
+  }
+
+  return response.json();
+}
+
+// Unresolve comment
+async function unresolveComment({
+  trackId,
+  versionId,
+  commentId,
+}: {
+  trackId: string;
+  versionId: string;
+  commentId: string;
+}): Promise<Comment> {
+  const response = await fetch(
+    `/api/tracks/${trackId}/versions/${versionId}/comments/${commentId}/resolve`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to unresolve comment");
+  }
+
+  return response.json();
+}
+
 // Hooks
-export function useComments(trackId: string, versionId: string) {
+export function useComments(trackId: string, versionId: string, includeResolved: boolean = false) {
   return useQuery({
-    queryKey: commentKeys.list(versionId),
-    queryFn: () => fetchComments(trackId, versionId),
+    queryKey: [...commentKeys.list(versionId), includeResolved],
+    queryFn: () => fetchComments(trackId, versionId, includeResolved),
     enabled: !!trackId && !!versionId,
   });
 }
@@ -176,6 +228,42 @@ export function useDeleteComment() {
         queryKey: commentKeys.list(versionId),
       });
       toast.success("Comment deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useResolveComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: resolveComment,
+    onSuccess: (_, { versionId }) => {
+      // Invalidate comments list
+      queryClient.invalidateQueries({
+        queryKey: commentKeys.list(versionId),
+      });
+      toast.success("Comment resolved successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useUnresolveComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: unresolveComment,
+    onSuccess: (_, { versionId }) => {
+      // Invalidate comments list
+      queryClient.invalidateQueries({
+        queryKey: commentKeys.list(versionId),
+      });
+      toast.success("Comment unresolved successfully");
     },
     onError: (error: Error) => {
       toast.error(error.message);

@@ -59,12 +59,15 @@ import {
   useComments,
   useCreateComment,
   useDeleteComment,
+  useResolveComment,
+  useUnresolveComment,
 } from "@/lib/hooks/use-comments";
 import { useTheme } from "next-themes";
 import { Progress } from "@/components/ui/progress";
 import { usePlayerStore } from "@/lib/stores/playerStore";
 import { formatTime } from "@/lib/utils";
 import WavesurferPlayer from "@wavesurfer/react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Comment Thread Component
 function CommentThread({
@@ -82,6 +85,8 @@ function CommentThread({
   const [replyContent, setReplyContent] = useState("");
   const createComment = useCreateComment();
   const deleteComment = useDeleteComment();
+  const resolveComment = useResolveComment();
+  const unresolveComment = useUnresolveComment();
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +106,22 @@ function CommentThread({
 
   const handleDelete = async (commentId: string) => {
     await deleteComment.mutateAsync({ trackId, versionId, commentId });
+  };
+
+  const handleResolve = async () => {
+    await resolveComment.mutateAsync({
+      trackId,
+      versionId,
+      commentId: comment.id,
+    });
+  };
+
+  const handleUnresolve = async () => {
+    await unresolveComment.mutateAsync({
+      trackId,
+      versionId,
+      commentId: comment.id,
+    });
   };
 
   const formatTime = (seconds: number) => {
@@ -129,6 +150,7 @@ function CommentThread({
             <span className="text-xs text-muted-foreground">
               {new Date(comment.createdAt).toLocaleDateString()}
             </span>
+            {comment.resolvedAt && <Badge variant="secondary">Resolved</Badge>}
           </div>
           <p className="text-sm">{comment.content}</p>
           <div className="flex gap-2">
@@ -138,6 +160,30 @@ function CommentThread({
             >
               Reply
             </button>
+            {/* Only show resolve/unresolve for top-level comments (with timestamp) */}
+            {comment.timestamp !== null && !comment.parentId && (
+              <>
+                {comment.resolvedAt ? (
+                  <button
+                    onClick={handleUnresolve}
+                    disabled={unresolveComment.isPending}
+                    className="text-xs text-green-600 hover:text-green-700"
+                  >
+                    {unresolveComment.isPending
+                      ? "Unresolving..."
+                      : "Unresolve"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleResolve}
+                    disabled={resolveComment.isPending}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    {resolveComment.isPending ? "Resolving..." : "Resolve"}
+                  </button>
+                )}
+              </>
+            )}
             <button
               onClick={() => handleDelete(comment.id)}
               className="text-xs text-red-600 hover:text-red-700"
@@ -490,6 +536,9 @@ export default function TrackDetailPage() {
   const previousMasterIdRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
 
+  // State for showing resolved comments
+  const [showResolvedComments, setShowResolvedComments] = useState(false);
+
   // Update URL param when defaultVersion changes (new upload or initial load)
   useEffect(() => {
     if (defaultVersion && versions) {
@@ -528,7 +577,8 @@ export default function TrackDetailPage() {
   // Fetch comments for the selected version
   const { data: comments = [], isLoading: commentsLoading } = useComments(
     trackId,
-    selectedVersion?.id || ""
+    selectedVersion?.id || "",
+    showResolvedComments
   );
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -916,10 +966,26 @@ export default function TrackDetailPage() {
           {/* Comments Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Comments ({comments.length})</CardTitle>
-              <CardDescription>
-                Click on the waveform to add a comment at a specific time
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Comments ({comments.length})</CardTitle>
+                  <CardDescription>
+                    Click on the waveform to add a comment at a specific time
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="show-resolved"
+                    checked={showResolvedComments}
+                    onCheckedChange={(checked) =>
+                      setShowResolvedComments(checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="show-resolved" className="mb-0">
+                    Show resolved
+                  </Label>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedVersion && (
