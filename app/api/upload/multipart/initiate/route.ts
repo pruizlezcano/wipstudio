@@ -5,6 +5,8 @@ import { initiateMultipartUpload } from "@/lib/storage/s3";
 import { initiateMultipartUploadSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { checkProjectAccess } from "@/lib/access-control";
+import { nanoid } from "nanoid";
+import { getFileExtension } from "@/lib/utils";
 
 // POST /api/upload/multipart/initiate - Initiate a multipart upload
 export async function POST(request: NextRequest) {
@@ -30,10 +32,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Project not found or access denied." }, { status: 404 });
     }
 
-    // Generate unique file name
-    const timestamp = Date.now();
-    const sanitizedFileName = validatedData.fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const objectName = `${validatedData.projectId}/${timestamp}-${sanitizedFileName}`;
+    // Generate unique file name using ID-based approach with organized structure
+    const versionId = nanoid();
+    const fileExtension = getFileExtension(validatedData.fileName);
+    const objectName = `${validatedData.projectId}/tracks/${versionId}${fileExtension}`;
 
     // Initiate multipart upload
     const uploadId = await initiateMultipartUpload(
