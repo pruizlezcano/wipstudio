@@ -134,11 +134,19 @@ function CommentThread({
     <div className="space-y-3" id={`comment-${comment.id}`}>
       <div className="flex gap-3">
         <div className="shrink-0">
-          <UserAvatar user={comment.user} />
+          {comment.user ? (
+            <UserAvatar user={comment.user} />
+          ) : (
+            <div className="size-8 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground">
+              ?
+            </div>
+          )}
         </div>
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">{comment.user.name}</span>
+            <span className="text-sm font-medium">
+              {comment.user ? comment.user.name : "Deleted User"}
+            </span>
             {comment.timestamp !== null && (
               <button
                 onClick={() => onSeek?.(comment.timestamp!)}
@@ -435,7 +443,7 @@ const Waveform = memo(function Waveform({
             {timestampComments?.map((comment) => (
               <div
                 key={comment.id}
-                className="absolute z-10 transform -translate-x-1/2 hover:scale-110 transition-transform cursor-pointer"
+                className="absolute z-10 transform -translate-x-1/2 hover:scale-110 hover:z-50 transition-transform cursor-pointer"
                 style={{
                   left: `${(comment.timestamp! / waveSurfer.getDuration()) * 100}%`,
                 }}
@@ -444,7 +452,13 @@ const Waveform = memo(function Waveform({
                   onCommentClick?.(comment.id);
                 }}
               >
-                <UserAvatar user={comment.user} className="size-5" />
+                {comment.user ? (
+                  <UserAvatar user={comment.user} className="size-5" />
+                ) : (
+                  <div className="size-5 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground text-xs">
+                    ?
+                  </div>
+                )}
               </div>
             ))}
           </div>

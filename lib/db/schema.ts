@@ -121,8 +121,7 @@ export const comment = pgTable("comment", {
         .notNull()
         .references(() => trackVersion.id, { onDelete: "cascade" }),
     userId: text("user_id")
-        .notNull()
-        .references(() => user.id, { onDelete: "cascade" }),
+        .references(() => user.id, { onDelete: "set null" }),
     content: text("content").notNull(),
     timestamp: real("timestamp"), // Audio timestamp in seconds. null == reply
     parentId: text("parent_id")

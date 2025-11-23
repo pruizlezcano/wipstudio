@@ -21,7 +21,7 @@ import { createNotification } from "@/lib/notifications/service";
 type CommentWithUserAndReplies = {
   id: string;
   versionId: string;
-  userId: string;
+  userId: string | null;
   content: string;
   timestamp: number | null;
   parentId: string | null;
@@ -34,7 +34,7 @@ type CommentWithUserAndReplies = {
     name: string;
     email: string;
     image: string | null;
-  };
+  } | null;
   replies: CommentWithUserAndReplies[];
 };
 
@@ -89,7 +89,7 @@ export async function GET(
     }
 
     // Fetch all comments with user info
-    // By default, exclude resolved top-level comments and their replies
+    // Use LEFT JOIN to include comments from deleted users (where userId is null)
     const comments = await db
       .select({
         comment,
@@ -101,7 +101,7 @@ export async function GET(
         },
       })
       .from(comment)
-      .innerJoin(user, eq(comment.userId, user.id))
+      .leftJoin(user, eq(comment.userId, user.id))
       .where(eq(comment.versionId, versionId))
       .orderBy(desc(comment.createdAt));
 
@@ -248,7 +248,7 @@ export async function POST(
       })
       .returning();
 
-    // Fetch the comment with user info
+    // Fetch the comment with user info (use LEFT JOIN to support null userId)
     const commentWithUser = await db
       .select({
         comment,
@@ -260,7 +260,7 @@ export async function POST(
         },
       })
       .from(comment)
-      .innerJoin(user, eq(comment.userId, user.id))
+      .leftJoin(user, eq(comment.userId, user.id))
       .where(eq(comment.id, newComment[0].id))
       .limit(1);
 
@@ -278,6 +278,7 @@ export async function POST(
 
       if (
         parentComment.length > 0 &&
+        parentComment[0].userId &&
         parentComment[0].userId !== session.user.id
       ) {
         await createNotification({

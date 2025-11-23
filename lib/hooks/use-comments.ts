@@ -8,7 +8,7 @@ import type {
 export interface Comment {
   id: string;
   versionId: string;
-  userId: string;
+  userId: string | null;
   content: string;
   timestamp: number | null;
   parentId: string | null;
@@ -21,7 +21,7 @@ export interface Comment {
     name: string;
     email: string;
     image: string | null;
-  };
+  } | null;
   replies: Comment[];
 }
 
