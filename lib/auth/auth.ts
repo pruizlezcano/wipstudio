@@ -39,6 +39,11 @@ export const auth = betterAuth({
       });
     },
   },
+  user: {
+    deleteUser: {
+      enabled: true,
+    },
+  },
   secret: process.env.BETTER_AUTH_SECRET,
   hooks: {
     after: createAuthMiddleware(async (ctx) => {

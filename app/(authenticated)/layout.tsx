@@ -1,4 +1,8 @@
-import { RedirectToSignIn, SignedIn } from "@daveyplate/better-auth-ui";
+import {
+  RedirectToSignIn,
+  SignedIn,
+  UserButton,
+} from "@daveyplate/better-auth-ui";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import Link from "next/link";
 
@@ -23,6 +27,10 @@ export default function AuthenticatedLayout({
               </Link>
               <div className="flex items-center gap-2">
                 <NotificationBell />
+                <UserButton
+                  size="sm"
+                  className="bg-background text-foreground hover:bg-foreground hover:text-background shadow-none"
+                />
               </div>
             </div>
           </header>
