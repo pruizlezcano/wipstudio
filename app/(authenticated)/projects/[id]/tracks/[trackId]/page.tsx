@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryState, parseAsInteger } from "nuqs";
+import { useQueryClient } from "@tanstack/react-query";
 import WaveSurfer from "wavesurfer.js";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +52,7 @@ import {
   useUpdateVersion,
   useDeleteVersion,
   useSetMasterVersion,
+  trackKeys,
   Track,
   TrackVersion,
 } from "@/lib/hooks/use-tracks";
@@ -524,6 +526,7 @@ const Waveform = memo(function Waveform({
 export default function TrackDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const trackId = params.trackId as string;
   const projectId = params.id as string;
 
@@ -602,6 +605,23 @@ export default function TrackDetailPage() {
       }
     }
   }, [defaultVersion, versions, versionNumberParam, setVersionNumberParam]);
+
+  // Refetch versions when URL param changes and version doesn't exist
+  // This handles the case when clicking a notification while already on the track page
+  useEffect(() => {
+    if (versionNumberParam !== null && versions && !versionsLoading) {
+      const versionExists = versions.some(
+        (v) => v.versionNumber === versionNumberParam
+      );
+
+      // If the requested version doesn't exist, refetch to get latest versions
+      if (!versionExists) {
+        queryClient.invalidateQueries({
+          queryKey: trackKeys.versions(trackId),
+        });
+      }
+    }
+  }, [versionNumberParam, versions, versionsLoading, trackId, queryClient]);
 
   // Fetch comments for the selected version
   const { data: comments = [], isLoading: commentsLoading } = useComments(
