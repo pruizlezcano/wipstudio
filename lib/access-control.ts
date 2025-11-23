@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/db";
 import { project, projectCollaborator } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 /**
  * Check if a user has access to a project (either as owner or collaborator)
@@ -17,7 +17,10 @@ export async function checkProjectAccess(projectId: string, userId: string) {
     .from(project)
     .leftJoin(
       projectCollaborator,
-      eq(projectCollaborator.projectId, project.id)
+      and(
+        eq(projectCollaborator.projectId, project.id),
+        eq(projectCollaborator.userId, userId),
+      ),
     )
     .where(eq(project.id, projectId))
     .limit(1);
