@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { sendEmail } from "../email/mailer";
 import { ResetPasswordEmail } from "../email/templates/reset-password";
 import { VerifyEmail } from "../email/templates/verify-email";
+import { generateAvatarBase64 } from "../avatar-generator";
 
 const REQUIRE_EMAIL_VERIFICATION =
   process.env.REQUIRE_EMAIL_VERIFICATION === "true";
@@ -45,7 +46,7 @@ export const auth = betterAuth({
       if (ctx.path.startsWith("/sign-up")) {
         const newSession = ctx.context.newSession;
         if (newSession) {
-          const image = `/api/avatar?userId=${newSession.user.id}`;
+          const image = generateAvatarBase64(newSession.user.id);
           await db
             .update(schema.user)
             .set({ image })
@@ -64,7 +65,7 @@ export const auth = betterAuth({
             .where(eq(schema.user.id, newSession.user.id));
 
           if (user.length > 0 && !user[0].image) {
-            const image = `/api/avatar?userId=${newSession.user.id}`;
+            const image = generateAvatarBase64(newSession.user.id);
             await db
               .update(schema.user)
               .set({ image })
