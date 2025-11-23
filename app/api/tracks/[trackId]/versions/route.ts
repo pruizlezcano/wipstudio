@@ -184,7 +184,7 @@ export async function POST(
     // Send notifications
     if (recipientIds.length > 0) {
       const appUrl = process.env.APP_URL || "http://localhost:3000";
-      const versionUrl = `${appUrl}/projects/${trackRecord[0].project.id}/tracks/${trackId}`;
+      const versionUrl = `${appUrl}/projects/${trackRecord[0].project.id}/tracks/${trackId}?v=${nextVersionNumber}`;
 
       await createNotification({
         type: "new_version",
