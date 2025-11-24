@@ -3,13 +3,7 @@
 import { useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +38,7 @@ import {
 } from "@/lib/hooks/use-collaborators";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { format, formatDistanceToNow } from "date-fns";
 
 // Track list item component with TE aesthetic
 function TrackListItem({
@@ -72,13 +67,7 @@ function TrackListItem({
       </div>
       <div className="flex items-center gap-4 shrink-0">
         <span className="text-xs font-mono text-muted-foreground">
-          {new Date(track.createdAt)
-            .toLocaleDateString("en-US", {
-              year: "2-digit",
-              month: "2-digit",
-              day: "2-digit",
-            })
-            .replace(/\//g, ".")}
+          {format(new Date(track.createdAt), "P").replace(/\//g, ".")}
         </span>
         <div className="text-xs font-bold uppercase tracking-tight">VIEW →</div>
       </div>
@@ -468,7 +457,9 @@ export default function ProjectDetailPage() {
                           <span>
                             {" "}
                             • Expires{" "}
-                            {new Date(inv.expiresAt).toLocaleDateString()}
+                            {formatDistanceToNow(new Date(inv.expiresAt), {
+                              addSuffix: true,
+                            })}
                           </span>
                         )}
                       </div>

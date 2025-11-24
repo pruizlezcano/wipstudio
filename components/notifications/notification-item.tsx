@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { NotificationMetadata } from "@/lib/notifications/types";
+import { formatDistanceToNowStrict } from "date-fns";
 
 interface Notification {
   id: string;
@@ -61,22 +62,6 @@ export function NotificationItem({
     }
   };
 
-  const formatTimeAgo = (date: string) => {
-    const now = new Date();
-    const notificationDate = new Date(date);
-    const diffInSeconds = Math.floor(
-      (now.getTime() - notificationDate.getTime()) / 1000
-    );
-
-    if (diffInSeconds < 60) return "just now";
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800)
-      return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return notificationDate.toLocaleDateString();
-  };
-
   return (
     <div
       className={cn(
@@ -121,7 +106,9 @@ export function NotificationItem({
           </p>
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground font-mono">
-              {formatTimeAgo(notification.createdAt)}
+              {formatDistanceToNowStrict(notification.createdAt, {
+                addSuffix: true,
+              })}
             </span>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {isUnread && (

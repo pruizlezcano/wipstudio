@@ -40,6 +40,7 @@ import {
   useDeleteProject,
   type Project,
 } from "@/lib/hooks/use-projects";
+import { format } from "date-fns";
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -260,13 +261,10 @@ export default function ProjectsPage() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground font-mono">
-                    {new Date(project.createdAt)
-                      .toLocaleDateString("en-US", {
-                        year: "2-digit",
-                        month: "2-digit",
-                        day: "2-digit",
-                      })
-                      .replace(/\//g, ".")}
+                    {format(new Date(project.updatedAt), "P").replace(
+                      /\//g,
+                      "."
+                    )}
                   </p>
                   <Button
                     variant="ghost"

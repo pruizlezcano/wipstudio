@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { authClient } from "@/lib/auth/auth-client";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 interface InvitationDetails {
   id: string;
@@ -197,7 +198,12 @@ export default function InvitationAcceptPage() {
 
           <div className="text-xs text-muted-foreground space-y-1">
             {invitation.expiresAt && (
-              <p>Expires: {new Date(invitation.expiresAt).toLocaleString()}</p>
+              <p>
+                Expires:{" "}
+                {formatDistanceToNow(new Date(invitation.expiresAt), {
+                  addSuffix: true,
+                })}
+              </p>
             )}
           </div>
 
