@@ -42,7 +42,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { TextareaAutosize } from "@/components/ui/textarea";
 import {
   useTrack,
   useUpdateTrack,
@@ -207,12 +207,13 @@ function CommentThread({
 
           {isReplying && (
             <form onSubmit={handleReply} className="mt-2 space-y-2">
-              <Textarea
+              <TextareaAutosize
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder="Write a reply..."
-                rows={2}
-                className="text-sm"
+                className="resize-none"
+                minRows={1}
+                maxRows={10}
               />
               <div className="flex gap-2">
                 <Button
@@ -296,12 +297,9 @@ function CommentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      {timestamp !== undefined && (
-        <div className="text-sm text-muted-foreground">
-          Commenting at {formatTime(timestamp)}
-        </div>
-      )}
-      <Textarea
+      {timestamp !== undefined && <Badge>@{formatTime(timestamp)}</Badge>}
+      <TextareaAutosize
+        className="resize-none"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={
@@ -309,7 +307,8 @@ function CommentForm({
             ? "Add a comment at this timestamp..."
             : "Add a general comment..."
         }
-        rows={3}
+        minRows={1}
+        maxRows={10}
       />
       <div className="flex gap-2">
         <Button
@@ -1064,16 +1063,14 @@ export default function TrackDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {selectedVersion && (
-                <div className="rounded-lg border bg-card p-4">
-                  <CommentForm
-                    trackId={trackId}
-                    versionId={selectedVersion.id}
-                    timestamp={commentTimestamp}
-                    onCancel={() => {
-                      setCommentTimestamp(0);
-                    }}
-                  />
-                </div>
+                <CommentForm
+                  trackId={trackId}
+                  versionId={selectedVersion.id}
+                  timestamp={commentTimestamp}
+                  onCancel={() => {
+                    setCommentTimestamp(0);
+                  }}
+                />
               )}
 
               {commentsLoading ? (
@@ -1169,12 +1166,14 @@ export default function TrackDetailPage() {
             </div>
             <div>
               <Label htmlFor="version-notes">Notes (Optional)</Label>
-              <Textarea
+              <TextareaAutosize
                 id="version-notes"
+                className="resize-none"
                 value={versionNotes}
                 onChange={(e) => setVersionNotes(e.target.value)}
                 placeholder="What changed in this version..."
-                rows={3}
+                minRows={1}
+                maxRows={8}
               />
             </div>
             {isUploadingVersion && (
@@ -1218,7 +1217,8 @@ export default function TrackDetailPage() {
           <form onSubmit={handleUpdateVersion} className="space-y-4">
             <div>
               <Label htmlFor="editVersionNotes">Notes</Label>
-              <Textarea
+              <TextareaAutosize
+                className="resize-none"
                 id="editVersionNotes"
                 value={editingVersion?.notes || ""}
                 onChange={(e) =>
@@ -1229,7 +1229,8 @@ export default function TrackDetailPage() {
                   )
                 }
                 placeholder="Enter version notes"
-                rows={4}
+                minRows={1}
+                maxRows={10}
               />
             </div>
             <div className="flex justify-end gap-2">
