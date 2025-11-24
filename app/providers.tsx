@@ -8,7 +8,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-
 import { authClient } from "@/lib/auth/auth-client";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -47,7 +46,23 @@ export function Providers({ children }: { children: ReactNode }) {
             process.env.NEXT_PUBLIC_REQUIRE_EMAIL_VERIFICATION === "true"
           }
           avatar
+          genericOAuth={
+            process.env.NEXT_PUBLIC_OPENID_NAME &&
+            process.env.NEXT_PUBLIC_OPENID_ID
+              ? {
+                  providers: [
+                    {
+                      name: process.env.NEXT_PUBLIC_OPENID_NAME,
+                      provider: process.env.NEXT_PUBLIC_OPENID_ID,
+                    },
+                  ],
+                }
+              : undefined
+          }
           signUp={process.env.NEXT_PUBLIC_DISABLE_SIGN_UP !== "true"}
+          credentials={
+            process.env.NEXT_PUBLIC_DISABLE_EMAIL_PASSWORD_AUTH !== "true"
+          }
         >
           <ThemeProvider
             attribute="class"

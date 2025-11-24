@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { genericOAuth } from "better-auth/plugins";
 import { db } from "../db/db";
 import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
@@ -9,6 +10,7 @@ import { ResetPasswordEmail } from "../email/templates/reset-password";
 import { VerifyEmail } from "../email/templates/verify-email";
 import { generateAvatarBase64 } from "../avatar-generator";
 import { getAuthConfig } from "@/lib/config";
+import { getOpenIDConfig } from "@/lib/config";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -16,7 +18,7 @@ export const auth = betterAuth({
     schema,
   }),
   emailAndPassword: {
-    enabled: true,
+    enabled: !getAuthConfig().disableEmailPasswordAuth,
     disableSignUp: getAuthConfig().disableSignUp,
     get requireEmailVerification() {
       return getAuthConfig().requireEmailVerification;
@@ -85,4 +87,22 @@ export const auth = betterAuth({
       }
     }),
   },
+  plugins: [
+    ...(getOpenIDConfig().enabled
+      ? [
+          genericOAuth({
+            config: [
+              {
+                providerId: getOpenIDConfig().id,
+                clientId: getOpenIDConfig().clientId,
+                clientSecret: getOpenIDConfig().clientSecret,
+                redirectURI: getOpenIDConfig().redirectUri,
+                discoveryUrl: getOpenIDConfig().discoveryUrl,
+                scopes: getOpenIDConfig().scopes,
+              },
+            ],
+          }),
+        ]
+      : []),
+  ],
 });

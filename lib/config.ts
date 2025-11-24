@@ -25,11 +25,22 @@ export interface AuthConfig {
   secret: string;
   requireEmailVerification: boolean;
   disableSignUp: boolean;
+  disableEmailPasswordAuth: boolean;
 }
 
 export interface AppConfig {
   url: string;
   uploadChunkSize: number | undefined;
+}
+
+export interface OpenIDConfig {
+  enabled: boolean;
+  id: string;
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  discoveryUrl: string;
+  scopes: string[];
 }
 
 // Caches for configuration
@@ -38,6 +49,7 @@ let emailConfigCache: EmailConfig | null = null;
 let databaseConfigCache: DatabaseConfig | null = null;
 let authConfigCache: AuthConfig | null = null;
 let appConfigCache: AppConfig | null = null;
+let openIDConfigCache: OpenIDConfig | null = null;
 
 // ============================================================================
 // S3 Configuration
@@ -162,10 +174,14 @@ export function getAuthConfig(): AuthConfig {
 
   const disableSignUp = process.env.DISABLE_SIGN_UP === "true";
 
+  const disableEmailPasswordAuth =
+    process.env.DISABLE_EMAIL_PASSWORD_AUTH === "true";
+
   authConfigCache = {
     secret,
     requireEmailVerification,
     disableSignUp,
+    disableEmailPasswordAuth,
   };
 
   return authConfigCache;
@@ -191,4 +207,60 @@ export function getAppConfig(): AppConfig {
   };
 
   return appConfigCache;
+}
+
+// ============================================================================
+// OpenID Configuration
+// ============================================================================
+
+export function getOpenIDConfig(): OpenIDConfig {
+  if (openIDConfigCache) {
+    return openIDConfigCache;
+  }
+
+  const id = process.env.OPENID_ID;
+  const clientId = process.env.OPENID_CLIENT_ID;
+  const clientSecret = process.env.OPENID_CLIENT_SECRET;
+  const redirectUri = process.env.OPENID_REDIRECT_URI;
+  const discoveryUrl = process.env.OPENID_DISCOVERY_URL;
+  const scopesStr = process.env.OPENID_SCOPES;
+
+  const enabled = !!(
+    id &&
+    clientId &&
+    clientSecret &&
+    redirectUri &&
+    discoveryUrl &&
+    scopesStr
+  );
+
+  if (!enabled) {
+    openIDConfigCache = {
+      enabled: false,
+      id: "",
+      clientId: "",
+      clientSecret: "",
+      redirectUri: "",
+      discoveryUrl: "",
+      scopes: [],
+    };
+    return openIDConfigCache;
+  }
+
+  const scopes = scopesStr
+    .split(" ")
+    .map((scope) => scope.trim())
+    .filter((scope) => scope);
+
+  openIDConfigCache = {
+    enabled: true,
+    id,
+    clientId,
+    clientSecret,
+    redirectUri,
+    discoveryUrl,
+    scopes,
+  };
+
+  return openIDConfigCache;
 }

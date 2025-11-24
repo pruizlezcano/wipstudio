@@ -1,4 +1,8 @@
-import { createAuthClient } from "better-auth/react"
-export const authClient = createAuthClient()
+import { createAuthClient } from "better-auth/react";
+import { genericOAuthClient } from "better-auth/client/plugins";
 
-export type Session = typeof authClient.$Infer.Session
+export const authClient = createAuthClient({
+  plugins: [genericOAuthClient()],
+});
+
+export type Session = typeof authClient.$Infer.Session;
