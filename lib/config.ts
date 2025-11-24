@@ -24,6 +24,7 @@ export interface DatabaseConfig {
 export interface AuthConfig {
   secret: string;
   requireEmailVerification: boolean;
+  disableSignUp: boolean;
 }
 
 export interface AppConfig {
@@ -159,9 +160,12 @@ export function getAuthConfig(): AuthConfig {
   const requireEmailVerification =
     process.env.REQUIRE_EMAIL_VERIFICATION === "true";
 
+  const disableSignUp = process.env.DISABLE_SIGN_UP === "true";
+
   authConfigCache = {
     secret,
     requireEmailVerification,
+    disableSignUp,
   };
 
   return authConfigCache;

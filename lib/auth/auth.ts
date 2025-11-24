@@ -17,6 +17,7 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    disableSignUp: getAuthConfig().disableSignUp,
     get requireEmailVerification() {
       return getAuthConfig().requireEmailVerification;
     },

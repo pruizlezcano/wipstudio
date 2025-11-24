@@ -22,7 +22,7 @@ export function Providers({ children }: { children: ReactNode }) {
             refetchOnWindowFocus: false,
           },
         },
-      }),
+      })
   );
 
   return (
@@ -37,7 +37,7 @@ export function Providers({ children }: { children: ReactNode }) {
             router.refresh();
           }}
           Link={Link}
-          redirectTo='/projects'
+          redirectTo="/projects"
           viewPaths={{
             SIGN_IN: "login",
             SIGN_OUT: "logout",
@@ -46,11 +46,12 @@ export function Providers({ children }: { children: ReactNode }) {
           emailVerification={
             process.env.NEXT_PUBLIC_REQUIRE_EMAIL_VERIFICATION === "true"
           }
-          avatar={true}
+          avatar
+          signUp={process.env.NEXT_PUBLIC_DISABLE_SIGN_UP !== "true"}
         >
           <ThemeProvider
-            attribute='class'
-            defaultTheme='system'
+            attribute="class"
+            defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
