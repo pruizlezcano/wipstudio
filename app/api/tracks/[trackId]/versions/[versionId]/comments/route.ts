@@ -16,6 +16,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
 import { createNotification } from "@/lib/notifications/service";
+import { getAppConfig } from "@/lib/config";
 
 // Type for comment with user and nested replies
 type CommentWithUserAndReplies = {
@@ -265,7 +266,7 @@ export async function POST(
       .limit(1);
 
     // Send notifications
-    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const appUrl = getAppConfig().url;
     const commentUrl = `${appUrl}/projects/${versionRecord[0].project.id}/tracks/${trackId}?v=${versionRecord[0].version.versionNumber}&c=${newComment[0].id}`;
 
     if (validatedData.parentId) {

@@ -8,6 +8,7 @@ import { createInvitationSchema } from "@/lib/validations/invitation";
 import { z } from "zod";
 import { checkProjectAccess } from "@/lib/access-control";
 import { createNotification } from "@/lib/notifications/service";
+import { getAppConfig } from "@/lib/config";
 
 // GET /api/projects/[id]/invitations - List all invitations for a project
 export async function GET(
@@ -112,7 +113,7 @@ export async function POST(
 
     // Send notification email (if email is specified)
     if (validatedData.email) {
-      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const appUrl = getAppConfig().url;
       const invitationUrl = `${appUrl}/invitations/${newInvitation[0].token}`;
 
       await createNotification({

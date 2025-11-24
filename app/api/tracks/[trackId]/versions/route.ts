@@ -15,6 +15,7 @@ import { generatePresignedGetUrl } from "@/lib/storage/s3";
 import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
 import { createNotification } from "@/lib/notifications/service";
+import { getAppConfig } from "@/lib/config";
 
 // GET /api/tracks/[trackId]/versions - Get all versions for a track
 export async function GET(
@@ -183,7 +184,7 @@ export async function POST(
 
     // Send notifications
     if (recipientIds.length > 0) {
-      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const appUrl = getAppConfig().url;
       const versionUrl = `${appUrl}/projects/${trackRecord[0].project.id}/tracks/${trackId}?v=${nextVersionNumber}`;
 
       await createNotification({

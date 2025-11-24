@@ -14,6 +14,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
 import { createNotification } from "@/lib/notifications/service";
+import { getAppConfig } from "@/lib/config";
 
 // GET /api/projects/[id]/tracks - List all tracks for a project
 export async function GET(
@@ -154,7 +155,7 @@ export async function POST(
 
     // Send notifications
     if (recipientIds.length > 0) {
-      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const appUrl = getAppConfig().url;
       const trackUrl = `${appUrl}/projects/${projectId}/tracks/${newTrack[0].id}`;
 
       await createNotification({

@@ -11,47 +11,53 @@ import {
   AbortMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { getS3Config } from "@/lib/config";
 
-const S3_BUCKET = process.env.S3_BUCKET;
-if (!S3_BUCKET) {
-  throw new Error("S3_BUCKET environment variable is not set");
+// Lazy initialization of S3 client
+let s3ClientInstance: S3Client | null = null;
+
+function initS3Client(): S3Client {
+  if (s3ClientInstance) {
+    return s3ClientInstance;
+  }
+
+  const config = getS3Config();
+
+  s3ClientInstance = new S3Client({
+    region: config.region,
+    endpoint: config.endpoint,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
+    forcePathStyle: true, // Required for MinIO
+  });
+
+  return s3ClientInstance;
 }
-const S3_REGION = process.env.S3_REGION || "";
-const S3_ENDPOINT = process.env.S3_ENDPOINT;
-if (!S3_ENDPOINT) {
-  throw new Error("S3_ENDPOINT environment variable is not set");
-}
-const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
-const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
-if (!S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY) {
-  throw new Error("S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY environment variables must be set");
-}
 
-
-
-// Create S3 client using AWS SDK
-export const s3Client = new S3Client({
-  region: S3_REGION,
-  endpoint: S3_ENDPOINT,
-  credentials: {
-    accessKeyId: S3_ACCESS_KEY_ID,
-    secretAccessKey: S3_SECRET_ACCESS_KEY,
+// Export the S3 client using a Proxy for lazy initialization
+export const s3Client = new Proxy({} as S3Client, {
+  get(target, prop) {
+    const client = initS3Client();
+    const value = (client as any)[prop];
+    return typeof value === "function" ? value.bind(client) : value;
   },
-  forcePathStyle: true, // Required for MinIO
 });
 
 // Ensure bucket exists
 export async function ensureBucketExists(): Promise<void> {
+  const config = getS3Config();
   try {
-    await s3Client.send(new HeadBucketCommand({ Bucket: S3_BUCKET }));
-    console.log(`S3 bucket "${S3_BUCKET}" already exists`);
+    await s3Client.send(new HeadBucketCommand({ Bucket: config.bucket }));
+    console.log(`S3 bucket "${config.bucket}" already exists`);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     // If bucket doesn't exist, create it
     if (error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
-      console.log(`Creating S3 bucket: ${S3_BUCKET}`);
-      await s3Client.send(new CreateBucketCommand({ Bucket: S3_BUCKET }));
-      console.log(`S3 bucket "${S3_BUCKET}" created successfully`);
+      console.log(`Creating S3 bucket: ${config.bucket}`);
+      await s3Client.send(new CreateBucketCommand({ Bucket: config.bucket }));
+      console.log(`S3 bucket "${config.bucket}" created successfully`);
     } else {
       console.error("Error ensuring bucket exists:", error.message || error);
       throw error;
@@ -65,8 +71,9 @@ export async function generatePresignedPutUrl(
   expiresIn: number = 900, // 15 minutes default
   contentType?: string
 ): Promise<string> {
+  const config = getS3Config();
   const command = new PutObjectCommand({
-    Bucket: S3_BUCKET,
+    Bucket: config.bucket,
     Key: objectKey,
     ContentType: contentType,
   });
@@ -79,8 +86,9 @@ export async function generatePresignedGetUrl(
   objectKey: string,
   expiresIn: number = 3600 // 1 hour default
 ): Promise<string> {
+  const config = getS3Config();
   const command = new GetObjectCommand({
-    Bucket: S3_BUCKET,
+    Bucket: config.bucket,
     Key: objectKey,
   });
 
@@ -89,9 +97,10 @@ export async function generatePresignedGetUrl(
 
 // Delete an object from S3
 export async function deleteS3File(objectKey: string): Promise<void> {
+  const config = getS3Config();
   await s3Client.send(
     new DeleteObjectCommand({
-      Bucket: S3_BUCKET,
+      Bucket: config.bucket,
       Key: objectKey,
     })
   );
@@ -104,14 +113,15 @@ export async function initiateMultipartUpload(
   objectKey: string,
   contentType?: string
 ): Promise<string> {
+  const config = getS3Config();
   const command = new CreateMultipartUploadCommand({
-    Bucket: S3_BUCKET,
+    Bucket: config.bucket,
     Key: objectKey,
     ContentType: contentType,
   });
 
   const response = await s3Client.send(command);
-  
+
   if (!response.UploadId) {
     throw new Error("Failed to initiate multipart upload");
   }
@@ -126,8 +136,9 @@ export async function generatePresignedPartUrl(
   partNumber: number,
   expiresIn: number = 900 // 15 minutes default
 ): Promise<string> {
+  const config = getS3Config();
   const command = new UploadPartCommand({
-    Bucket: S3_BUCKET,
+    Bucket: config.bucket,
     Key: objectKey,
     UploadId: uploadId,
     PartNumber: partNumber,
@@ -142,8 +153,9 @@ export async function completeMultipartUpload(
   uploadId: string,
   parts: Array<{ PartNumber: number; ETag: string }>
 ): Promise<void> {
+  const config = getS3Config();
   const command = new CompleteMultipartUploadCommand({
-    Bucket: S3_BUCKET,
+    Bucket: config.bucket,
     Key: objectKey,
     UploadId: uploadId,
     MultipartUpload: {
@@ -159,8 +171,9 @@ export async function abortMultipartUpload(
   objectKey: string,
   uploadId: string
 ): Promise<void> {
+  const config = getS3Config();
   const command = new AbortMultipartUploadCommand({
-    Bucket: S3_BUCKET,
+    Bucket: config.bucket,
     Key: objectKey,
     UploadId: uploadId,
   });

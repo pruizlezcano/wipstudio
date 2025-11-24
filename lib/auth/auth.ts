@@ -8,9 +8,7 @@ import { sendEmail } from "../email/mailer";
 import { ResetPasswordEmail } from "../email/templates/reset-password";
 import { VerifyEmail } from "../email/templates/verify-email";
 import { generateAvatarBase64 } from "../avatar-generator";
-
-const REQUIRE_EMAIL_VERIFICATION =
-  process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+import { getAuthConfig } from "@/lib/config";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -19,7 +17,9 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: REQUIRE_EMAIL_VERIFICATION,
+    get requireEmailVerification() {
+      return getAuthConfig().requireEmailVerification;
+    },
     sendResetPassword: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
@@ -29,7 +29,9 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
-    sendOnSignUp: REQUIRE_EMAIL_VERIFICATION,
+    get sendOnSignUp() {
+      return getAuthConfig().requireEmailVerification;
+    },
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       await sendEmail({
@@ -44,7 +46,9 @@ export const auth = betterAuth({
       enabled: true,
     },
   },
-  secret: process.env.BETTER_AUTH_SECRET,
+  get secret() {
+    return getAuthConfig().secret;
+  },
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
       // Set avatar on sign-up (when email verification is disabled)
