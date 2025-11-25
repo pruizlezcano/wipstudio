@@ -45,15 +45,20 @@ function initS3PresignedClient(): S3Client {
     return s3PresignedClientInstance;
   }
 
-  const config = getS3Config();
-  const publicEndpoint = getAppConfig().url;
+  const s3Config = getS3Config();
+  const appConfig = getAppConfig();
+  
+  // In development, use S3 endpoint directly for presigned URLs
+  // In production, use the public app URL (proxy handles routing to S3)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const presignedEndpoint = isDevelopment ? s3Config.endpoint : appConfig.url;
 
   s3PresignedClientInstance = new S3Client({
-    region: config.region,
-    endpoint: publicEndpoint,
+    region: s3Config.region,
+    endpoint: presignedEndpoint,
     credentials: {
-      accessKeyId: config.accessKeyId,
-      secretAccessKey: config.secretAccessKey,
+      accessKeyId: s3Config.accessKeyId,
+      secretAccessKey: s3Config.secretAccessKey,
     },
     forcePathStyle: true, // Required for MinIO
   });
