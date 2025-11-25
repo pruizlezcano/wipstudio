@@ -1,12 +1,26 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: backstage-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    env_file:
+      - .env
+    depends_on:
+      - backstage
+      - minio
+
   backstage:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: backstage-app
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     env_file:
       - .env
     depends_on:

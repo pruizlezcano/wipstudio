@@ -9,10 +9,12 @@ import { sendEmail } from "../email/mailer";
 import { ResetPasswordEmail } from "../email/templates/reset-password";
 import { VerifyEmail } from "../email/templates/verify-email";
 import { generateAvatarBase64 } from "../avatar-generator";
-import { getAuthConfig } from "@/lib/config";
+import { getAuthConfig, getAppConfig } from "@/lib/config";
 import { getOpenIDConfig } from "@/lib/config";
 
 export const auth = betterAuth({
+  baseURL: getAppConfig().url,
+  trustedOrigins: [getAppConfig().url],
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,

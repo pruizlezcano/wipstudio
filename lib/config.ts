@@ -191,7 +191,7 @@ export function getAppConfig(): AppConfig {
     return appConfigCache;
   }
 
-  const url = process.env.APP_URL || "http://localhost:3000";
+  const url = process.env.WEB_URL || "http://localhost";
 
   const chunkSizeStr = process.env.UPLOAD_CHUNK_SIZE;
   const uploadChunkSize = chunkSizeStr ? parseInt(chunkSizeStr, 10) : undefined;

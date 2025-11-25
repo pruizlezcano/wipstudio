@@ -11,9 +11,9 @@ import {
   AbortMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { getS3Config } from "@/lib/config";
+import { getS3Config, getAppConfig } from "@/lib/config";
 
-// Lazy initialization of S3 client
+// Lazy initialization of S3 client for server-side operations
 let s3ClientInstance: S3Client | null = null;
 
 function initS3Client(): S3Client {
@@ -25,7 +25,7 @@ function initS3Client(): S3Client {
 
   s3ClientInstance = new S3Client({
     region: config.region,
-    endpoint: config.endpoint,
+    endpoint: config.endpoint, // Use internal endpoint for server operations
     credentials: {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
@@ -36,10 +36,43 @@ function initS3Client(): S3Client {
   return s3ClientInstance;
 }
 
+// Lazy initialization of S3 client for presigned URLs using request host
+// This ensures presigned URLs use the public-facing domain
+let s3PresignedClientInstance: S3Client | null = null;
+
+function initS3PresignedClient(): S3Client {
+  if (s3PresignedClientInstance) {
+    return s3PresignedClientInstance;
+  }
+
+  const config = getS3Config();
+  const publicEndpoint = getAppConfig().url;
+
+  s3PresignedClientInstance = new S3Client({
+    region: config.region,
+    endpoint: publicEndpoint,
+    credentials: {
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+    },
+    forcePathStyle: true, // Required for MinIO
+  });
+
+  return s3PresignedClientInstance;
+}
+
 // Export the S3 client using a Proxy for lazy initialization
 export const s3Client = new Proxy({} as S3Client, {
   get(target, prop) {
     const client = initS3Client();
+    const value = (client as any)[prop];
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
+
+export const s3PresignedClient = new Proxy({} as S3Client, {
+  get(target, prop) {
+    const client = initS3PresignedClient();
     const value = (client as any)[prop];
     return typeof value === "function" ? value.bind(client) : value;
   },
@@ -72,13 +105,17 @@ export async function generatePresignedPutUrl(
   contentType?: string
 ): Promise<string> {
   const config = getS3Config();
+
+  // Use presigned client with request host
+  const presignedClient = initS3PresignedClient();
+
   const command = new PutObjectCommand({
     Bucket: config.bucket,
     Key: objectKey,
     ContentType: contentType,
   });
 
-  return getSignedUrl(s3Client, command, { expiresIn });
+  return getSignedUrl(presignedClient, command, { expiresIn });
 }
 
 // Generate presigned URL for downloading/viewing (GET)
@@ -87,12 +124,13 @@ export async function generatePresignedGetUrl(
   expiresIn: number = 3600 // 1 hour default
 ): Promise<string> {
   const config = getS3Config();
+
   const command = new GetObjectCommand({
     Bucket: config.bucket,
     Key: objectKey,
   });
 
-  return getSignedUrl(s3Client, command, { expiresIn });
+  return getSignedUrl(s3PresignedClient, command, { expiresIn });
 }
 
 // Delete an object from S3
@@ -137,6 +175,7 @@ export async function generatePresignedPartUrl(
   expiresIn: number = 900 // 15 minutes default
 ): Promise<string> {
   const config = getS3Config();
+
   const command = new UploadPartCommand({
     Bucket: config.bucket,
     Key: objectKey,
@@ -144,7 +183,7 @@ export async function generatePresignedPartUrl(
     PartNumber: partNumber,
   });
 
-  return getSignedUrl(s3Client, command, { expiresIn });
+  return getSignedUrl(s3PresignedClient, command, { expiresIn });
 }
 
 // Complete a multipart upload
