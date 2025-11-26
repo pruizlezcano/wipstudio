@@ -4,15 +4,7 @@ import type {
   CreateProjectInput,
   UpdateProjectInput,
 } from "@/lib/validations/project";
-
-export interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  ownerId: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Project } from "@/types/project";
 
 // Query keys
 export const projectKeys = {

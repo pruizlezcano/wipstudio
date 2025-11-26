@@ -1,27 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { NotificationMetadata } from "@/lib/notifications/types";
-
-interface Notification {
-  id: string;
-  userId: string;
-  type:
-    | "invitation"
-    | "new_track"
-    | "new_version"
-    | "new_comment"
-    | "comment_reply";
-  title: string;
-  message: string;
-  metadata: NotificationMetadata | null;
-  readAt: string | null;
-  createdAt: string;
-}
-
-interface UseNotificationsOptions {
-  unreadOnly?: boolean;
-  limit?: number;
-  offset?: number;
-}
+import type { Notification, UseNotificationsOptions } from "@/types/notification";
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
   const queryClient = useQueryClient();

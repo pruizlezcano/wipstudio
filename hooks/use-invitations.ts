@@ -1,19 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CreateInvitationInput } from "@/lib/validations/invitation";
-
-export interface Invitation {
-  id: string;
-  projectId: string;
-  token: string;
-  createdById: string;
-  email: string | null;
-  maxUses: number | null;
-  currentUses: number;
-  expiresAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Invitation } from "@/types/invitation";
 
 // Query keys
 export const invitationKeys = {

@@ -1,20 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-
-export interface Collaborator {
-  id: string;
-  userId: string;
-  createdAt: string;
-  userName: string | null;
-  userEmail: string | null;
-  userImage: string | null;
-}
+import type { Collaborator } from "@/types/collaborator";
 
 // Query keys
 export const collaboratorKeys = {
   all: ["collaborators"] as const,
   lists: () => [...collaboratorKeys.all, "list"] as const,
-  list: (projectId: string) => [...collaboratorKeys.lists(), projectId] as const,
+  list: (projectId: string) =>
+    [...collaboratorKeys.lists(), projectId] as const,
 };
 
 // Fetch all collaborators for a project

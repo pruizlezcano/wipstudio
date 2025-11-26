@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, CheckCheck, Loader2 } from "lucide-react";
+import { Bell, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,8 +9,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useNotifications } from "@/lib/hooks/use-notifications";
+import { useNotifications } from "@/hooks/use-notifications";
 import { NotificationItem } from "./notification-item";
+import { LoadingSpinner } from "@/components/common/loading-spinner";
 
 export function NotificationBell() {
   const {
@@ -72,7 +73,7 @@ export function NotificationBell() {
         <div className="overflow-y-auto flex-1">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <LoadingSpinner size="sm" />
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4">

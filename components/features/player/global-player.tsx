@@ -1,12 +1,13 @@
 "use client";
 
-import { usePlayerStore } from "@/lib/stores/playerStore";
+import { usePlayerStore } from "@/stores/playerStore";
 import { Slider } from "@/components/ui/slider";
 import { PlayIcon, PauseIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import WavesurferPlayer from "@wavesurfer/react";
 import Link from "next/link";
 import { formatTime } from "@/lib/utils";
+import { LoadingSpinner } from "@/components/common/loading-spinner";
 
 export const GlobalPlayer = () => {
   const {
@@ -50,7 +51,7 @@ export const GlobalPlayer = () => {
           className="size-10 hover:bg-primary/10"
         >
           {isLoading ? (
-            <div className="size-4 border border-foreground/50 animate-spin" />
+            <LoadingSpinner size="xs" />
           ) : isPlaying ? (
             <PauseIcon className="size-5" />
           ) : (
