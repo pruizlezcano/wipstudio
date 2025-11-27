@@ -33,7 +33,6 @@ type CommentWithUserAndReplies = {
   user: {
     id: string;
     name: string;
-    email: string;
     image: string | null;
   } | null;
   replies: CommentWithUserAndReplies[];
@@ -97,7 +96,6 @@ export async function GET(
         user: {
           id: user.id,
           name: user.name,
-          email: user.email,
           image: user.image,
         },
       })
@@ -256,7 +254,6 @@ export async function POST(
         user: {
           id: user.id,
           name: user.name,
-          email: user.email,
           image: user.image,
         },
       })

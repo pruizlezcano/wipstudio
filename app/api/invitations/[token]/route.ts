@@ -17,7 +17,6 @@ export async function GET(
         id: projectInvitation.id,
         projectId: projectInvitation.projectId,
         projectName: project.name,
-        email: projectInvitation.email,
         expiresAt: projectInvitation.expiresAt,
         maxUses: projectInvitation.maxUses,
         currentUses: projectInvitation.currentUses,

@@ -9,9 +9,14 @@ export interface Invitation {
   expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
-  createdBy?: {
-    id: string;
-    name: string;
-    email: string;
-  };
+}
+
+// No email exposed
+export interface PublicInvitation {
+  id: string;
+  projectId: string;
+  projectName: string;
+  expiresAt: string | null;
+  maxUses: number | null;
+  currentUses: number;
 }

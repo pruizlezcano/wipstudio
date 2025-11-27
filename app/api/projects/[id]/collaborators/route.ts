@@ -25,7 +25,10 @@ export async function GET(
     const { hasAccess } = await checkProjectAccess(id, session.user.id);
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Project not found or access denied" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Project not found or access denied" },
+        { status: 404 }
+      );
     }
 
     // Fetch all collaborators with user info
@@ -34,9 +37,8 @@ export async function GET(
         id: projectCollaborator.id,
         userId: projectCollaborator.userId,
         createdAt: projectCollaborator.createdAt,
-        userName: user.name,
-        userEmail: user.email,
-        userImage: user.image,
+        name: user.name,
+        image: user.image,
       })
       .from(projectCollaborator)
       .leftJoin(user, eq(projectCollaborator.userId, user.id))
