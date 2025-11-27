@@ -149,6 +149,33 @@ export async function deleteS3File(objectKey: string): Promise<void> {
   );
 }
 
+// Download file header for validation (first N bytes)
+export async function getFileHeader(
+  objectKey: string,
+  bytesToRead: number = 50
+): Promise<Buffer> {
+  const config = getS3Config();
+  const command = new GetObjectCommand({
+    Bucket: config.bucket,
+    Key: objectKey,
+    Range: `bytes=0-${bytesToRead - 1}`, // Download only the header
+  });
+
+  const response = await s3Client.send(command);
+
+  if (!response.Body) {
+    throw new Error("No data received from S3");
+  }
+
+  // Convert stream to buffer
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of response.Body as any) {
+    chunks.push(chunk);
+  }
+
+  return Buffer.concat(chunks);
+}
+
 // ===== MULTIPART UPLOAD FUNCTIONS =====
 
 // Initiate a multipart upload

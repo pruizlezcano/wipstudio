@@ -15,6 +15,11 @@ import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
 import { createNotification } from "@/lib/notifications/service";
 import { getAppConfig } from "@/lib/config";
+import { getFileHeader, deleteS3File } from "@/lib/storage/s3";
+import {
+  validateAudioFile,
+  getValidationErrorMessage,
+} from "@/lib/file-validator";
 
 // GET /api/projects/[id]/tracks - List all tracks for a project
 export async function GET(
@@ -108,6 +113,47 @@ export async function POST(
       ...body,
       projectId,
     });
+
+    // SECURITY: Validate actual file content by checking magic bytes
+    // This prevents malicious users from uploading non-audio files
+    // with fake extensions/MIME types
+    try {
+      const fileHeader = await getFileHeader(validatedData.audioUrl, 50);
+      const validation = validateAudioFile(fileHeader);
+
+      if (!validation.isValid) {
+        // Delete the invalid file from S3
+        await deleteS3File(validatedData.audioUrl);
+
+        return NextResponse.json(
+          {
+            error: validation.error || getValidationErrorMessage(fileHeader),
+          },
+          { status: 400 }
+        );
+      }
+
+      // Log the detected format for debugging
+      console.log(
+        `Validated audio file: ${validatedData.audioUrl} - Format: ${validation.format}`
+      );
+    } catch (error) {
+      console.error("Error validating file content:", error);
+      // Clean up the uploaded file
+      try {
+        await deleteS3File(validatedData.audioUrl);
+      } catch (deleteError) {
+        console.error("Error deleting invalid file:", deleteError);
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            "Failed to validate uploaded file. The file may be corrupted or not a valid audio format.",
+        },
+        { status: 400 }
+      );
+    }
 
     // Create track (metadata only)
     const newTrack = await db
