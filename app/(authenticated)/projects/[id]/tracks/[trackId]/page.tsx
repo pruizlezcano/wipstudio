@@ -273,10 +273,16 @@ export default function TrackDetailPage() {
 
   const handleCommentClick = useCallback(
     (commentId: string) => {
-      setCommentIdParam(commentId);
-      // The useEffect will handle scrolling automatically
+      // If clicking the same comment, clear first to force re-scroll
+      if (commentIdParam === commentId) {
+        setCommentIdParam(null);
+        // Use setTimeout to ensure the state update completes before setting again
+        setTimeout(() => setCommentIdParam(commentId), 0);
+      } else {
+        setCommentIdParam(commentId);
+      }
     },
-    [setCommentIdParam]
+    [setCommentIdParam, commentIdParam]
   );
 
   if (trackLoading) {
