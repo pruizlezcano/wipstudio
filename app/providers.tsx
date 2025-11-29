@@ -37,11 +37,6 @@ export function Providers({ children }: { children: ReactNode }) {
           }}
           Link={Link}
           redirectTo="/projects"
-          viewPaths={{
-            SIGN_IN: "login",
-            SIGN_OUT: "logout",
-            SIGN_UP: "register",
-          }}
           emailVerification={
             process.env.NEXT_PUBLIC_REQUIRE_EMAIL_VERIFICATION === "true"
           }

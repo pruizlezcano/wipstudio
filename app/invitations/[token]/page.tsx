@@ -69,7 +69,7 @@ export default function InvitationAcceptPage() {
   const handleAccept = async () => {
     if (!isAuthenticated) {
       // Redirect to sign in, then come back here
-      router.push(`/auth/signin?redirect=/invitations/${token}`);
+      router.push(`/auth/sign-in?redirect=/invitations/${token}`);
       return;
     }
 

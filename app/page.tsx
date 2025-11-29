@@ -15,11 +15,13 @@ export default function Home() {
           </p>
         </div>
         <div className="flex flex-col gap-4 text-base font-bold sm:flex-row w-full sm:w-auto">
-          <Link href="/auth/login">
-            <Button size="lg">Log In</Button>
+          <Link href="/auth/sign-in">
+            <Button size="lg">Sign In</Button>
           </Link>
-          <Link href="/auth/register">
-            <Button size="lg">Sign Up</Button>
+          <Link href="/auth/sign-up">
+            <Button size="lg" variant="outline">
+              Sign Up
+            </Button>
           </Link>
         </div>
       </main>
