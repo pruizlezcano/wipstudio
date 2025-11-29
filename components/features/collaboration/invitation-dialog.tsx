@@ -53,26 +53,22 @@ export function InvitationDialog({
 
   const handleCreateInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const invitation = await createInvitation.mutateAsync({
-        projectId,
-        data: {
-          email: inviteEmail || undefined,
-          maxUses: inviteMaxUses ? parseInt(inviteMaxUses) : undefined,
-          expiresAt: inviteExpiration ? new Date(inviteExpiration) : undefined,
-        },
-      });
+    const invitation = await createInvitation.mutateAsync({
+      projectId,
+      data: {
+        email: inviteEmail || undefined,
+        maxUses: inviteMaxUses ? parseInt(inviteMaxUses) : undefined,
+        expiresAt: inviteExpiration ? new Date(inviteExpiration) : undefined,
+      },
+    });
 
-      const inviteUrl = `${window.location.origin}/invitations/${invitation.token}`;
-      await navigator.clipboard.writeText(inviteUrl);
-      toast.success("Invitation created and link copied to clipboard!");
+    const inviteUrl = `${window.location.origin}/invitations/${invitation.token}`;
+    await navigator.clipboard.writeText(inviteUrl);
+    toast.success("Invitation created and link copied to clipboard!");
 
-      setInviteEmail("");
-      setInviteMaxUses("");
-      setInviteExpiration("");
-    } catch (error) {
-      toast.error("Failed to create invitation");
-    }
+    setInviteEmail("");
+    setInviteMaxUses("");
+    setInviteExpiration("");
   };
 
   const copyInviteLink = async (token: string) => {
@@ -83,16 +79,11 @@ export function InvitationDialog({
 
   const handleDeleteInvitation = async () => {
     if (!invitationToDelete) return;
-    try {
-      await deleteInvitation.mutateAsync({
-        projectId,
-        invitationId: invitationToDelete,
-      });
-      toast.success("Invitation deleted");
-      setInvitationToDelete(null);
-    } catch (error) {
-      toast.error("Failed to delete invitation");
-    }
+    await deleteInvitation.mutateAsync({
+      projectId,
+      invitationId: invitationToDelete,
+    });
+    setInvitationToDelete(null);
   };
 
   return (

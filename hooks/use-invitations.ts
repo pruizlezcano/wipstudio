@@ -98,7 +98,6 @@ export function useCreateInvitation() {
           return old ? [...old, newInvitation] : [newInvitation];
         }
       );
-      toast.success("Invitation created successfully");
     },
     onError: (error: Error) => {
       toast.error(error.message);

@@ -23,7 +23,6 @@ import {
   useRemoveCollaborator,
 } from "@/hooks/use-collaborators";
 import { CollaboratorItem } from "./collaborator-item";
-import { toast } from "sonner";
 
 interface CollaboratorsDialogProps {
   projectId: string;
@@ -44,16 +43,11 @@ export function CollaboratorsDialog({
 
   const handleRemoveCollaborator = async () => {
     if (!collaboratorToRemove) return;
-    try {
-      await removeCollaborator.mutateAsync({
-        projectId,
-        userId: collaboratorToRemove,
-      });
-      toast.success("Collaborator removed");
-      setCollaboratorToRemove(null);
-    } catch (error) {
-      toast.error("Failed to remove collaborator");
-    }
+    await removeCollaborator.mutateAsync({
+      projectId,
+      userId: collaboratorToRemove,
+    });
+    setCollaboratorToRemove(null);
   };
 
   return (
