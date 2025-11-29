@@ -10,6 +10,11 @@ import { formatTime } from "@/lib/utils";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { Track, TrackVersion, Comment } from "@/types";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface WaveformProps {
   track: Track;
@@ -133,7 +138,7 @@ export const Waveform = memo(
               {timestampComments?.map((comment) => (
                 <div
                   key={comment.id}
-                  className="absolute z-10 transform -translate-x-1/2 hover:scale-110 hover:z-50 transition-transform cursor-pointer"
+                  className="absolute z-10"
                   style={{
                     left: `${(comment.timestamp! / waveSurfer.getDuration()) * 100}%`,
                   }}
@@ -142,13 +147,22 @@ export const Waveform = memo(
                     onCommentClick?.(comment.id);
                   }}
                 >
-                  {comment.user ? (
-                    <UserAvatar user={comment.user} className="size-5" />
-                  ) : (
-                    <div className="size-5 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground text-xs">
-                      ?
-                    </div>
-                  )}
+                  <Tooltip>
+                    <TooltipTrigger className="transform -translate-x-1/2 hover:scale-110 hover:z-50 transition-transform cursor-pointer">
+                      {comment.user ? (
+                        <UserAvatar user={comment.user} className="size-5" />
+                      ) : (
+                        <div className="size-5 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground text-xs">
+                          ?
+                        </div>
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-60">
+                      <p className="overflow-hidden whitespace-nowrap text-ellipsis">
+                        {comment.content}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               ))}
             </div>
