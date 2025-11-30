@@ -2,10 +2,21 @@
 
 import { useState } from "react";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNowStrict } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextareaAutosize } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   useCreateComment,
   useDeleteComment,
@@ -89,20 +100,25 @@ export function CommentThread({
           )}
         </div>
         <div className="flex-1 space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">
+          <div className="flex items-baseline gap-1">
+            <span className="text-sm font-bold">
               {comment.user ? comment.user.name : "Deleted User"}
+              {comment.timestamp !== null && (
+                <>
+                  {" "}
+                  at{" "}
+                  <button
+                    onClick={() => onSeek?.(comment.timestamp!)}
+                    className="text-sm font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    {formatTime(comment.timestamp)}
+                  </button>
+                </>
+              )}
             </span>
-            {comment.timestamp !== null && (
-              <button
-                onClick={() => onSeek?.(comment.timestamp!)}
-                className="text-xs text-orange-600 hover:text-orange-700 font-medium"
-              >
-                {formatTime(comment.timestamp)}
-              </button>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(comment.createdAt), {
+            <span className="text-sm">
+              •{" "}
+              {formatDistanceToNowStrict(new Date(comment.createdAt), {
                 addSuffix: true,
               })}
             </span>
@@ -112,7 +128,7 @@ export function CommentThread({
           <div className="flex gap-2">
             <button
               onClick={() => setIsReplying(!isReplying)}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              className="text-xs text-foreground hover:text-muted-foreground dark:text-muted-foreground dark:hover:text-foreground"
             >
               Reply
             </button>
@@ -133,19 +149,38 @@ export function CommentThread({
                   <button
                     onClick={handleResolve}
                     disabled={resolveComment.isPending}
-                    className="text-xs text-blue-600 hover:text-blue-700"
+                    className="text-xs text-blue-700 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-200"
                   >
                     {resolveComment.isPending ? "Resolving..." : "Resolve"}
                   </button>
                 )}
               </>
             )}
-            <button
-              onClick={() => handleDelete(comment.id)}
-              className="text-xs text-red-600 hover:text-red-700"
-            >
-              Delete
-            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="text-xs text-red-900 hover:text-red-500 dark:text-red-500 dark:hover:text-red-300">
+                  Delete
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this comment? This action
+                    cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleDelete(comment.id)}
+                    className="bg-destructive text-white border-destructive hover:bg-white hover:text-destructive hover:border-destructive"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           {isReplying && (
