@@ -42,7 +42,7 @@ export const GlobalPlayer = () => {
   if (!track || !version || !hasEverPlayed) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-40">
       <div className="container mx-auto max-w-6xl px-6 py-4 flex items-center gap-6">
         <Button
           onClick={handlePlayPause}

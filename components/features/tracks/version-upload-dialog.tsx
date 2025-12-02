@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ interface VersionUploadDialogProps {
   onOpenChange: (open: boolean) => void;
   trackId: string;
   projectId: string;
+  preSelectedFile?: File | null;
 }
 
 export function VersionUploadDialog({
@@ -27,6 +28,7 @@ export function VersionUploadDialog({
   onOpenChange,
   trackId,
   projectId,
+  preSelectedFile,
 }: VersionUploadDialogProps) {
   const [versionFile, setVersionFile] = useState<File | null>(null);
   const [versionNotes, setVersionNotes] = useState("");
@@ -35,11 +37,34 @@ export function VersionUploadDialog({
   const versionFileInputRef = useRef<HTMLInputElement>(null);
   const uploadVersion = useUploadVersion();
 
+  // Handle pre-selected file from drag and drop
+  useEffect(() => {
+    if (open && preSelectedFile) {
+      setVersionFile(preSelectedFile);
+    }
+  }, [preSelectedFile, open]);
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setVersionFile(null);
+      setVersionNotes("");
+      setVersionUploadProgress(0);
+      if (versionFileInputRef.current) {
+        versionFileInputRef.current.value = "";
+      }
+    }
+  }, [open]);
+
   const handleVersionFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setVersionFile(file);
     }
+  };
+
+  const handleChangeFile = () => {
+    versionFileInputRef.current?.click();
   };
 
   const handleUploadVersion = async (e: React.FormEvent) => {
@@ -59,12 +84,6 @@ export function VersionUploadDialog({
         },
       });
       onOpenChange(false);
-      setVersionFile(null);
-      setVersionNotes("");
-      setVersionUploadProgress(0);
-      if (versionFileInputRef.current) {
-        versionFileInputRef.current.value = "";
-      }
     } finally {
       setIsUploadingVersion(false);
     }
@@ -72,29 +91,59 @@ export function VersionUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="overflow-hidden">
         <DialogHeader>
           <DialogTitle>Upload New Version</DialogTitle>
           <DialogDescription>
             Upload a new version of this track
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleUploadVersion} className="space-y-4">
-          <div>
+        <form
+          onSubmit={handleUploadVersion}
+          className="space-y-4 overflow-hidden"
+        >
+          <div className="overflow-hidden">
             <Label htmlFor="version-file">Audio File</Label>
-            <Input
+            <input
               id="version-file"
               ref={versionFileInputRef}
               type="file"
               accept="audio/*"
               onChange={handleVersionFileSelect}
-              required
+              className="hidden"
             />
-            {versionFile && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Selected: {versionFile.name} (
-                {(versionFile.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
+            {versionFile ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3 p-3 border rounded-md bg-muted/50 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <p className="text-sm font-medium truncate">
+                      {versionFile.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {(versionFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleChangeFile}
+                    disabled={isUploadingVersion}
+                    className="shrink-0"
+                  >
+                    Change
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleChangeFile}
+                className="w-full"
+              >
+                Select Audio File
+              </Button>
             )}
           </div>
           <div>
