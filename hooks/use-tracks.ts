@@ -12,6 +12,7 @@ import type {
   MultipartUploadResponse,
   ChunkUrlsResponse,
 } from "@/types/track";
+import { usePlayerStore } from "@/stores/playerStore";
 
 // Query keys
 export const trackKeys = {
@@ -610,7 +611,14 @@ export function useDeleteVersion() {
 
   return useMutation({
     mutationFn: deleteVersion,
-    onSuccess: (_, { trackId }) => {
+    onSuccess: (_, { trackId, versionId }) => {
+      // Check if the deleted version is currently playing in the global player
+      const { version: currentVersion, clearPlayer } =
+        usePlayerStore.getState();
+      if (currentVersion?.id === versionId) {
+        clearPlayer();
+      }
+
       // Invalidate versions list
       queryClient.invalidateQueries({ queryKey: trackKeys.versions(trackId) });
       // Invalidate track lists to update latest version

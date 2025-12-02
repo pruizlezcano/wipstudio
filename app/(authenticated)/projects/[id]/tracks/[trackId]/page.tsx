@@ -69,6 +69,7 @@ export default function TrackDetailPage() {
     version: playerVersion,
     loadVersion,
     setIsPlaying,
+    clearPlayer,
   } = usePlayerStore();
 
   // Find master version
@@ -217,6 +218,11 @@ export default function TrackDetailPage() {
   };
 
   const handleDeleteVersion = async (versionId: string) => {
+    // If deleting the version that's currently playing in the global player, clear it
+    if (versionId === playerVersion?.id) {
+      clearPlayer();
+    }
+
     // If deleting the currently selected version, switch to another one first
     if (versionId === selectedVersion?.id) {
       const remainingVersions = versions?.filter((v) => v.id !== versionId);
