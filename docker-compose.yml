@@ -1,7 +1,8 @@
+name: wipstudio
 services:
   caddy:
     image: caddy:2-alpine
-    container_name: backstage-caddy
+    container_name: wipstudio-caddy
     restart: unless-stopped
     ports:
       - "80:80"
@@ -12,14 +13,14 @@ services:
     env_file:
       - .env
     depends_on:
-      - backstage
+      - wipstudio
       - minio
 
-  backstage:
+  wipstudio:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: backstage-app
+    container_name: wipstudio-app
     restart: unless-stopped
     env_file:
       - .env
@@ -31,7 +32,7 @@ services:
 
   postgres:
     image: postgres:18-alpine
-    container_name: backstage-db
+    container_name: wipstudio-db
     restart: unless-stopped
     env_file:
       - .env
@@ -47,7 +48,7 @@ services:
     image: minio/minio
     command: server /export
     restart: unless-stopped
-    container_name: backstage-minio
+    container_name: wipstudio-minio
     volumes:
       - uploads:/export
     env_file:

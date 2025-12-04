@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BACKSTAGE",
+  title: "WIPStudio",
   description: "Audio collaboration workspace",
 };
 

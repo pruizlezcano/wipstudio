@@ -13,7 +13,7 @@ export function ResetPasswordEmail({ resetUrl }: ResetPasswordEmailProps) {
         <Text style={label}>PASSWORD RESET</Text>
         <Text style={heading}>Reset your password</Text>
         <Text style={paragraph}>
-          You recently requested to reset your password for your Backstage
+          You recently requested to reset your password for your WIPStudio
           account. Click the button below to reset it.
         </Text>
         <Section style={buttonContainer}>

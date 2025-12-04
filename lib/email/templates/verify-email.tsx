@@ -13,7 +13,7 @@ export function VerifyEmail({ verifyUrl }: VerifyEmailProps) {
         <Text style={label}>EMAIL VERIFICATION</Text>
         <Text style={heading}>Verify your email address</Text>
         <Text style={paragraph}>
-          Thanks for signing up for Backstage! Please verify your email address
+          Thanks for signing up for WIPStudio! Please verify your email address
           by clicking the button below.
         </Text>
         <Section style={buttonContainer}>

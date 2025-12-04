@@ -149,6 +149,6 @@ function getEmailSubject(type: string, metadata: NotificationMetadata): string {
       return `${metadata.actorName} replied to your comment`;
 
     default:
-      return "New notification from Backstage";
+      return "New notification from WIPStudio";
   }
 }

@@ -1,7 +1,7 @@
 :80 {
 	reverse_proxy  /{$S3_BUCKET}/* minio:9000
 
-	reverse_proxy /* backstage:3000
+	reverse_proxy /* wipstudio:3000
 
 	# Logs
 	log {

@@ -124,7 +124,7 @@ export function getEmailConfig(): EmailConfig {
     smtp = { host, port, user, password };
   }
 
-  const from = process.env.EMAIL_FROM || `Backstage <${process.env.SMTP_USER}>`;
+  const from = process.env.EMAIL_FROM || `WIPStudio <${process.env.SMTP_USER}>`;
 
   emailConfigCache = {
     enabled,

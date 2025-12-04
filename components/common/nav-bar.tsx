@@ -10,9 +10,9 @@ export default function NavBar() {
       <div className="container mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
         <Link
           href="/projects"
-          className="font-bold text-lg uppercase tracking-tighter hover:opacity-80 transition-opacity"
+          className="font-bold text-lg  tracking-tighter hover:opacity-80 transition-opacity"
         >
-          BACKSTAGE
+          WIPStudio
         </Link>
         <div className="flex items-center gap-2">
           <NotificationBell />

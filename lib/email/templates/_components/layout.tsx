@@ -21,7 +21,7 @@ export function EmailLayout({ children }: EmailLayoutProps) {
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={headerText}>BACKSTAGE</Text>
+            <Text style={headerText}>WIPStudio</Text>
           </Section>
           <Hr style={headerBorder} />
           {children}
@@ -30,7 +30,7 @@ export function EmailLayout({ children }: EmailLayoutProps) {
             <Text style={footerText}>AUDIO COLLABORATION WORKSPACE</Text>
             <Text style={footerSubtext}>
               You&apos;re receiving this email because you&apos;re a member of a
-              Backstage project.
+              WIPStudio project.
             </Text>
           </Section>
         </Container>

@@ -21,7 +21,7 @@ interface LoadingSpinnerProps {
 
 export function LoadingSpinner({
   size = "lg",
-  text = "BACKSTAGE",
+  text = "WIPStudio",
   className,
 }: LoadingSpinnerProps) {
   // Size-specific styles
@@ -48,9 +48,7 @@ export function LoadingSpinner({
           )}
         />
         {text && (
-          <h1 className="text-2xl font-bold uppercase tracking-tighter mb-2">
-            {text}
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tighter mb-2">{text}</h1>
         )}
       </div>
     );
