@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
 import type { Track } from "@/types";
 
 interface TrackListItemProps {
@@ -29,7 +28,7 @@ export function TrackListItem({ track, projectId }: TrackListItemProps) {
       </div>
       <div className="flex items-center gap-4 shrink-0">
         <span className="text-xs font-mono text-muted-foreground">
-          {format(new Date(track.createdAt), "P").replace(/\//g, ".")}
+          {new Date(track.createdAt).toLocaleDateString()}
         </span>
         <div className="text-xs font-bold uppercase tracking-tight">VIEW →</div>
       </div>

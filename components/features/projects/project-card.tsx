@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
-import { format } from "date-fns";
 import type { Project } from "@/types";
 
 interface ProjectCardProps {
@@ -60,7 +59,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
       <CardContent>
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground font-mono">
-            {format(new Date(project.updatedAt), "P").replace(/\//g, ".")}
+            {new Date(project.updatedAt).toLocaleDateString()}
           </p>
           <Button
             variant="ghost"

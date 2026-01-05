@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryState, parseAsInteger } from "nuqs";
 import { useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -357,7 +357,7 @@ export default function TrackDetailPage() {
                 {track.name}
               </h1>
               <p className="text-muted-foreground text-xs font-medium uppercase tracking-tight">
-                Created {format(new Date(track.createdAt), "P")}
+                Created {new Date(track.createdAt).toLocaleDateString()}
               </p>
             </div>
             <div className="flex gap-2">
