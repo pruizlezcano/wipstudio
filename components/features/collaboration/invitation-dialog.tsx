@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface InvitationDialogProps {
   projectId: string;
@@ -130,12 +131,7 @@ export function InvitationDialog({
 
               <div>
                 <Label htmlFor="inviteExpiration">Expires At (Optional)</Label>
-                <Input
-                  id="inviteExpiration"
-                  type="datetime-local"
-                  value={inviteExpiration}
-                  onChange={(e) => setInviteExpiration(e.target.value)}
-                />
+                <DatePicker />
                 <p className="text-xs text-muted-foreground mt-1">
                   Leave empty for no expiration
                 </p>
