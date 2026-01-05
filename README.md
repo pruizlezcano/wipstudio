@@ -1,36 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WIPStudio
 
-## Getting Started
+A self-hosted collaborative platform for music producers to share, review, and gather feedback on audio tracks. Built for teams and artists who need a centralized place to manage work-in-progress recordings with version control and time-stamped comments.
 
-First, run the development server:
+Self-hosted alternative to [Highnote](https://highnote.fm), [Boombox](https://boombox.io).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Project Management** - Organize your music production work into projects
+- **Track Versioning** - Upload multiple versions of tracks
+- **Time-stamped Comments** - Leave feedback at specific points in the audio with threaded replies
+- **Collaboration** - Invite team members via email or shareable links
+- **Notifications** - In-app and email notifications for new tracks, versions, and comments
+- **Authentication** - Email/password auth with optional OIDC/SSO support
+- **S3 Storage** - Store audio files in any S3-compatible storage (AWS S3, MinIO, etc.)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Installation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Download the required files**
 
-## Learn More
+  ```bash
+  mkdir wipstudio && cd wipstudio
+  curl -O https://raw.githubusercontent.com/pruizlezcano/wipstudio/main/docker-compose.yml
+  curl -O https://raw.githubusercontent.com/pruizlezcano/wipstudio/main/.env.example
+  curl -O https://raw.githubusercontent.com/pruizlezcano/wipstudio/main/Caddyfile
+  mv .env.example .env
+  ```
 
-To learn more about Next.js, take a look at the following resources:
+2. **Configure**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+  Edit `.env` with your values (see [Configuration](#configuration) below).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. **Deploy**
 
-## Deploy on Vercel
+   ```bash
+   docker compose up -d
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   This starts WIPStudio, PostgreSQL, MinIO (S3 storage), and Caddy (reverse proxy).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Configuration
+
+All configuration is done via environment variables in `.env`.
+
+### Application
+
+| Variable   | Description                      |
+| ---------- | -------------------------------- |
+| `WEB_URL`  | Public URL of your application   |
+
+### Authentication
+
+| Variable                       | Description                                   | Default    |
+| ------------------------------ | --------------------------------------------- | ---------- |
+| `BETTER_AUTH_SECRET`           | Secret key for session encryption             | *Required* |
+| `REQUIRE_EMAIL_VERIFICATION`   | Require email verification on sign up         | `false`    |
+| `DISABLE_SIGN_UP`              | Disable new user registration                 | `false`    |
+| `DISABLE_EMAIL_PASSWORD_AUTH`  | Disable email/password auth (OIDC only)       | `false`    |
+
+### Database
+
+| Variable            | Description              |
+| ------------------- | ------------------------ |
+| `POSTGRES_USER`     | PostgreSQL username      |
+| `POSTGRES_PASSWORD` | PostgreSQL password      |
+| `POSTGRES_DB`       | Database name            |
+| `DATABASE_URL`      | Full connection string   |
+
+### S3 Storage
+
+| Variable               | Description             |
+| ---------------------- | ----------------------- |
+| `S3_ENDPOINT`          | S3 endpoint URL         |
+| `S3_ACCESS_KEY_ID`     | S3 access key           |
+| `S3_SECRET_ACCESS_KEY` | S3 secret key           |
+| `S3_BUCKET`            | Bucket name for uploads |
+| `S3_REGION`            | S3 region               |
+
+### File Upload
+
+| Variable            | Description                            | Default         |
+| ------------------- | -------------------------------------- | --------------- |
+| `UPLOAD_CHUNK_SIZE` | Chunk size for multipart uploads       | `5242880` (5MB) |
+
+### Email (Optional)
+
+| Variable         | Description                      |
+| ---------------- | -------------------------------- |
+| `EMAIL_ENABLED`  | Enable email notifications       |
+| `SMTP_HOST`      | SMTP server host                 |
+| `SMTP_PORT`      | SMTP server port                 |
+| `SMTP_USER`      | SMTP username                    |
+| `SMTP_PASSWORD`  | SMTP password or app password    |
+| `EMAIL_FROM`     | From address for emails          |
+
+### OIDC/SSO (Optional)
+
+| Variable               | Description                                       |
+| ---------------------- | ------------------------------------------------- |
+| `OPENID_NAME`          | Display name for the provider                     |
+| `OPENID_ID`            | Provider identifier                               |
+| `OPENID_CLIENT_ID`     | OAuth client ID                                   |
+| `OPENID_CLIENT_SECRET` | OAuth client secret                               |
+| `OPENID_REDIRECT_URI`  | OAuth redirect URI                                |
+| `OPENID_DISCOVERY_URL` | OpenID Connect discovery URL                      |
+| `OPENID_SCOPES`        | OAuth scopes (default: `openid profile email`)    |
+
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
