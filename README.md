@@ -22,7 +22,6 @@ Self-hosted alternative to [Highnote](https://highnote.fm), [Boombox](https://bo
   mkdir wipstudio && cd wipstudio
   curl -O https://raw.githubusercontent.com/pruizlezcano/wipstudio/main/docker-compose.yml
   curl -O https://raw.githubusercontent.com/pruizlezcano/wipstudio/main/.env.example
-  curl -O https://raw.githubusercontent.com/pruizlezcano/wipstudio/main/Caddyfile
   mv .env.example .env
   ```
 

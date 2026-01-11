@@ -1,15 +1,11 @@
 name: wipstudio
 services:
   caddy:
-    image: caddy:2-alpine
+    image: ghcr.io/pruizlezcano/wipstudio-caddy:latest
     container_name: wipstudio-caddy
     restart: unless-stopped
     ports:
       - "80:80"
-      - "443:443"
-      - "443:443/udp" # HTTP/3
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
     env_file:
       - .env
     depends_on:
@@ -17,9 +13,7 @@ services:
       - minio
 
   wipstudio:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/pruizlezcano/wipstudio:latest
     container_name: wipstudio-app
     restart: unless-stopped
     env_file:
