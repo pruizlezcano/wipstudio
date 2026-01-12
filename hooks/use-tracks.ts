@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import type {
   CreateTrackInput,
@@ -11,6 +16,7 @@ import type {
   PresignedUrlResponse,
   MultipartUploadResponse,
   ChunkUrlsResponse,
+  PaginatedTracksResponse,
 } from "@/types/track";
 import { usePlayerStore } from "@/stores/playerStore";
 
@@ -35,17 +41,24 @@ export interface TrackSortOptions {
   sortOrder?: SortOrder;
 }
 
-// Fetch all tracks for a project
+export interface TrackQueryOptions extends TrackSortOptions {
+  limit?: number;
+}
+
+// Fetch tracks for a project with pagination
 async function fetchTracks(
   projectId: string,
-  options?: TrackSortOptions
-): Promise<Track[]> {
+  page: number,
+  options?: TrackQueryOptions
+): Promise<PaginatedTracksResponse> {
   const params = new URLSearchParams();
   if (options?.sortBy) params.set("sortBy", options.sortBy);
   if (options?.sortOrder) params.set("sortOrder", options.sortOrder);
+  params.set("page", page.toString());
+  if (options?.limit) params.set("limit", options.limit.toString());
 
   const queryString = params.toString();
-  const url = `/api/projects/${projectId}/tracks${queryString ? `?${queryString}` : ""}`;
+  const url = `/api/projects/${projectId}/tracks?${queryString}`;
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -378,13 +391,17 @@ async function uploadFileWithChunking(
 }
 
 // Hooks
-export function useTracks(projectId: string, options?: TrackSortOptions) {
-  return useQuery({
+export function useTracks(projectId: string, options?: TrackQueryOptions) {
+  return useInfiniteQuery({
     queryKey: trackKeys.list(projectId, options?.sortBy, options?.sortOrder),
-    queryFn: () => fetchTracks(projectId, options),
+    queryFn: ({ pageParam }) => fetchTracks(projectId, pageParam, options),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const { page, totalPages } = lastPage.pagination;
+      return page < totalPages ? page + 1 : undefined;
+    },
     enabled: !!projectId,
     refetchOnWindowFocus: true,
-    structuralSharing: true,
   });
 }
 
@@ -403,14 +420,9 @@ export function useCreateTrack() {
 
   return useMutation({
     mutationFn: createTrack,
-    onSuccess: (newTrack) => {
-      // Optimistically update the cache
-      queryClient.setQueryData<Track[]>(
-        trackKeys.list(newTrack.projectId),
-        (old) => {
-          return old ? [...old, newTrack] : [newTrack];
-        }
-      );
+    onSuccess: () => {
+      // Invalidate all track list queries to refetch with current pagination
+      queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
       toast.success("Track created successfully");
     },
     onError: (error: Error) => {
@@ -425,15 +437,8 @@ export function useUpdateTrack() {
   return useMutation({
     mutationFn: updateTrack,
     onSuccess: (updatedTrack) => {
-      // Update the list cache
-      queryClient.setQueryData<Track[]>(
-        trackKeys.list(updatedTrack.projectId),
-        (old) => {
-          return old
-            ? old.map((t) => (t.id === updatedTrack.id ? updatedTrack : t))
-            : [updatedTrack];
-        }
-      );
+      // Invalidate all track list queries
+      queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
       // Update the detail cache
       queryClient.setQueryData(trackKeys.detail(updatedTrack.id), updatedTrack);
       toast.success("Track updated successfully");

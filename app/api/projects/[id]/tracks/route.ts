@@ -42,6 +42,14 @@ export async function GET(
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
+    // Parse pagination parameters
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "10", 10))
+    );
+    const offset = (page - 1) * limit;
+
     // Check if user has access to project (owner or collaborator)
     const { hasAccess } = await checkProjectAccess(projectId, session.user.id);
 
@@ -66,12 +74,21 @@ export async function GET(
       }
     })();
 
-    // Fetch tracks for the project with their latest version
+    // Get total count for pagination
+    const totalCountResult = await db
+      .select({ count: count() })
+      .from(track)
+      .where(eq(track.projectId, projectId));
+    const total = totalCountResult[0]?.count || 0;
+
+    // Fetch tracks for the project with pagination
     const tracks = await db
       .select()
       .from(track)
       .where(eq(track.projectId, projectId))
-      .orderBy(orderByClause);
+      .orderBy(orderByClause)
+      .limit(limit)
+      .offset(offset);
 
     // For each track, fetch the master version (or latest) and version count
     const tracksWithVersions = await Promise.all(
@@ -91,7 +108,15 @@ export async function GET(
       })
     );
 
-    return NextResponse.json(tracksWithVersions);
+    return NextResponse.json({
+      data: tracksWithVersions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.error("Error fetching tracks:", error);
     return NextResponse.json(

@@ -17,6 +17,18 @@ export interface TrackVersion {
   createdAt: string;
 }
 
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedTracksResponse {
+  data: Track[];
+  pagination: PaginationInfo;
+}
+
 export interface PresignedUrlResponse {
   uploadUrl: string;
   objectUrl: string;

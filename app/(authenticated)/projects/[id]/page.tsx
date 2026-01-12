@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,21 +37,58 @@ const SORT_OPTIONS = [
   { value: "updatedAt:desc", label: "Recently updated" },
 ] as const;
 
+const TRACKS_PER_PAGE = 20;
+
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
   const dropzoneRef = useRef<FullScreenDropzoneRef>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const [sortValue, setSortValue] = useState("createdAt:desc");
   const [sortBy, sortOrder] = sortValue.split(":") as [TrackSortBy, SortOrder];
 
   const { data: project, isLoading: projectLoading } = useProject(projectId);
-  const { data: tracks, isLoading: tracksLoading } = useTracks(projectId, {
+  const {
+    data: tracksData,
+    isLoading: tracksLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useTracks(projectId, {
     sortBy,
     sortOrder,
+    limit: TRACKS_PER_PAGE,
   });
   const { data: collaborators } = useCollaborators(projectId);
+
+  // Flatten all pages into a single array of tracks
+  const tracks = tracksData?.pages.flatMap((page) => page.data) ?? [];
+
+  // Intersection Observer for infinite scroll
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries;
+      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage]
+  );
+
+  useEffect(() => {
+    const element = loadMoreRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(handleObserver, {
+      threshold: 0.1,
+      rootMargin: "100px",
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [handleObserver]);
 
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -129,7 +166,13 @@ export default function ProjectDetailPage() {
         {tracksLoading ? (
           <LoadingSpinner />
         ) : tracks && tracks.length > 0 ? (
-          <TrackList tracks={tracks} projectId={projectId} />
+          <>
+            <TrackList tracks={tracks} projectId={projectId} />
+            {/* Infinite scroll trigger */}
+            <div ref={loadMoreRef} className="py-4 flex justify-center">
+              {isFetchingNextPage && <LoadingSpinner />}
+            </div>
+          </>
         ) : (
           <TrackEmptyState />
         )}
