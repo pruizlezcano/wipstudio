@@ -1,10 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import type {
   CreateProjectInput,
   UpdateProjectInput,
 } from "@/lib/validations/project";
-import type { Project } from "@/types/project";
+import type { Project, PaginatedProjectsResponse } from "@/types/project";
 
 // Query keys
 export const projectKeys = {
@@ -25,14 +30,23 @@ export interface ProjectSortOptions {
   sortOrder?: SortOrder;
 }
 
-// Fetch all projects
-async function fetchProjects(options?: ProjectSortOptions): Promise<Project[]> {
+export interface ProjectQueryOptions extends ProjectSortOptions {
+  limit?: number;
+}
+
+// Fetch projects with pagination
+async function fetchProjects(
+  page: number,
+  options?: ProjectQueryOptions
+): Promise<PaginatedProjectsResponse> {
   const params = new URLSearchParams();
   if (options?.sortBy) params.set("sortBy", options.sortBy);
   if (options?.sortOrder) params.set("sortOrder", options.sortOrder);
+  params.set("page", page.toString());
+  if (options?.limit) params.set("limit", options.limit.toString());
 
   const queryString = params.toString();
-  const url = `/api/projects${queryString ? `?${queryString}` : ""}`;
+  const url = `/api/projects?${queryString}`;
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -101,12 +115,16 @@ async function deleteProject(id: string): Promise<void> {
 }
 
 // Hooks
-export function useProjects(options?: ProjectSortOptions) {
-  return useQuery({
+export function useProjects(options?: ProjectQueryOptions) {
+  return useInfiniteQuery({
     queryKey: projectKeys.list(options?.sortBy, options?.sortOrder),
-    queryFn: () => fetchProjects(options),
+    queryFn: ({ pageParam }) => fetchProjects(pageParam, options),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const { page, totalPages } = lastPage.pagination;
+      return page < totalPages ? page + 1 : undefined;
+    },
     refetchOnWindowFocus: true,
-    structuralSharing: true,
   });
 }
 

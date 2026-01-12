@@ -1,3 +1,5 @@
+import { PaginationInfo } from "./pagination";
+
 export interface Track {
   id: string;
   name: string;
@@ -15,13 +17,6 @@ export interface TrackVersion {
   notes: string | null;
   isMaster: boolean;
   createdAt: string;
-}
-
-export interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
 }
 
 export interface PaginatedTracksResponse {

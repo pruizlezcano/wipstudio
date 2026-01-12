@@ -1,3 +1,5 @@
+import { PaginationInfo } from "./pagination";
+
 export interface Project {
   id: string;
   name: string;
@@ -5,4 +7,9 @@ export interface Project {
   ownerId: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PaginatedProjectsResponse {
+  data: Project[];
+  pagination: PaginationInfo;
 }

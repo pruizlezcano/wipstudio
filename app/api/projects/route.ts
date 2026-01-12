@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
 import { project, projectCollaborator, user } from "@/lib/db/schema";
-import { eq, sql, asc, desc } from "drizzle-orm";
+import { eq, sql, asc, desc, count } from "drizzle-orm";
 import { createProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
 
@@ -23,6 +23,14 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
+    // Parse pagination parameters
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "10", 10))
+    );
+    const offset = (page - 1) * limit;
+
     // Build order by clause based on sort parameters
     const getOrderByClause = () => {
       const direction = sortOrder === "asc" ? asc : desc;
@@ -38,6 +46,22 @@ export async function GET(request: NextRequest) {
     };
 
     const orderByClause = getOrderByClause();
+
+    // Get total count of owned projects
+    const ownedCountResult = await db
+      .select({ count: count() })
+      .from(project)
+      .where(eq(project.ownerId, session.user.id));
+    const ownedCount = ownedCountResult[0]?.count || 0;
+
+    // Get total count of collaborated projects
+    const collaboratedCountResult = await db
+      .select({ count: count() })
+      .from(projectCollaborator)
+      .where(eq(projectCollaborator.userId, session.user.id));
+    const collaboratedCount = collaboratedCountResult[0]?.count || 0;
+
+    const total = ownedCount + collaboratedCount;
 
     // Get owned projects
     const ownedProjects = await db
@@ -74,9 +98,46 @@ export async function GET(request: NextRequest) {
       .where(eq(projectCollaborator.userId, session.user.id))
       .orderBy(orderByClause);
 
-    // Combine and return
+    // Combine and sort in memory, then paginate
     const allProjects = [...ownedProjects, ...collaboratedProjects];
-    return NextResponse.json(allProjects);
+    
+    // Sort the combined array
+    allProjects.sort((a, b) => {
+      let aVal: string | Date;
+      let bVal: string | Date;
+      
+      switch (sortBy) {
+        case "name":
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case "updatedAt":
+          aVal = new Date(a.updatedAt);
+          bVal = new Date(b.updatedAt);
+          break;
+        case "createdAt":
+        default:
+          aVal = new Date(a.createdAt);
+          bVal = new Date(b.createdAt);
+      }
+      
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    // Apply pagination
+    const paginatedProjects = allProjects.slice(offset, offset + limit);
+
+    return NextResponse.json({
+      data: paginatedProjects,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.error("Error fetching projects:", error);
     return NextResponse.json(

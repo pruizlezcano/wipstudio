@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -32,17 +32,54 @@ const SORT_OPTIONS = [
   { value: "updatedAt:desc", label: "Recently updated" },
 ] as const;
 
+const PROJECTS_PER_PAGE = 20;
+
 export default function ProjectsPage() {
   const [sortValue, setSortValue] = useState("createdAt:desc");
   const [sortBy, sortOrder] = sortValue.split(":") as [
     ProjectSortBy,
     SortOrder,
   ];
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const { data: projects, isLoading } = useProjects({ sortBy, sortOrder });
+  const {
+    data: projectsData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useProjects({
+    sortBy,
+    sortOrder,
+    limit: PROJECTS_PER_PAGE,
+  });
+
+  const projects = projectsData?.pages.flatMap((page) => page.data) ?? [];
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries;
+      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage]
+  );
+
+  useEffect(() => {
+    const element = loadMoreRef.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(handleObserver, {
+      threshold: 0.1,
+      rootMargin: "100px",
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [handleObserver]);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -81,11 +118,16 @@ export default function ProjectsPage() {
       {!projects || projects.length === 0 ? (
         <ProjectEmptyState onCreate={() => setIsCreateDialogOpen(true)} />
       ) : (
-        <ProjectList
-          projects={projects}
-          onEdit={setEditingProject}
-          onDelete={setDeletingProject}
-        />
+        <>
+          <ProjectList
+            projects={projects}
+            onEdit={setEditingProject}
+            onDelete={setDeletingProject}
+          />
+          <div ref={loadMoreRef} className="flex justify-center py-4">
+            {isFetchingNextPage && <LoadingSpinner />}
+          </div>
+        </>
       )}
 
       <ProjectCreateDialog
