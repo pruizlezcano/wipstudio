@@ -9,8 +9,10 @@ import { useState } from "react";
 import { ThemeProvider } from "@/components/common/theme-provider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { authClient } from "@/lib/auth/auth-client";
+import { getPublicEnv } from "./public-env";
 
 export function Providers({ children }: { children: ReactNode }) {
+  const env = getPublicEnv();
   const router = useRouter();
   const [queryClient] = useState(
     () =>
@@ -37,27 +39,22 @@ export function Providers({ children }: { children: ReactNode }) {
           }}
           Link={Link}
           redirectTo="/projects"
-          emailVerification={
-            process.env.NEXT_PUBLIC_REQUIRE_EMAIL_VERIFICATION === "true"
-          }
+          emailVerification={env.REQUIRE_EMAIL_VERIFICATION === "true"}
           avatar
           genericOAuth={
-            process.env.NEXT_PUBLIC_OPENID_NAME &&
-            process.env.NEXT_PUBLIC_OPENID_ID
+            env.OPENID_NAME && env.OPENID_ID
               ? {
                   providers: [
                     {
-                      name: process.env.NEXT_PUBLIC_OPENID_NAME,
-                      provider: process.env.NEXT_PUBLIC_OPENID_ID,
+                      name: env.OPENID_NAME,
+                      provider: env.OPENID_ID,
                     },
                   ],
                 }
               : undefined
           }
-          signUp={process.env.NEXT_PUBLIC_DISABLE_SIGN_UP !== "true"}
-          credentials={
-            process.env.NEXT_PUBLIC_DISABLE_EMAIL_PASSWORD_AUTH !== "true"
-          }
+          signUp={env.DISABLE_SIGN_UP !== "true"}
+          credentials={env.DISABLE_EMAIL_PASSWORD_AUTH !== "true"}
         >
           <ThemeProvider
             attribute="class"

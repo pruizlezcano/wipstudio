@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { PublicEnv } from "./public-env";
 import "./globals.css";
 import { Providers } from "./providers";
 import { GlobalPlayer } from "@/components/features/player/global-player";
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased pb-12`}
       >
+        <PublicEnv />
         <Providers>
           {children}
           <GlobalPlayer />

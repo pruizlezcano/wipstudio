@@ -35,6 +35,7 @@
     "drizzle-orm": "^0.44.7",
     "lucide-react": "^0.553.0",
     "next": "16.0.10",
+    "next-public-env": "^1.1.0",
     "next-themes": "^0.4.6",
     "nodemailer": "^7.0.10",
     "nuqs": "^2.8.1",

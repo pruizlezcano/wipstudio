@@ -19,6 +19,7 @@ import type {
   PaginatedTracksResponse,
 } from "@/types/track";
 import { usePlayerStore } from "@/stores/playerStore";
+import { getPublicEnv } from "@/app/public-env";
 
 // Query keys
 export const trackKeys = {
@@ -185,13 +186,6 @@ async function uploadFile(
   });
 }
 
-// Get chunk size from environment (default: disabled - very large value)
-const getChunkSize = (): number => {
-  const envChunkSize = process.env.NEXT_PUBLIC_UPLOAD_CHUNK_SIZE;
-  // Default to 5GB (effectively disabling chunking unless explicitly configured)
-  return envChunkSize ? parseInt(envChunkSize, 10) : 5 * 1024 * 1024 * 1024;
-};
-
 // Initiate multipart upload
 async function initiateMultipartUpload(
   projectId: string,
@@ -312,7 +306,7 @@ async function uploadFileWithChunking(
   projectId: string,
   onProgress?: (loaded: number, total: number) => void
 ): Promise<string> {
-  const chunkSize = getChunkSize();
+  const chunkSize = parseInt(getPublicEnv().UPLOAD_CHUNK_SIZE, 10);
 
   // Use simple upload for small files
   if (file.size < chunkSize) {

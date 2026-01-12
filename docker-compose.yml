@@ -1,7 +1,9 @@
 name: wipstudio
 services:
   caddy:
-    image: ghcr.io/pruizlezcano/wipstudio-caddy:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
     container_name: wipstudio-caddy
     restart: unless-stopped
     ports:
@@ -13,7 +15,9 @@ services:
       - minio
 
   wipstudio:
-    image: ghcr.io/pruizlezcano/wipstudio:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: wipstudio-app
     restart: unless-stopped
     env_file:
