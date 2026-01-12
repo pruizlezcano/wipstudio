@@ -18,16 +18,36 @@ import { usePlayerStore } from "@/stores/playerStore";
 export const trackKeys = {
   all: ["tracks"] as const,
   lists: () => [...trackKeys.all, "list"] as const,
-  list: (projectId: string) => [...trackKeys.lists(), projectId] as const,
+  list: (projectId: string, sortBy?: string, sortOrder?: string) =>
+    [...trackKeys.lists(), projectId, { sortBy, sortOrder }] as const,
   details: () => [...trackKeys.all, "detail"] as const,
   detail: (id: string) => [...trackKeys.details(), id] as const,
   versions: (trackId: string) =>
     [...trackKeys.all, "versions", trackId] as const,
 };
 
+// Sort options type
+export type TrackSortBy = "name" | "createdAt" | "updatedAt";
+export type SortOrder = "asc" | "desc";
+
+export interface TrackSortOptions {
+  sortBy?: TrackSortBy;
+  sortOrder?: SortOrder;
+}
+
 // Fetch all tracks for a project
-async function fetchTracks(projectId: string): Promise<Track[]> {
-  const response = await fetch(`/api/projects/${projectId}/tracks`);
+async function fetchTracks(
+  projectId: string,
+  options?: TrackSortOptions
+): Promise<Track[]> {
+  const params = new URLSearchParams();
+  if (options?.sortBy) params.set("sortBy", options.sortBy);
+  if (options?.sortOrder) params.set("sortOrder", options.sortOrder);
+
+  const queryString = params.toString();
+  const url = `/api/projects/${projectId}/tracks${queryString ? `?${queryString}` : ""}`;
+
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error("Failed to fetch tracks");
   }
@@ -358,10 +378,10 @@ async function uploadFileWithChunking(
 }
 
 // Hooks
-export function useTracks(projectId: string) {
+export function useTracks(projectId: string, options?: TrackSortOptions) {
   return useQuery({
-    queryKey: trackKeys.list(projectId),
-    queryFn: () => fetchTracks(projectId),
+    queryKey: trackKeys.list(projectId, options?.sortBy, options?.sortOrder),
+    queryFn: () => fetchTracks(projectId, options),
     enabled: !!projectId,
     refetchOnWindowFocus: true,
     structuralSharing: true,

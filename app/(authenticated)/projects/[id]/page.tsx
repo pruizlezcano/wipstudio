@@ -3,8 +3,19 @@
 import { useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useProject } from "@/hooks/use-projects";
-import { useTracks } from "@/hooks/use-tracks";
+import {
+  useTracks,
+  type TrackSortBy,
+  type SortOrder,
+} from "@/hooks/use-tracks";
 import { useCollaborators } from "@/hooks/use-collaborators";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ProjectHeader } from "@/components/features/projects/project-header";
@@ -18,14 +29,28 @@ import {
   FullScreenDropzoneRef,
 } from "@/components/common/full-screen-dropzone";
 
+const SORT_OPTIONS = [
+  { value: "createdAt:desc", label: "Newest first" },
+  { value: "createdAt:asc", label: "Oldest first" },
+  { value: "name:asc", label: "Name (A-Z)" },
+  { value: "name:desc", label: "Name (Z-A)" },
+  { value: "updatedAt:desc", label: "Recently updated" },
+] as const;
+
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
   const dropzoneRef = useRef<FullScreenDropzoneRef>(null);
 
+  const [sortValue, setSortValue] = useState("createdAt:desc");
+  const [sortBy, sortOrder] = sortValue.split(":") as [TrackSortBy, SortOrder];
+
   const { data: project, isLoading: projectLoading } = useProject(projectId);
-  const { data: tracks, isLoading: tracksLoading } = useTracks(projectId);
+  const { data: tracks, isLoading: tracksLoading } = useTracks(projectId, {
+    sortBy,
+    sortOrder,
+  });
   const { data: collaborators } = useCollaborators(projectId);
 
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -81,7 +106,24 @@ export default function ProjectDetailPage() {
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold">Tracks</h2>
-          <Button onClick={handleUploadClick}>Upload Track</Button>
+          <div className="flex items-center gap-3">
+            <Select value={sortValue} onValueChange={setSortValue}>
+              <SelectTrigger
+                size="sm"
+                className="w-[180px] py-5 border-foreground"
+              >
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleUploadClick}>Upload Track</Button>
+          </div>
         </div>
 
         {tracksLoading ? (

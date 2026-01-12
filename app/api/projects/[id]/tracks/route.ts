@@ -8,7 +8,7 @@ import {
   project,
   projectCollaborator,
 } from "@/lib/db/schema";
-import { eq, count } from "drizzle-orm";
+import { eq, count, asc, desc, SQL } from "drizzle-orm";
 import { createTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -37,6 +37,11 @@ export async function GET(
 
     const { id: projectId } = await params;
 
+    // Parse sort parameters from query string
+    const { searchParams } = new URL(request.url);
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
+
     // Check if user has access to project (owner or collaborator)
     const { hasAccess } = await checkProjectAccess(projectId, session.user.id);
 
@@ -47,12 +52,26 @@ export async function GET(
       );
     }
 
+    // Build order by clause based on sort parameters
+    const orderByClause = (() => {
+      const direction = sortOrder === "asc" ? asc : desc;
+      switch (sortBy) {
+        case "name":
+          return direction(track.name);
+        case "updatedAt":
+          return direction(track.updatedAt);
+        case "createdAt":
+        default:
+          return direction(track.createdAt);
+      }
+    })();
+
     // Fetch tracks for the project with their latest version
     const tracks = await db
       .select()
       .from(track)
       .where(eq(track.projectId, projectId))
-      .orderBy(track.createdAt);
+      .orderBy(orderByClause);
 
     // For each track, fetch the master version (or latest) and version count
     const tracksWithVersions = await Promise.all(
