@@ -10,14 +10,31 @@ import type { Project } from "@/types/project";
 export const projectKeys = {
   all: ["projects"] as const,
   lists: () => [...projectKeys.all, "list"] as const,
-  list: () => [...projectKeys.lists()] as const,
+  list: (sortBy?: string, sortOrder?: string) =>
+    [...projectKeys.lists(), { sortBy, sortOrder }] as const,
   details: () => [...projectKeys.all, "detail"] as const,
   detail: (id: string) => [...projectKeys.details(), id] as const,
 };
 
+// Sort options type
+export type ProjectSortBy = "name" | "createdAt" | "updatedAt";
+export type SortOrder = "asc" | "desc";
+
+export interface ProjectSortOptions {
+  sortBy?: ProjectSortBy;
+  sortOrder?: SortOrder;
+}
+
 // Fetch all projects
-async function fetchProjects(): Promise<Project[]> {
-  const response = await fetch("/api/projects");
+async function fetchProjects(options?: ProjectSortOptions): Promise<Project[]> {
+  const params = new URLSearchParams();
+  if (options?.sortBy) params.set("sortBy", options.sortBy);
+  if (options?.sortOrder) params.set("sortOrder", options.sortOrder);
+
+  const queryString = params.toString();
+  const url = `/api/projects${queryString ? `?${queryString}` : ""}`;
+
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error("Failed to fetch projects");
   }
@@ -84,10 +101,10 @@ async function deleteProject(id: string): Promise<void> {
 }
 
 // Hooks
-export function useProjects() {
+export function useProjects(options?: ProjectSortOptions) {
   return useQuery({
-    queryKey: projectKeys.list(),
-    queryFn: fetchProjects,
+    queryKey: projectKeys.list(options?.sortBy, options?.sortOrder),
+    queryFn: () => fetchProjects(options),
     refetchOnWindowFocus: true,
     structuralSharing: true,
   });
@@ -108,11 +125,9 @@ export function useCreateProject() {
 
   return useMutation({
     mutationFn: createProject,
-    onSuccess: (newProject) => {
-      // Optimistically update the cache
-      queryClient.setQueryData<Project[]>(projectKeys.list(), (old) => {
-        return old ? [newProject, ...old] : [newProject];
-      });
+    onSuccess: () => {
+      // Invalidate all project list queries to refetch with current sort order
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       toast.success("Project created successfully");
     },
     onError: (error: Error) => {
@@ -127,12 +142,8 @@ export function useUpdateProject() {
   return useMutation({
     mutationFn: updateProject,
     onSuccess: (updatedProject) => {
-      // Update the list cache
-      queryClient.setQueryData<Project[]>(projectKeys.list(), (old) => {
-        return old
-          ? old.map((p) => (p.id === updatedProject.id ? updatedProject : p))
-          : [updatedProject];
-      });
+      // Invalidate all project list queries
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       // Update the detail cache
       queryClient.setQueryData(
         projectKeys.detail(updatedProject.id),
@@ -152,10 +163,8 @@ export function useDeleteProject() {
   return useMutation({
     mutationFn: deleteProject,
     onSuccess: (_, deletedId) => {
-      // Remove from list cache
-      queryClient.setQueryData<Project[]>(projectKeys.list(), (old) => {
-        return old ? old.filter((p) => p.id !== deletedId) : [];
-      });
+      // Invalidate all project list queries
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       // Remove detail cache
       queryClient.removeQueries({ queryKey: projectKeys.detail(deletedId) });
       toast.success("Project deleted successfully");

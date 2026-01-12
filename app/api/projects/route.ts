@@ -3,12 +3,12 @@ import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
 import { project, projectCollaborator, user } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, asc, desc } from "drizzle-orm";
 import { createProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
 
 // GET /api/projects - List all projects for authenticated user (owned + collaborated)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -17,6 +17,27 @@ export async function GET() {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Parse sort parameters from query string
+    const { searchParams } = new URL(request.url);
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
+
+    // Build order by clause based on sort parameters
+    const getOrderByClause = () => {
+      const direction = sortOrder === "asc" ? asc : desc;
+      switch (sortBy) {
+        case "name":
+          return direction(project.name);
+        case "updatedAt":
+          return direction(project.updatedAt);
+        case "createdAt":
+        default:
+          return direction(project.createdAt);
+      }
+    };
+
+    const orderByClause = getOrderByClause();
 
     // Get owned projects
     const ownedProjects = await db
@@ -33,7 +54,7 @@ export async function GET() {
       .from(project)
       .leftJoin(user, eq(project.ownerId, user.id))
       .where(eq(project.ownerId, session.user.id))
-      .orderBy(project.createdAt);
+      .orderBy(orderByClause);
 
     // Get collaborated projects
     const collaboratedProjects = await db
@@ -51,7 +72,7 @@ export async function GET() {
       .innerJoin(project, eq(projectCollaborator.projectId, project.id))
       .leftJoin(user, eq(project.ownerId, user.id))
       .where(eq(projectCollaborator.userId, session.user.id))
-      .orderBy(project.createdAt);
+      .orderBy(orderByClause);
 
     // Combine and return
     const allProjects = [...ownedProjects, ...collaboratedProjects];
