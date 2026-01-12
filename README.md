@@ -47,6 +47,15 @@ All configuration is done via environment variables in `.env`.
 | ---------- | -------------------------------- |
 | `WEB_URL`  | Public URL of your application   |
 
+### Reverse Proxy (Caddy)
+
+| Variable    | Description                        |
+| ----------- | ---------------------------------- |
+| `MINIO_HOST`| MinIO service hostname             |
+| `MINIO_PORT`| MinIO service port                 |
+| `APP_HOST`  | WIPStudio application hostname     |
+| `APP_PORT`  | WIPStudio application port         |
+
 ### Authentication
 
 | Variable                       | Description                                   | Default    |
