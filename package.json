@@ -1,12 +1,13 @@
 {
   "name": "wipstudio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "bun --bun next dev",
     "build": "bun --bun next build",
     "start": "bun --bun next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "changelog": "commit-and-tag-version -s"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.936.0",
@@ -57,6 +58,7 @@
     "@types/pg": "^8.15.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "commit-and-tag-version": "^12.6.1",
     "drizzle-kit": "^0.31.7",
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
