@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,15 +26,16 @@ export function ProjectCreateDialog({
   open,
   onOpenChange,
 }: ProjectCreateDialogProps) {
+  const router = useRouter();
   const createProject = useCreateProject();
   const [formData, setFormData] = useState({ name: "", description: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     createProject.mutate(formData, {
-      onSuccess: () => {
-        onOpenChange(false);
-        setFormData({ name: "", description: "" });
+      onSuccess: (project) => {
+        // Navigate to the newly created project
+        router.push(`/projects/${project.id}`);
       },
     });
   };
