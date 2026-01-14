@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,7 @@ export function TrackUploadDialog({
   projectId,
   preSelectedFile,
 }: TrackUploadDialogProps) {
+  const router = useRouter();
   const [trackName, setTrackName] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -81,7 +83,7 @@ export function TrackUploadDialog({
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      await uploadTrack.mutateAsync({
+      const createdTrack = await uploadTrack.mutateAsync({
         file: audioFile,
         trackName: trackName,
         projectId,
@@ -89,7 +91,8 @@ export function TrackUploadDialog({
           setUploadProgress(Math.round((loaded / total) * 100));
         },
       });
-      onOpenChange(false);
+      // Navigate to the newly created track
+      router.push(`/projects/${projectId}/tracks/${createdTrack.id}`);
     } finally {
       setIsUploading(false);
     }
