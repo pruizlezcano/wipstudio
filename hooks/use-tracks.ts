@@ -34,7 +34,7 @@ export const trackKeys = {
 };
 
 // Sort options type
-export type TrackSortBy = "name" | "createdAt" | "updatedAt";
+export type TrackSortBy = "name" | "createdAt" | "updatedAt" | "lastVersionAt";
 export type SortOrder = "asc" | "desc";
 
 export interface TrackSortOptions {

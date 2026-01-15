@@ -25,17 +25,17 @@ import { ProjectEditDialog } from "@/components/features/projects/project-edit-d
 import { ProjectDeleteDialog } from "@/components/features/projects/project-delete-dialog";
 
 const SORT_OPTIONS = [
+  { value: "lastVersionAt:desc", label: "Recently updated" },
   { value: "createdAt:desc", label: "Newest first" },
   { value: "createdAt:asc", label: "Oldest first" },
   { value: "name:asc", label: "Name (A-Z)" },
   { value: "name:desc", label: "Name (Z-A)" },
-  { value: "updatedAt:desc", label: "Recently updated" },
 ] as const;
 
 const PROJECTS_PER_PAGE = 20;
 
 export default function ProjectsPage() {
-  const [sortValue, setSortValue] = useState("createdAt:desc");
+  const [sortValue, setSortValue] = useState("lastVersionAt:desc");
   const [sortBy, sortOrder] = sortValue.split(":") as [
     ProjectSortBy,
     SortOrder,

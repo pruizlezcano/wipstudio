@@ -22,7 +22,7 @@ export const projectKeys = {
 };
 
 // Sort options type
-export type ProjectSortBy = "name" | "createdAt" | "updatedAt";
+export type ProjectSortBy = "name" | "createdAt" | "updatedAt" | "lastVersionAt";
 export type SortOrder = "asc" | "desc";
 
 export interface ProjectSortOptions {

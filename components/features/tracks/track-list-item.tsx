@@ -28,7 +28,9 @@ export function TrackListItem({ track, projectId }: TrackListItemProps) {
       </div>
       <div className="flex items-center gap-4 shrink-0">
         <span className="text-xs font-mono text-muted-foreground">
-          {new Date(track.updatedAt).toLocaleDateString()}
+          {new Date(
+            track.lastVersionAt ?? track.createdAt
+          ).toLocaleDateString()}
         </span>
         <div className="text-xs font-bold uppercase tracking-tight">VIEW →</div>
       </div>

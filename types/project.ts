@@ -7,6 +7,7 @@ export interface Project {
   ownerId: string;
   createdAt: string;
   updatedAt: string;
+  lastVersionAt: string | null;
 }
 
 export interface PaginatedProjectsResponse {

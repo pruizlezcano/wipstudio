@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { project, projectCollaborator, user } from "@/lib/db/schema";
-import { eq, sql, asc, desc, count } from "drizzle-orm";
+import {
+  project,
+  projectCollaborator,
+  user,
+  track,
+  trackVersion,
+} from "@/lib/db/schema";
+import { eq, sql, asc, desc, count, max } from "drizzle-orm";
 import { createProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
 
@@ -37,8 +43,6 @@ export async function GET(request: NextRequest) {
       switch (sortBy) {
         case "name":
           return direction(project.name);
-        case "updatedAt":
-          return direction(project.updatedAt);
         case "createdAt":
         default:
           return direction(project.createdAt);
@@ -72,7 +76,7 @@ export async function GET(request: NextRequest) {
         ownerId: project.ownerId,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
-        role: sql<string>`'owner'`.as('role'),
+        role: sql<string>`'owner'`.as("role"),
         ownerName: user.name,
       })
       .from(project)
@@ -89,7 +93,7 @@ export async function GET(request: NextRequest) {
         ownerId: project.ownerId,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
-        role: sql<string>`'collaborator'`.as('role'),
+        role: sql<string>`'collaborator'`.as("role"),
         ownerName: user.name,
       })
       .from(projectCollaborator)
@@ -100,34 +104,59 @@ export async function GET(request: NextRequest) {
 
     // Combine and sort in memory, then paginate
     const allProjects = [...ownedProjects, ...collaboratedProjects];
-    
+
+    // Fetch lastVersionAt for all projects before sorting
+    const projectsWithLastVersion = await Promise.all(
+      allProjects.map(async (p) => {
+        // Get the latest version date across all tracks in the project
+        const lastVersionResult = await db
+          .select({ lastVersionAt: max(trackVersion.createdAt) })
+          .from(track)
+          .innerJoin(trackVersion, eq(track.id, trackVersion.trackId))
+          .where(eq(track.projectId, p.id));
+
+        return {
+          ...p,
+          lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
+        };
+      })
+    );
+
     // Sort the combined array
-    allProjects.sort((a, b) => {
-      let aVal: string | Date;
-      let bVal: string | Date;
-      
+    projectsWithLastVersion.sort((a, b) => {
+      let aVal: string | Date | null;
+      let bVal: string | Date | null;
+
       switch (sortBy) {
         case "name":
           aVal = a.name.toLowerCase();
           bVal = b.name.toLowerCase();
           break;
-        case "updatedAt":
-          aVal = new Date(a.updatedAt);
-          bVal = new Date(b.updatedAt);
+        case "lastVersionAt":
+          // Use lastVersionAt if available, otherwise fall back to createdAt
+          aVal = a.lastVersionAt
+            ? new Date(a.lastVersionAt)
+            : new Date(a.createdAt);
+          bVal = b.lastVersionAt
+            ? new Date(b.lastVersionAt)
+            : new Date(b.createdAt);
           break;
         case "createdAt":
         default:
           aVal = new Date(a.createdAt);
           bVal = new Date(b.createdAt);
       }
-      
+
       if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
       if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
       return 0;
     });
 
     // Apply pagination
-    const paginatedProjects = allProjects.slice(offset, offset + limit);
+    const paginatedProjects = projectsWithLastVersion.slice(
+      offset,
+      offset + limit
+    );
 
     return NextResponse.json({
       data: paginatedProjects,
@@ -171,7 +200,10 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json(newProject[0], { status: 201 });
+    return NextResponse.json(
+      { ...newProject[0], lastVersionAt: null },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

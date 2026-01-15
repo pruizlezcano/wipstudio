@@ -7,6 +7,7 @@ export interface Track {
   createdAt: string;
   updatedAt: string;
   versionCount: number;
+  lastVersionAt: string | null;
 }
 
 export interface TrackVersion {

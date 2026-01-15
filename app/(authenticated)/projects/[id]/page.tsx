@@ -30,11 +30,11 @@ import {
 } from "@/components/common/full-screen-dropzone";
 
 const SORT_OPTIONS = [
+  { value: "lastVersionAt:desc", label: "Recently updated" },
   { value: "createdAt:desc", label: "Newest first" },
   { value: "createdAt:asc", label: "Oldest first" },
   { value: "name:asc", label: "Name (A-Z)" },
   { value: "name:desc", label: "Name (Z-A)" },
-  { value: "updatedAt:desc", label: "Recently updated" },
 ] as const;
 
 const TRACKS_PER_PAGE = 20;
@@ -46,7 +46,7 @@ export default function ProjectDetailPage() {
   const dropzoneRef = useRef<FullScreenDropzoneRef>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const [sortValue, setSortValue] = useState("createdAt:desc");
+  const [sortValue, setSortValue] = useState("lastVersionAt:desc");
   const [sortBy, sortOrder] = sortValue.split(":") as [TrackSortBy, SortOrder];
 
   const { data: project, isLoading: projectLoading } = useProject(projectId);

@@ -8,7 +8,7 @@ import {
   project,
   projectCollaborator,
 } from "@/lib/db/schema";
-import { eq, count, asc, desc, SQL } from "drizzle-orm";
+import { eq, count, asc, desc, SQL, max } from "drizzle-orm";
 import { createTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -60,14 +60,12 @@ export async function GET(
       );
     }
 
-    // Build order by clause based on sort parameters
+    // Build order by clause based on sort parameters (for non-lastVersionAt sorts)
     const orderByClause = (() => {
       const direction = sortOrder === "asc" ? asc : desc;
       switch (sortBy) {
         case "name":
           return direction(track.name);
-        case "updatedAt":
-          return direction(track.updatedAt);
         case "createdAt":
         default:
           return direction(track.createdAt);
@@ -81,7 +79,62 @@ export async function GET(
       .where(eq(track.projectId, projectId));
     const total = totalCountResult[0]?.count || 0;
 
-    // Fetch tracks for the project with pagination
+    // For lastVersionAt sorting, we need to fetch all tracks and sort in memory
+    if (sortBy === "lastVersionAt") {
+      // Fetch all tracks for the project
+      const allTracks = await db
+        .select()
+        .from(track)
+        .where(eq(track.projectId, projectId));
+
+      // Fetch version stats for all tracks
+      const tracksWithVersions = await Promise.all(
+        allTracks.map(async (t) => {
+          const versionStats = await db
+            .select({
+              count: count(),
+              lastVersionAt: max(trackVersion.createdAt),
+            })
+            .from(trackVersion)
+            .where(eq(trackVersion.trackId, t.id));
+
+          return {
+            ...t,
+            versionCount: versionStats[0]?.count || 0,
+            lastVersionAt: versionStats[0]?.lastVersionAt || null,
+          };
+        })
+      );
+
+      // Sort by lastVersionAt (fall back to createdAt if null)
+      tracksWithVersions.sort((a, b) => {
+        const aVal = a.lastVersionAt
+          ? new Date(a.lastVersionAt)
+          : new Date(a.createdAt);
+        const bVal = b.lastVersionAt
+          ? new Date(b.lastVersionAt)
+          : new Date(b.createdAt);
+
+        if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+
+      // Apply pagination
+      const paginatedTracks = tracksWithVersions.slice(offset, offset + limit);
+
+      return NextResponse.json({
+        data: paginatedTracks,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    }
+
+    // Fetch tracks for the project with pagination (for other sort options)
     const tracks = await db
       .select()
       .from(track)
@@ -93,17 +146,22 @@ export async function GET(
     // For each track, fetch the master version (or latest) and version count
     const tracksWithVersions = await Promise.all(
       tracks.map(async (t) => {
-        // Get version count
-        const versionCountResult = await db
-          .select({ count: count() })
+        // Get version count and last version date
+        const versionStats = await db
+          .select({
+            count: count(),
+            lastVersionAt: max(trackVersion.createdAt),
+          })
           .from(trackVersion)
           .where(eq(trackVersion.trackId, t.id));
 
-        const versionCount = versionCountResult[0]?.count || 0;
+        const versionCount = versionStats[0]?.count || 0;
+        const lastVersionAt = versionStats[0]?.lastVersionAt || null;
 
         return {
           ...t,
           versionCount,
+          lastVersionAt,
         };
       })
     );
@@ -269,6 +327,7 @@ export async function POST(
       {
         ...newTrack[0],
         versionCount: 1,
+        lastVersionAt: new Date().toISOString(),
       },
       { status: 201 }
     );

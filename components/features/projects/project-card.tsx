@@ -59,7 +59,9 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
       <CardContent>
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground font-mono">
-            {new Date(project.updatedAt).toLocaleDateString()}
+            {new Date(
+              project.lastVersionAt ?? project.createdAt
+            ).toLocaleDateString()}
           </p>
           <Button
             variant="ghost"
