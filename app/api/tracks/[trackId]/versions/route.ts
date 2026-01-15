@@ -11,7 +11,11 @@ import {
 import { eq, desc } from "drizzle-orm";
 import { createTrackVersionSchema } from "@/lib/validations/track-version";
 import { z } from "zod";
-import { generatePresignedGetUrl, getFileHeader, deleteS3File } from "@/lib/storage/s3";
+import {
+  generatePresignedGetUrl,
+  getFileHeader,
+  deleteS3File,
+} from "@/lib/storage/s3";
 import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
 import { createNotification } from "@/lib/notifications/service";
@@ -72,10 +76,18 @@ export async function GET(
       .where(eq(trackVersion.trackId, trackId))
       .orderBy(desc(trackVersion.versionNumber));
 
-    // Generate presigned URLs for each version
+    // Generate presigned URLs for each version with friendly filenames for download
     const versionsWithUrls = await Promise.all(
       versions.map(async (version) => {
-        const audioUrl = await generatePresignedGetUrl(version.audioUrl);
+        const extension = version.audioUrl.split(".").pop() || "mp3";
+        const safeTrackName = trackRecord[0].track.name;
+        const filename = `${safeTrackName}-v${version.versionNumber}.${extension}`;
+
+        const audioUrl = await generatePresignedGetUrl(
+          version.audioUrl,
+          3600,
+          filename
+        );
         return {
           ...version,
           audioUrl,

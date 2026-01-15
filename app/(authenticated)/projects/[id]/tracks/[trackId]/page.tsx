@@ -431,6 +431,11 @@ export default function TrackDetailPage() {
                 </Button>
               )}
               {selectedVersion && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={selectedVersion.audioUrl}>Download</a>
+                </Button>
+              )}
+              {selectedVersion && (
                 <Button
                   variant="outline"
                   size="sm"

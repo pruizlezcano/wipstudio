@@ -47,10 +47,10 @@ function initS3PresignedClient(): S3Client {
 
   const s3Config = getS3Config();
   const appConfig = getAppConfig();
-  
+
   // In development, use S3 endpoint directly for presigned URLs
   // In production, use the public app URL (proxy handles routing to S3)
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = process.env.NODE_ENV === "development";
   const presignedEndpoint = isDevelopment ? s3Config.endpoint : appConfig.url;
 
   s3PresignedClientInstance = new S3Client({
@@ -126,13 +126,17 @@ export async function generatePresignedPutUrl(
 // Generate presigned URL for downloading/viewing (GET)
 export async function generatePresignedGetUrl(
   objectKey: string,
-  expiresIn: number = 3600 // 1 hour default
+  expiresIn: number = 3600, // 1 hour default
+  filename?: string
 ): Promise<string> {
   const config = getS3Config();
 
   const command = new GetObjectCommand({
     Bucket: config.bucket,
     Key: objectKey,
+    ResponseContentDisposition: filename
+      ? `attachment; filename="${filename}"`
+      : undefined,
   });
 
   return getSignedUrl(s3PresignedClient, command, { expiresIn });
