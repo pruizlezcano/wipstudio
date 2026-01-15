@@ -47,7 +47,10 @@ export async function GET(
     );
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Track not found or access denied." },
+        { status: 404 }
+      );
     }
 
     // Get version count
@@ -109,7 +112,10 @@ export async function PATCH(
     );
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Track not found or access denied." },
+        { status: 404 }
+      );
     }
 
     const body = await request.json();
@@ -123,7 +129,17 @@ export async function PATCH(
       .where(eq(track.id, trackId))
       .returning();
 
-    return NextResponse.json(updatedTrack[0]);
+    const versionCountResult = await db
+      .select({ count: count() })
+      .from(trackVersion)
+      .where(eq(trackVersion.trackId, trackId));
+
+    const versionCount = versionCountResult[0]?.count || 0;
+
+    return NextResponse.json({
+      ...updatedTrack[0],
+      versionCount,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -178,7 +194,10 @@ export async function DELETE(
     );
 
     if (!hasAccess) {
-      return NextResponse.json({ error: "Track not found or access denied." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Track not found or access denied." },
+        { status: 404 }
+      );
     }
 
     // Get all versions for this track
@@ -192,7 +211,10 @@ export async function DELETE(
       try {
         await deleteS3File(version.audioUrl);
       } catch (error) {
-        console.error(`Failed to delete version file ${version.audioUrl}:`, error);
+        console.error(
+          `Failed to delete version file ${version.audioUrl}:`,
+          error
+        );
         // Continue deletion even if S3 deletion fails
       }
     });
