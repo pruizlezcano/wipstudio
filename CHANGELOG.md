@@ -1,5 +1,21 @@
 # Changelog
 
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+
+## [0.3.0](https://github.com/pruizlezcano/wipstudio/compare/v0.2.0...v0.3.0) (2026-01-15)
+
+
+### Features
+
+* **nav-bar:** add logo ([c5bd8ed](https://github.com/pruizlezcano/wipstudio/commit/c5bd8edfc7cafb3ddd28ac6b746a0b10d1044961))
+* **projects:** navigate to new project on creation ([c09dcf7](https://github.com/pruizlezcano/wipstudio/commit/c09dcf73c5c106fce96ddcc843427225fb17cde1))
+* **tracks:** navigate to new track after upload ([c6249f6](https://github.com/pruizlezcano/wipstudio/commit/c6249f65b2c95b3a505c073e67f0134f58feb4f0))
+
+
+### Bug Fixes
+
+* **tracks:** display updatedAt instead of createdAt ([9c08956](https://github.com/pruizlezcano/wipstudio/commit/9c08956160a92c54794c21168caf44e281c865a7))
+
 ## [0.2.0](https://github.com/pruizlezcano/wipstudio/compare/v0.1.0...v0.2.0) (2026-01-13)
 
 
