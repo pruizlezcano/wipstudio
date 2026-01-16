@@ -73,11 +73,13 @@ export async function GET(request: NextRequest) {
         id: project.id,
         name: project.name,
         description: project.description,
-        ownerId: project.ownerId,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
-        role: sql<string>`'owner'`.as("role"),
-        ownerName: user.name,
+        owner: {
+          userId: user.id,
+          name: user.name,
+          image: user.image,
+        },
       })
       .from(project)
       .leftJoin(user, eq(project.ownerId, user.id))
@@ -90,11 +92,13 @@ export async function GET(request: NextRequest) {
         id: project.id,
         name: project.name,
         description: project.description,
-        ownerId: project.ownerId,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
-        role: sql<string>`'collaborator'`.as("role"),
-        ownerName: user.name,
+        owner: {
+          userId: user.id,
+          name: user.name,
+          image: user.image,
+        },
       })
       .from(projectCollaborator)
       .innerJoin(project, eq(projectCollaborator.projectId, project.id))
@@ -105,25 +109,37 @@ export async function GET(request: NextRequest) {
     // Combine and sort in memory, then paginate
     const allProjects = [...ownedProjects, ...collaboratedProjects];
 
-    // Fetch lastVersionAt for all projects before sorting
-    const projectsWithLastVersion = await Promise.all(
+    // Fetch lastVersionAt and collaborators for all projects before sorting
+    const projectsWithDetails = await Promise.all(
       allProjects.map(async (p) => {
         // Get the latest version date across all tracks in the project
-        const lastVersionResult = await db
-          .select({ lastVersionAt: max(trackVersion.createdAt) })
-          .from(track)
-          .innerJoin(trackVersion, eq(track.id, trackVersion.trackId))
-          .where(eq(track.projectId, p.id));
+        const [lastVersionResult, collaborators] = await Promise.all([
+          db
+            .select({ lastVersionAt: max(trackVersion.createdAt) })
+            .from(track)
+            .innerJoin(trackVersion, eq(track.id, trackVersion.trackId))
+            .where(eq(track.projectId, p.id)),
+          db
+            .select({
+              userId: user.id,
+              name: user.name,
+              image: user.image,
+            })
+            .from(projectCollaborator)
+            .innerJoin(user, eq(projectCollaborator.userId, user.id))
+            .where(eq(projectCollaborator.projectId, p.id)),
+        ]);
 
         return {
           ...p,
           lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
+          collaborators,
         };
       })
     );
 
     // Sort the combined array
-    projectsWithLastVersion.sort((a, b) => {
+    projectsWithDetails.sort((a, b) => {
       let aVal: string | Date | null;
       let bVal: string | Date | null;
 
@@ -153,7 +169,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Apply pagination
-    const paginatedProjects = projectsWithLastVersion.slice(
+    const paginatedProjects = projectsWithDetails.slice(
       offset,
       offset + limit
     );
@@ -200,8 +216,19 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
+    const { ownerId, ...projectData } = newProject[0];
+
     return NextResponse.json(
-      { ...newProject[0], lastVersionAt: null },
+      {
+        ...projectData,
+        lastVersionAt: null,
+        owner: {
+          userId: session.user.id,
+          name: session.user.name,
+          image: session.user.image,
+        },
+        collaborators: [],
+      },
       { status: 201 }
     );
   } catch (error) {

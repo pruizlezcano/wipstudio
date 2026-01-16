@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { project, track, trackVersion } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { project, track, trackVersion, user, projectCollaborator } from "@/lib/db/schema";
+import { eq, sql, max } from "drizzle-orm";
 import { updateProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
 import { deleteS3File } from "@/lib/storage/s3";
@@ -25,13 +25,51 @@ export async function GET(
 
     const { id } = await params;
 
-    const { hasAccess, project } = await checkProjectAccess(id, session.user.id);
+    const { hasAccess, project: projectData } = await checkProjectAccess(id, session.user.id);
 
-    if (!hasAccess) {
+    if (!hasAccess || !projectData) {
       return NextResponse.json({ error: "Project not found or access denied." }, { status: 404 });
     }
 
-    return NextResponse.json(project);
+    // Fetch details (owner, collaborators, lastVersionAt)
+    const [ownerResult, collaborators, lastVersionResult] = await Promise.all([
+      db
+        .select({
+          name: user.name,
+          image: user.image,
+        })
+        .from(user)
+        .where(eq(user.id, projectData.ownerId))
+        .limit(1),
+      db
+        .select({
+          userId: user.id,
+          name: user.name,
+          image: user.image,
+        })
+        .from(projectCollaborator)
+        .innerJoin(user, eq(projectCollaborator.userId, user.id))
+        .where(eq(projectCollaborator.projectId, id)),
+      db
+        .select({ lastVersionAt: max(trackVersion.createdAt) })
+        .from(track)
+        .innerJoin(trackVersion, eq(track.id, trackVersion.trackId))
+        .where(eq(track.projectId, id)),
+    ]);
+
+    const ownerInfo = ownerResult[0];
+    const { ownerId, ...rest } = projectData;
+
+    return NextResponse.json({
+      ...rest,
+      owner: {
+        userId: projectData.ownerId,
+        name: ownerInfo?.name || "Unknown",
+        image: ownerInfo?.image || null,
+      },
+      collaborators,
+      lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
+    });
   } catch (error) {
     console.error("Error fetching project:", error);
     return NextResponse.json(
@@ -74,7 +112,47 @@ export async function PATCH(
       .where(eq(project.id, id))
       .returning();
 
-    return NextResponse.json(updatedProject[0]);
+    const projectData = updatedProject[0];
+
+    // Fetch details (owner, collaborators, lastVersionAt)
+    const [ownerResult, collaborators, lastVersionResult] = await Promise.all([
+      db
+        .select({
+          name: user.name,
+          image: user.image,
+        })
+        .from(user)
+        .where(eq(user.id, projectData.ownerId))
+        .limit(1),
+      db
+        .select({
+          userId: user.id,
+          name: user.name,
+          image: user.image,
+        })
+        .from(projectCollaborator)
+        .innerJoin(user, eq(projectCollaborator.userId, user.id))
+        .where(eq(projectCollaborator.projectId, id)),
+      db
+        .select({ lastVersionAt: max(trackVersion.createdAt) })
+        .from(track)
+        .innerJoin(trackVersion, eq(track.id, trackVersion.trackId))
+        .where(eq(track.projectId, id)),
+    ]);
+
+    const ownerInfo = ownerResult[0];
+    const { ownerId, ...rest } = projectData;
+
+    return NextResponse.json({
+      ...rest,
+      owner: {
+        userId: projectData.ownerId,
+        name: ownerInfo?.name || "Unknown",
+        image: ownerInfo?.image || null,
+      },
+      collaborators,
+      lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -1,24 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { Collaborator } from "@/types/collaborator";
-
-// Query keys
-export const collaboratorKeys = {
-  all: ["collaborators"] as const,
-  lists: () => [...collaboratorKeys.all, "list"] as const,
-  list: (projectId: string) =>
-    [...collaboratorKeys.lists(), projectId] as const,
-};
-
-// Fetch all collaborators for a project
-async function fetchCollaborators(projectId: string): Promise<Collaborator[]> {
-  const response = await fetch(`/api/projects/${projectId}/collaborators`);
-  if (!response.ok) {
-    throw new Error("Failed to fetch collaborators");
-  }
-  return response.json();
-}
-
+import { useProject, projectKeys } from "./use-projects";
 // Remove collaborator
 async function removeCollaborator({
   projectId,
@@ -42,11 +24,8 @@ async function removeCollaborator({
 
 // Hooks
 export function useCollaborators(projectId: string) {
-  return useQuery({
-    queryKey: collaboratorKeys.list(projectId),
-    queryFn: () => fetchCollaborators(projectId),
-    enabled: !!projectId,
-  });
+  const { data: project, isLoading, error } = useProject(projectId);
+  return { data: project?.collaborators, isLoading, error };
 }
 
 export function useRemoveCollaborator() {
@@ -55,13 +34,8 @@ export function useRemoveCollaborator() {
   return useMutation({
     mutationFn: removeCollaborator,
     onSuccess: (_, { projectId, userId }) => {
-      // Remove from cache
-      queryClient.setQueryData<Collaborator[]>(
-        collaboratorKeys.list(projectId),
-        (old) => {
-          return old ? old.filter((collab) => collab.userId !== userId) : [];
-        }
-      );
+      // Invalidate project detail query
+      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
       toast.success("Collaborator removed successfully");
     },
     onError: (error: Error) => {
