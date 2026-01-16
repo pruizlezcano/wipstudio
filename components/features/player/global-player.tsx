@@ -27,6 +27,8 @@ export const GlobalPlayer = () => {
     setIsPlaying,
     setIsLoading,
     setShouldAutoPlay,
+    peaksCache,
+    setPeaks,
   } = usePlayerStore();
 
   const handlePlayPause = () => {
@@ -83,25 +85,38 @@ export const GlobalPlayer = () => {
             </span>
           </div>
         </div>
-
-        <WavesurferPlayer
-          key={version.id}
-          height={0}
-          url={url ?? ""}
-          onReady={(ws) => {
-            setWaveSurfer(ws);
-            setIsLoading(false);
-            setDuration(ws.getDuration());
-            if (shouldAutoPlay) {
-              ws.play();
-              setShouldAutoPlay(false);
-            }
-          }}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onTimeupdate={() => setCurrentTime(waveSurfer?.getCurrentTime() || 0)}
-        />
       </div>
+      <WavesurferPlayer
+        key={version.id}
+        height={0}
+        url={url ?? ""}
+        peaks={peaksCache[version.id]}
+        onReady={(ws) => {
+          setWaveSurfer(ws);
+          setIsLoading(false);
+          setDuration(ws.getDuration());
+
+          // Cache peaks if not already present
+          if (!peaksCache[version.id]) {
+            try {
+              const peaks = ws.exportPeaks();
+              if (peaks && peaks.length > 0) {
+                setPeaks(version.id, peaks);
+              }
+            } catch (e) {
+              console.error("Failed to export peaks:", e);
+            }
+          }
+
+          if (shouldAutoPlay) {
+            ws.play();
+            setShouldAutoPlay(false);
+          }
+        }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onTimeupdate={() => setCurrentTime(waveSurfer?.getCurrentTime() || 0)}
+      />
     </div>
   );
 };

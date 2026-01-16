@@ -13,6 +13,7 @@ interface PlayerState {
   isLoading: boolean;
   shouldAutoPlay: boolean;
   hasEverPlayed: boolean;
+  peaksCache: Record<string, number[][]>;
   setTrack: (track: Track) => void;
   setVersion: (version: TrackVersion) => void;
   setWaveSurfer: (waveSurfer: WaveSurfer) => void;
@@ -22,6 +23,7 @@ interface PlayerState {
   setUrl: (url: string) => void;
   setIsLoading: (isLoading: boolean) => void;
   setShouldAutoPlay: (shouldAutoPlay: boolean) => void;
+  setPeaks: (versionId: string, peaks: number[][]) => void;
   loadVersion: (
     track: Track,
     version: TrackVersion,
@@ -41,6 +43,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isLoading: true,
   shouldAutoPlay: false,
   hasEverPlayed: false,
+  peaksCache: {},
   setTrack: (track: Track) => set({ track }),
   setVersion: (version: TrackVersion) => set({ version }),
   setWaveSurfer: (waveSurfer: WaveSurfer) => set({ waveSurfer }),
@@ -50,6 +53,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setUrl: (url: string) => set({ url }),
   setIsLoading: (isLoading: boolean) => set({ isLoading }),
   setShouldAutoPlay: (shouldAutoPlay: boolean) => set({ shouldAutoPlay }),
+  setPeaks: (versionId: string, peaks: number[] | number[][]) =>
+    set((state) => ({
+      peaksCache: { ...state.peaksCache, [versionId]: peaks },
+    })),
   loadVersion: (track: Track, version: TrackVersion, autoPlay = false) => {
     const { waveSurfer } = get();
     if (waveSurfer && waveSurfer.isPlaying()) {

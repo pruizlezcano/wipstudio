@@ -39,6 +39,8 @@ export const Waveform = memo(
       isPlaying: playerIsPlaying,
       isLoading: playerIsLoading,
       loadVersion,
+      peaksCache,
+      setPeaks,
     } = usePlayerStore();
     const [waveSurfer, setWaveSurfer] = useState<WaveSurfer>();
     const [isPlaying, setIsPlaying] = useState(false);
@@ -173,10 +175,23 @@ export const Waveform = memo(
             progressColor={theme === "dark" ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)"}
             cursorColor={theme === "dark" ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)"}
             url={version.audioUrl}
+            peaks={version ? peaksCache[version.id] : undefined}
             onReady={(ws) => {
               ws.setVolume(0);
               setWaveSurfer(ws);
               setIsLoading(false);
+
+              // Cache peaks if not already present
+              if (version && !peaksCache[version.id]) {
+                try {
+                  const peaks = ws.exportPeaks();
+                  if (peaks && peaks.length > 0) {
+                    setPeaks(version.id, peaks);
+                  }
+                } catch (e) {
+                  console.error("Failed to export peaks:", e);
+                }
+              }
 
               // Add click handler that always works, independent of global player
               ws.on("click", (relativeTime) => {
