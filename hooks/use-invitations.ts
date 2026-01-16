@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CreateInvitationInput } from "@/lib/validations/invitation";
 import type { Invitation } from "@/types/invitation";
+import { projectKeys } from "./use-projects";
 
 // Query keys
 export const invitationKeys = {
@@ -133,7 +134,7 @@ export function useAcceptInvitation() {
     mutationFn: acceptInvitation,
     onSuccess: () => {
       // Invalidate projects list to show new project
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       toast.success("Successfully joined project");
     },
     onError: (error: Error) => {

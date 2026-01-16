@@ -34,7 +34,8 @@ export function useRemoveCollaborator() {
   return useMutation({
     mutationFn: removeCollaborator,
     onSuccess: (_, { projectId, userId }) => {
-      // Invalidate project detail query
+      // Invalidate project list and detail queries
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
       toast.success("Collaborator removed successfully");
     },
