@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import type { CreateInvitationInput } from "@/lib/validations/invitation";
 import type { Invitation } from "@/types/invitation";
 import { projectKeys } from "./use-projects";
@@ -15,7 +16,7 @@ export const invitationKeys = {
 async function fetchInvitations(projectId: string): Promise<Invitation[]> {
   const response = await fetch(`/api/projects/${projectId}/invitations`);
   if (!response.ok) {
-    throw new Error("Failed to fetch invitations");
+    throw new ApiError("Failed to fetch invitations", response.status);
   }
   return response.json();
 }
@@ -36,7 +37,7 @@ async function createInvitation({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to create invitation");
+    throw new ApiError(error.error || "Failed to create invitation", response.status);
   }
 
   return response.json();
@@ -59,7 +60,7 @@ async function deleteInvitation({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to delete invitation");
+    throw new ApiError(error.error || "Failed to delete invitation", response.status);
   }
 }
 
@@ -71,7 +72,7 @@ async function acceptInvitation(token: string): Promise<{ projectId: string }> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to accept invitation");
+    throw new ApiError(error.error || "Failed to accept invitation", response.status);
   }
 
   return response.json();

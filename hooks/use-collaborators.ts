@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import { useProject, projectKeys } from "./use-projects";
 // Remove collaborator
 async function removeCollaborator({
@@ -18,7 +19,7 @@ async function removeCollaborator({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to remove collaborator");
+    throw new ApiError(error.error || "Failed to remove collaborator", response.status);
   }
 }
 

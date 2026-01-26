@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/components/common/theme-provider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { authClient } from "@/lib/auth/auth-client";
 import { getPublicEnv } from "./public-env";
+import { ApiError } from "@/lib/api-error";
 
 export function Providers({ children }: { children: ReactNode }) {
   const env = getPublicEnv();
@@ -21,6 +22,16 @@ export function Providers({ children }: { children: ReactNode }) {
           queries: {
             staleTime: 60 * 1000, // 1 minute
             refetchOnWindowFocus: false,
+            retry: (failureCount, error) => {
+              if (failureCount >= 3) return false;
+              if (error instanceof ApiError) {
+                // Don't retry for unauthorized or not found (access denied)
+                if ([401, 403, 404].includes(error.status)) {
+                  return false;
+                }
+              }
+              return true;
+            },
           },
         },
       })

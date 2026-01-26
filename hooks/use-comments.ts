@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import type {
   CreateCommentInput,
   UpdateCommentInput,
@@ -22,7 +23,7 @@ async function fetchComments(
   const url = `/api/tracks/${trackId}/versions/${versionId}/comments${includeResolved ? "?includeResolved=true" : ""}`;
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("Failed to fetch comments");
+    throw new ApiError("Failed to fetch comments", response.status);
   }
   return response.json();
 }
@@ -48,7 +49,7 @@ async function createComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to create comment");
+    throw new ApiError(error.error || "Failed to create comment", response.status);
   }
 
   return response.json();
@@ -77,7 +78,7 @@ async function updateComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to update comment");
+    throw new ApiError(error.error || "Failed to update comment", response.status);
   }
 
   return response.json();
@@ -102,7 +103,7 @@ async function deleteComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to delete comment");
+    throw new ApiError(error.error || "Failed to delete comment", response.status);
   }
 }
 
@@ -125,7 +126,7 @@ async function resolveComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to resolve comment");
+    throw new ApiError(error.error || "Failed to resolve comment", response.status);
   }
 
   return response.json();
@@ -150,7 +151,7 @@ async function unresolveComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to unresolve comment");
+    throw new ApiError(error.error || "Failed to unresolve comment", response.status);
   }
 
   return response.json();

@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import type {
   CreateTrackInput,
   UpdateTrackInput,
@@ -63,7 +64,7 @@ async function fetchTracks(
 
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("Failed to fetch tracks");
+    throw new ApiError("Failed to fetch tracks", response.status);
   }
   return response.json();
 }
@@ -72,7 +73,7 @@ async function fetchTracks(
 async function fetchTrack(trackId: string): Promise<Track> {
   const response = await fetch(`/api/tracks/${trackId}`);
   if (!response.ok) {
-    throw new Error("Failed to fetch track");
+    throw new ApiError("Failed to fetch track", response.status);
   }
   return response.json();
 }
@@ -93,7 +94,7 @@ async function createTrack({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to create track");
+    throw new ApiError(error.error || "Failed to create track", response.status);
   }
 
   return response.json();
@@ -115,7 +116,7 @@ async function updateTrack({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to update track");
+    throw new ApiError(error.error || "Failed to update track", response.status);
   }
 
   return response.json();
@@ -129,7 +130,7 @@ async function deleteTrack(id: string): Promise<void> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to delete track");
+    throw new ApiError(error.error || "Failed to delete track", response.status);
   }
 }
 
@@ -145,7 +146,7 @@ async function getPresignedUrl(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to get upload URL");
+    throw new ApiError(error.error || "Failed to get upload URL", response.status);
   }
 
   return response.json();
@@ -200,7 +201,7 @@ async function initiateMultipartUpload(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to initiate multipart upload");
+    throw new ApiError(error.error || "Failed to initiate multipart upload", response.status);
   }
 
   return response.json();
@@ -221,7 +222,7 @@ async function getChunkUrls(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to get chunk URLs");
+    throw new ApiError(error.error || "Failed to get chunk URLs", response.status);
   }
 
   return response.json();
@@ -279,7 +280,7 @@ async function completeMultipartUpload(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to complete multipart upload");
+    throw new ApiError(error.error || "Failed to complete multipart upload", response.status);
   }
 }
 
@@ -507,7 +508,7 @@ export function useUploadTrack() {
 async function fetchVersions(trackId: string): Promise<TrackVersion[]> {
   const response = await fetch(`/api/tracks/${trackId}/versions`);
   if (!response.ok) {
-    throw new Error("Failed to fetch versions");
+    throw new ApiError("Failed to fetch versions", response.status);
   }
   return response.json();
 }
@@ -528,7 +529,7 @@ async function createVersion({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to create version");
+    throw new ApiError(error.error || "Failed to create version", response.status);
   }
 
   return response.json();
@@ -552,7 +553,7 @@ async function updateVersion({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to update version");
+    throw new ApiError(error.error || "Failed to update version", response.status);
   }
 
   return response.json();
@@ -572,7 +573,7 @@ async function deleteVersion({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to delete version");
+    throw new ApiError(error.error || "Failed to delete version", response.status);
   }
 }
 
@@ -705,7 +706,7 @@ async function setMasterVersion({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to set master version");
+    throw new ApiError(error.error || "Failed to set master version", response.status);
   }
 
   return response.json();

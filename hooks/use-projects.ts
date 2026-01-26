@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import type {
   CreateProjectInput,
   UpdateProjectInput,
@@ -50,7 +51,7 @@ async function fetchProjects(
 
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("Failed to fetch projects");
+    throw new ApiError("Failed to fetch projects", response.status);
   }
   return response.json();
 }
@@ -59,7 +60,7 @@ async function fetchProjects(
 async function fetchProject(id: string): Promise<Project> {
   const response = await fetch(`/api/projects/${id}`);
   if (!response.ok) {
-    throw new Error("Failed to fetch project");
+    throw new ApiError("Failed to fetch project", response.status);
   }
   return response.json();
 }
@@ -74,7 +75,7 @@ async function createProject(data: CreateProjectInput): Promise<Project> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to create project");
+    throw new ApiError(error.error || "Failed to create project", response.status);
   }
 
   return response.json();
@@ -96,7 +97,7 @@ async function updateProject({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to update project");
+    throw new ApiError(error.error || "Failed to update project", response.status);
   }
 
   return response.json();
@@ -110,7 +111,7 @@ async function deleteProject(id: string): Promise<void> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to delete project");
+    throw new ApiError(error.error || "Failed to delete project", response.status);
   }
 }
 
