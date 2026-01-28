@@ -23,7 +23,7 @@ interface PlayerState {
   setUrl: (url: string) => void;
   setIsLoading: (isLoading: boolean) => void;
   setShouldAutoPlay: (shouldAutoPlay: boolean) => void;
-  setPeaks: (versionId: string, peaks: number[][]) => void;
+  setPeaks: (versionId: string, peaks: number[] | number[][]) => void;
   loadVersion: (
     track: Track,
     version: TrackVersion,
@@ -55,7 +55,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setShouldAutoPlay: (shouldAutoPlay: boolean) => set({ shouldAutoPlay }),
   setPeaks: (versionId: string, peaks: number[] | number[][]) =>
     set((state) => ({
-      peaksCache: { ...state.peaksCache, [versionId]: peaks },
+      peaksCache: {
+        ...state.peaksCache,
+        [versionId]: Array.isArray(peaks[0])
+          ? (peaks as number[][])
+          : [peaks as number[]],
+      },
     })),
   loadVersion: (track: Track, version: TrackVersion, autoPlay = false) => {
     const { waveSurfer } = get();
