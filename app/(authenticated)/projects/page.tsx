@@ -17,6 +17,7 @@ import {
 } from "@/hooks/use-projects";
 import type { Project } from "@/types";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { ProjectList } from "@/components/features/projects/project-list";
 import { ProjectEmptyState } from "@/components/features/projects/project-empty-state";
@@ -45,6 +46,7 @@ export default function ProjectsPage() {
   const {
     data: projectsData,
     isLoading,
+    error,
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
@@ -83,6 +85,17 @@ export default function ProjectsPage() {
 
   if (isLoading) {
     return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="Error loading projects"
+        message={error.message}
+        actionLabel="Try again"
+        onAction={() => window.location.reload()}
+      />
+    );
   }
 
   return (

@@ -51,6 +51,7 @@ import { TrackEditDialog } from "@/components/features/tracks/track-edit-dialog"
 import { VersionUploadDialog } from "@/components/features/tracks/version-upload-dialog";
 import { VersionEditDialog } from "@/components/features/tracks/version-edit-dialog";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { ErrorState } from "@/components/common/error-state";
 import {
   FullScreenDropzone,
   FullScreenDropzoneRef,
@@ -64,8 +65,8 @@ export default function TrackDetailPage() {
   const projectId = params.id as string;
   const dropzoneRef = useRef<FullScreenDropzoneRef>(null);
 
-  const { data: track, isLoading: trackLoading } = useTrack(trackId);
-  const { data: versions, isLoading: versionsLoading } = useVersions(trackId);
+  const { data: track, isLoading: trackLoading, error: trackError } = useTrack(trackId);
+  const { data: versions, isLoading: versionsLoading, error: versionsError } = useVersions(trackId);
   const deleteTrack = useDeleteTrack();
   const deleteVersion = useDeleteVersion();
   const setMasterVersion = useSetMasterVersion();
@@ -317,22 +318,33 @@ export default function TrackDetailPage() {
     return <LoadingSpinner />;
   }
 
-  if (!track) {
+  if (trackError || !track) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p>Track not found</p>
-        <Button
-          onClick={() => router.push(`/projects/${projectId}`)}
-          className="mt-4"
-        >
-          Back to Project
-        </Button>
-      </div>
+      <ErrorState
+        title={trackError ? "Error loading track" : "Track not found"}
+        message={trackError?.message || "The track you are looking for doesn't exist or has been moved."}
+        actionLabel="Back to Project"
+        href={`/projects/${projectId}`}
+      />
     );
   }
 
   if (versionsLoading) {
     return <LoadingSpinner />;
+  }
+
+  if (versionsError) {
+    return (
+      <div className="container mx-auto py-12 max-w-6xl px-6">
+        <ErrorState
+          variant="inline"
+          title="Error loading versions"
+          message={versionsError.message}
+          actionLabel="Try again"
+          onAction={() => window.location.reload()}
+        />
+      </div>
+    );
   }
 
   return (

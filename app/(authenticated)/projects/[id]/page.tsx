@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -18,6 +18,7 @@ import {
 } from "@/hooks/use-tracks";
 import { useCollaborators } from "@/hooks/use-collaborators";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { ErrorState } from "@/components/common/error-state";
 import { ProjectHeader } from "@/components/features/projects/project-header";
 import { TrackList } from "@/components/features/tracks/track-list";
 import { TrackUploadDialog } from "@/components/features/tracks/track-upload-dialog";
@@ -41,7 +42,6 @@ const TRACKS_PER_PAGE = 20;
 
 export default function ProjectDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const projectId = params.id as string;
   const dropzoneRef = useRef<FullScreenDropzoneRef>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -49,7 +49,7 @@ export default function ProjectDetailPage() {
   const [sortValue, setSortValue] = useState("lastVersionAt:desc");
   const [sortBy, sortOrder] = sortValue.split(":") as [TrackSortBy, SortOrder];
 
-  const { data: project, isLoading: projectLoading } = useProject(projectId);
+  const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
   const {
     data: tracksData,
     isLoading: tracksLoading,
@@ -116,14 +116,14 @@ export default function ProjectDetailPage() {
     return <LoadingSpinner />;
   }
 
-  if (!project) {
+  if (projectError || !project) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p>Project not found</p>
-        <Button onClick={() => router.push("/projects")} className="mt-4">
-          Back to Projects
-        </Button>
-      </div>
+      <ErrorState
+        title={projectError ? "Error loading project" : "Project not found"}
+        message={projectError?.message || "The project you are looking for doesn't exist or has been moved."}
+        actionLabel="Back to Projects"
+        href="/projects"
+      />
     );
   }
 
