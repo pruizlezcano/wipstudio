@@ -95,6 +95,7 @@ export const GlobalPlayer = () => {
           setWaveSurfer(ws);
           setIsLoading(false);
           setDuration(ws.getDuration());
+          ws.setTime(currentTime);
 
           // Cache peaks if not already present
           if (!peaksCache[version.id]) {

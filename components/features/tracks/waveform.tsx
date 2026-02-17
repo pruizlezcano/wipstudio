@@ -41,11 +41,14 @@ export const Waveform = memo(
       loadVersion,
       peaksCache,
       setPeaks,
+      currentTime: playerCurrentTime,
     } = usePlayerStore();
     const [waveSurfer, setWaveSurfer] = useState<WaveSurfer>();
-    const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const { resolvedTheme } = useTheme();
+
+    // Derived playing state for this specific version
+    const isPlaying = playerIsPlaying && playerVersion?.id === version.id;
 
     // Sync global player with local player
     useEffect(() => {
@@ -61,13 +64,11 @@ export const Waveform = memo(
 
         // Global player handlers
         const handleGlobalPlay = () => {
-          setIsPlaying(true);
           const currentTime = playerWaveSurfer.getCurrentTime();
           waveSurfer.setTime(currentTime);
         };
 
         const handleGlobalPause = () => {
-          setIsPlaying(false);
           waveSurfer.pause();
         };
 
@@ -91,19 +92,17 @@ export const Waveform = memo(
         waveSurfer.on("click", handleLocalClick);
 
         // Initial sync
-        if (playerIsPlaying) {
-          handleGlobalPlay();
-        }
+        waveSurfer.setTime(playerCurrentTime);
 
         return cleanupEvents;
       }
     }, [
       onTimeClick,
-      playerIsPlaying,
       playerVersion,
       playerWaveSurfer,
       waveSurfer,
       version,
+      playerCurrentTime,
     ]);
 
     const handlePlayPause = () => {
@@ -187,6 +186,10 @@ export const Waveform = memo(
               setWaveSurfer(ws);
               setIsLoading(false);
 
+              if (playerVersion?.id === version.id) {
+                ws.setTime(playerCurrentTime);
+              }
+
               // Cache peaks if not already present
               if (version && !peaksCache[version.id]) {
                 try {
@@ -209,9 +212,7 @@ export const Waveform = memo(
               if (playerVersion?.id !== version.id) {
                 loadVersion(track, version, true);
               }
-              setIsPlaying(true);
             }}
-            onPause={() => setIsPlaying(false)}
           />
         </div>
         <div className="flex items-center gap-2">
