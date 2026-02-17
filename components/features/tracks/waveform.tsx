@@ -45,7 +45,7 @@ export const Waveform = memo(
     const [waveSurfer, setWaveSurfer] = useState<WaveSurfer>();
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const { theme } = useTheme();
+    const { resolvedTheme } = useTheme();
 
     // Sync global player with local player
     useEffect(() => {
@@ -171,9 +171,15 @@ export const Waveform = memo(
           )}
           <WavesurferPlayer
             height={isLoading ? 0 : 120}
-            waveColor={theme === "dark" ? "hsl(0 0% 35%)" : "hsl(0 0% 65%)"}
-            progressColor={theme === "dark" ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)"}
-            cursorColor={theme === "dark" ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)"}
+            waveColor={
+              resolvedTheme === "dark" ? "hsl(0 0% 35%)" : "hsl(0 0% 65%)"
+            }
+            progressColor={
+              resolvedTheme === "dark" ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)"
+            }
+            cursorColor={
+              resolvedTheme === "dark" ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)"
+            }
             url={version.audioUrl}
             peaks={version ? peaksCache[version.id] : undefined}
             onReady={(ws) => {
