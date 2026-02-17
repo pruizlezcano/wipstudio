@@ -24,6 +24,43 @@ interface WaveformProps {
   onCommentClick?: (commentId: string) => void;
 }
 
+const WaveformTimer = memo(({ waveSurfer }: { waveSurfer: WaveSurfer }) => {
+  const [currentTime, setCurrentTime] = useState(() =>
+    waveSurfer.getCurrentTime()
+  );
+  const [duration, setDuration] = useState(() => waveSurfer.getDuration());
+
+  const [prevWaveSurfer, setPrevWaveSurfer] = useState(waveSurfer);
+  if (waveSurfer !== prevWaveSurfer) {
+    setPrevWaveSurfer(waveSurfer);
+    setCurrentTime(waveSurfer.getCurrentTime());
+    setDuration(waveSurfer.getDuration());
+  }
+
+  useEffect(() => {
+    const handleTimeUpdate = () => setCurrentTime(waveSurfer.getCurrentTime());
+    const handleReady = () => setDuration(waveSurfer.getDuration());
+
+    waveSurfer.on("timeupdate", handleTimeUpdate);
+    waveSurfer.on("ready", handleReady);
+
+    return () => {
+      waveSurfer.un("timeupdate", handleTimeUpdate);
+      waveSurfer.un("ready", handleReady);
+    };
+  }, [waveSurfer]);
+
+  if (duration === 0) return null;
+
+  return (
+    <span className="text-sm text-muted-foreground tabular-nums font-mono">
+      {formatTime(currentTime)} / {formatTime(duration)}
+    </span>
+  );
+});
+
+WaveformTimer.displayName = "WaveformTimer";
+
 export const Waveform = memo(
   function Waveform({
     track,
@@ -41,7 +78,6 @@ export const Waveform = memo(
       loadVersion,
       peaksCache,
       setPeaks,
-      currentTime: playerCurrentTime,
     } = usePlayerStore();
     const [waveSurfer, setWaveSurfer] = useState<WaveSurfer>();
     const [isLoading, setIsLoading] = useState(true);
@@ -64,8 +100,7 @@ export const Waveform = memo(
 
         // Global player handlers
         const handleGlobalPlay = () => {
-          const currentTime = playerWaveSurfer.getCurrentTime();
-          waveSurfer.setTime(currentTime);
+          waveSurfer.play();
         };
 
         const handleGlobalPause = () => {
@@ -73,7 +108,12 @@ export const Waveform = memo(
         };
 
         const handleGlobalTimeUpdate = () => {
-          waveSurfer.setTime(playerWaveSurfer.getCurrentTime());
+          const globalTime = playerWaveSurfer.getCurrentTime();
+          const localTime = waveSurfer.getCurrentTime();
+          // Only sync if they drift apart by more than 0.1s (handles seeks and drift)
+          if (Math.abs(globalTime - localTime) > 0.1) {
+            waveSurfer.setTime(globalTime);
+          }
         };
 
         // Local player handlers
@@ -92,17 +132,21 @@ export const Waveform = memo(
         waveSurfer.on("click", handleLocalClick);
 
         // Initial sync
-        waveSurfer.setTime(playerCurrentTime);
+        const currentGlobalTime = playerWaveSurfer.getCurrentTime();
+        waveSurfer.setTime(currentGlobalTime);
+        if (playerIsPlaying) {
+          waveSurfer.play();
+        }
 
         return cleanupEvents;
       }
     }, [
       onTimeClick,
-      playerVersion,
+      playerVersion?.id,
       playerWaveSurfer,
       waveSurfer,
-      version,
-      playerCurrentTime,
+      version.id,
+      playerIsPlaying,
     ]);
 
     const handlePlayPause = () => {
@@ -187,7 +231,7 @@ export const Waveform = memo(
               setIsLoading(false);
 
               if (playerVersion?.id === version.id) {
-                ws.setTime(playerCurrentTime);
+                ws.setTime(usePlayerStore.getState().currentTime);
               }
 
               // Cache peaks if not already present
@@ -222,14 +266,9 @@ export const Waveform = memo(
             size="sm"
             disabled={playerIsLoading && playerVersion?.id === version.id}
           >
-            {isPlaying && playerVersion?.id === version.id ? "Pause" : "Play"}
+            {isPlaying ? "Pause" : "Play"}
           </Button>
-          {waveSurfer && waveSurfer.getDuration() > 0 && (
-            <span className="text-sm text-muted-foreground">
-              {formatTime(waveSurfer.getCurrentTime())} /{" "}
-              {formatTime(waveSurfer.getDuration())}
-            </span>
-          )}
+          {waveSurfer && <WaveformTimer waveSurfer={waveSurfer} />}
         </div>
       </div>
     );
