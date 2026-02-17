@@ -27,7 +27,8 @@ interface PlayerState {
   loadVersion: (
     track: Track,
     version: TrackVersion,
-    autoPlay?: boolean
+    autoPlay?: boolean,
+    startTime?: number
   ) => void;
   clearPlayer: () => void;
 }
@@ -62,7 +63,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           : [peaks as number[]],
       },
     })),
-  loadVersion: (track: Track, version: TrackVersion, autoPlay = false) => {
+  loadVersion: (
+    track: Track,
+    version: TrackVersion,
+    autoPlay = false,
+    startTime = 0
+  ) => {
     const { waveSurfer } = get();
     if (waveSurfer && waveSurfer.isPlaying()) {
       waveSurfer.pause();
@@ -73,7 +79,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       url: version.audioUrl,
       isLoading: true,
       isPlaying: false,
-      currentTime: 0,
+      currentTime: startTime,
       shouldAutoPlay: autoPlay,
       hasEverPlayed: true,
     });

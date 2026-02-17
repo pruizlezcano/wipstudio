@@ -278,19 +278,7 @@ export default function TrackDetailPage() {
     // If no player or wrong version loaded, load the correct version first
     if (!playerWaveSurfer || playerVersion?.id !== selectedVersion?.id) {
       if (selectedVersion && track) {
-        loadVersion(track, selectedVersion, false);
-        // Wait for the player to be ready, then seek and play
-        const checkInterval = setInterval(() => {
-          const { waveSurfer, isLoading } = usePlayerStore.getState();
-          if (waveSurfer && !isLoading) {
-            clearInterval(checkInterval);
-            waveSurfer.setTime(time);
-            waveSurfer.play();
-            setIsPlaying(true);
-          }
-        }, 100);
-        // Clear interval after 5 seconds if player doesn't load
-        setTimeout(() => clearInterval(checkInterval), 5000);
+        loadVersion(track, selectedVersion, true, time);
       }
     } else {
       // Player is already loaded with the correct version

@@ -152,7 +152,8 @@ export const Waveform = memo(
     const handlePlayPause = () => {
       // If no player loaded yet, or different version, load it
       if (!playerWaveSurfer || playerVersion?.id !== version.id) {
-        loadVersion(track, version, true);
+        const startTime = waveSurfer?.getCurrentTime() || 0;
+        loadVersion(track, version, true, startTime);
       } else {
         // Same version already loaded, just toggle play/pause
         if (playerIsPlaying) {
@@ -250,11 +251,20 @@ export const Waveform = memo(
               ws.on("click", (relativeTime) => {
                 const absoluteTime = relativeTime * ws.getDuration();
                 onTimeClick?.(absoluteTime);
+
+                // If this is the active track, sync the global player immediately
+                if (
+                  playerWaveSurfer &&
+                  usePlayerStore.getState().version?.id === version.id
+                ) {
+                  playerWaveSurfer.setTime(absoluteTime);
+                }
               });
             }}
             onPlay={() => {
               if (playerVersion?.id !== version.id) {
-                loadVersion(track, version, true);
+                const startTime = waveSurfer?.getCurrentTime() || 0;
+                loadVersion(track, version, true, startTime);
               }
             }}
           />
