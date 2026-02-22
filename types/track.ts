@@ -8,6 +8,12 @@ export interface Track {
   updatedAt: string;
   versionCount: number;
   lastVersionAt: string | null;
+  defaultVersion?: {
+    id: string;
+    versionNumber: number;
+    audioUrl: string;
+    isMaster: boolean;
+  } | null;
 }
 
 export interface TrackVersion {

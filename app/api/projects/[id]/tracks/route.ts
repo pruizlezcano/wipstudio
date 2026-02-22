@@ -8,18 +8,96 @@ import {
   project,
   projectCollaborator,
 } from "@/lib/db/schema";
-import { eq, count, asc, desc, SQL, max } from "drizzle-orm";
+import { eq, count, asc, desc, max, and } from "drizzle-orm";
 import { createTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { checkProjectAccess } from "@/lib/access-control";
 import { createNotification } from "@/lib/notifications/service";
 import { getAppConfig } from "@/lib/config";
-import { getFileHeader, deleteS3File } from "@/lib/storage/s3";
+import {
+  getFileHeader,
+  deleteS3File,
+  generatePresignedGetUrl,
+} from "@/lib/storage/s3";
 import {
   validateAudioFile,
   getValidationErrorMessage,
 } from "@/lib/file-validator";
+
+// Helper function to get default version (master or latest) for a track
+async function getDefaultVersion(trackId: string, versionCount: number) {
+  if (versionCount === 0) return null;
+
+  // First try to get master version
+  const masterVersion = await db
+    .select({
+      id: trackVersion.id,
+      versionNumber: trackVersion.versionNumber,
+      audioUrl: trackVersion.audioUrl,
+      isMaster: trackVersion.isMaster,
+    })
+    .from(trackVersion)
+    .where(
+      and(eq(trackVersion.trackId, trackId), eq(trackVersion.isMaster, true))
+    )
+    .limit(1);
+
+  if (masterVersion.length > 0) {
+    const version = masterVersion[0];
+    const presignedUrl = await generatePresignedGetUrl(version.audioUrl, 3600);
+    return {
+      ...version,
+      audioUrl: presignedUrl,
+    };
+  }
+
+  // Fall back to latest version (highest version number)
+  const latestVersion = await db
+    .select({
+      id: trackVersion.id,
+      versionNumber: trackVersion.versionNumber,
+      audioUrl: trackVersion.audioUrl,
+      isMaster: trackVersion.isMaster,
+    })
+    .from(trackVersion)
+    .where(eq(trackVersion.trackId, trackId))
+    .orderBy(desc(trackVersion.versionNumber))
+    .limit(1);
+
+  if (latestVersion.length > 0) {
+    const version = latestVersion[0];
+    const presignedUrl = await generatePresignedGetUrl(version.audioUrl, 3600);
+    return {
+      ...version,
+      audioUrl: presignedUrl,
+    };
+  }
+
+  return null;
+}
+
+// Helper function to enrich a track with version stats and default version
+async function enrichTrackWithVersions(t: typeof track.$inferSelect) {
+  const versionStats = await db
+    .select({
+      count: count(),
+      lastVersionAt: max(trackVersion.createdAt),
+    })
+    .from(trackVersion)
+    .where(eq(trackVersion.trackId, t.id));
+
+  const versionCount = versionStats[0]?.count || 0;
+  const lastVersionAt = versionStats[0]?.lastVersionAt || null;
+  const defaultVersion = await getDefaultVersion(t.id, versionCount);
+
+  return {
+    ...t,
+    versionCount,
+    lastVersionAt,
+    defaultVersion,
+  };
+}
 
 // GET /api/projects/[id]/tracks - List all tracks for a project
 export async function GET(
@@ -89,21 +167,7 @@ export async function GET(
 
       // Fetch version stats for all tracks
       const tracksWithVersions = await Promise.all(
-        allTracks.map(async (t) => {
-          const versionStats = await db
-            .select({
-              count: count(),
-              lastVersionAt: max(trackVersion.createdAt),
-            })
-            .from(trackVersion)
-            .where(eq(trackVersion.trackId, t.id));
-
-          return {
-            ...t,
-            versionCount: versionStats[0]?.count || 0,
-            lastVersionAt: versionStats[0]?.lastVersionAt || null,
-          };
-        })
+        allTracks.map((t) => enrichTrackWithVersions(t))
       );
 
       // Sort by lastVersionAt (fall back to createdAt if null)
@@ -145,25 +209,7 @@ export async function GET(
 
     // For each track, fetch the master version (or latest) and version count
     const tracksWithVersions = await Promise.all(
-      tracks.map(async (t) => {
-        // Get version count and last version date
-        const versionStats = await db
-          .select({
-            count: count(),
-            lastVersionAt: max(trackVersion.createdAt),
-          })
-          .from(trackVersion)
-          .where(eq(trackVersion.trackId, t.id));
-
-        const versionCount = versionStats[0]?.count || 0;
-        const lastVersionAt = versionStats[0]?.lastVersionAt || null;
-
-        return {
-          ...t,
-          versionCount,
-          lastVersionAt,
-        };
-      })
+      tracks.map((t) => enrichTrackWithVersions(t))
     );
 
     return NextResponse.json({

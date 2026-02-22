@@ -8,6 +8,7 @@ import WavesurferPlayer from "@wavesurfer/react";
 import Link from "next/link";
 import { formatTime } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { useRef, useEffect } from "react";
 
 export const GlobalPlayer = () => {
   const {
@@ -30,6 +31,18 @@ export const GlobalPlayer = () => {
     peaksCache,
     setPeaks,
   } = usePlayerStore();
+
+  // Track which version has been autoplayed to prevent double-play
+  const autoPlayedVersionRef = useRef<string | null>(null);
+  const autoPlayRequestedRef = useRef<boolean>(false);
+
+  // Reset tracking when version changes
+  useEffect(() => {
+    if (version && autoPlayedVersionRef.current !== version.id) {
+      autoPlayedVersionRef.current = null;
+      autoPlayRequestedRef.current = false;
+    }
+  }, [version]);
 
   const handlePlayPause = () => {
     if (waveSurfer) waveSurfer.playPause();
@@ -109,9 +122,16 @@ export const GlobalPlayer = () => {
             }
           }
 
-          if (shouldAutoPlay) {
-            ws.play();
-            setShouldAutoPlay(false);
+          // If autoplay was requested for this version, play it (even on second onReady)
+          if (shouldAutoPlay || autoPlayRequestedRef.current) {
+            if (!autoPlayRequestedRef.current) {
+              autoPlayRequestedRef.current = true;
+              setShouldAutoPlay(false);
+            }
+            
+            ws.play().catch((error) => {
+              console.error("Failed to autoplay:", error);
+            });
           }
         }}
         onPlay={() => setIsPlaying(true)}
