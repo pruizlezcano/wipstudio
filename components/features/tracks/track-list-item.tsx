@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { Track, TrackVersion } from "@/types";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { pluralize } from "@/lib/utils";
 
 interface TrackListItemProps {
   track: Track;
@@ -88,7 +89,7 @@ export function TrackListItem({ track, projectId }: TrackListItemProps) {
               {track.name}
             </h3>
             <span className="text-xs font-mono text-muted-foreground shrink-0">
-              {track.versionCount} versions
+              {pluralize(track.versionCount, "version")}
             </span>
           </div>
         </div>
