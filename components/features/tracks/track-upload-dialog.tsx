@@ -166,7 +166,7 @@ export function TrackUploadDialog({
                 <span>Uploading...</span>
                 <span>{uploadProgress}%</span>
               </div>
-              <Progress value={uploadProgress} className="h-full" />
+              <Progress value={uploadProgress} />
             </div>
           )}
           <div className="flex justify-end gap-2">

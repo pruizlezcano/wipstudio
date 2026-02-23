@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { TextareaAutosize } from "@/components/ui/textarea";
@@ -164,7 +163,7 @@ export function VersionUploadDialog({
                 <span>Uploading...</span>
                 <span>{versionUploadProgress}%</span>
               </div>
-              <Progress value={versionUploadProgress} className="h-full" />
+              <Progress value={versionUploadProgress} />
             </div>
           )}
           <div className="flex justify-end gap-2">
