@@ -7,8 +7,9 @@ import {
   trackVersion,
   project,
   projectCollaborator,
+  user,
 } from "@/lib/db/schema";
-import { eq, count, asc, desc, max, and } from "drizzle-orm";
+import { eq, count, max } from "drizzle-orm";
 import { createTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -24,80 +25,7 @@ import {
   validateAudioFile,
   getValidationErrorMessage,
 } from "@/lib/file-validator";
-
-// Helper function to get default version (master or latest) for a track
-async function getDefaultVersion(trackId: string, versionCount: number) {
-  if (versionCount === 0) return null;
-
-  // First try to get master version
-  const masterVersion = await db
-    .select({
-      id: trackVersion.id,
-      versionNumber: trackVersion.versionNumber,
-      audioUrl: trackVersion.audioUrl,
-      isMaster: trackVersion.isMaster,
-    })
-    .from(trackVersion)
-    .where(
-      and(eq(trackVersion.trackId, trackId), eq(trackVersion.isMaster, true))
-    )
-    .limit(1);
-
-  if (masterVersion.length > 0) {
-    const version = masterVersion[0];
-    const presignedUrl = await generatePresignedGetUrl(version.audioUrl, 3600);
-    return {
-      ...version,
-      audioUrl: presignedUrl,
-    };
-  }
-
-  // Fall back to latest version (highest version number)
-  const latestVersion = await db
-    .select({
-      id: trackVersion.id,
-      versionNumber: trackVersion.versionNumber,
-      audioUrl: trackVersion.audioUrl,
-      isMaster: trackVersion.isMaster,
-    })
-    .from(trackVersion)
-    .where(eq(trackVersion.trackId, trackId))
-    .orderBy(desc(trackVersion.versionNumber))
-    .limit(1);
-
-  if (latestVersion.length > 0) {
-    const version = latestVersion[0];
-    const presignedUrl = await generatePresignedGetUrl(version.audioUrl, 3600);
-    return {
-      ...version,
-      audioUrl: presignedUrl,
-    };
-  }
-
-  return null;
-}
-
-// Helper function to enrich a track with version stats and default version
-async function enrichTrackWithVersions(t: typeof track.$inferSelect) {
-  const versionStats = await db
-    .select({
-      count: count(),
-      lastVersionAt: max(trackVersion.createdAt),
-    })
-    .from(trackVersion)
-    .where(eq(trackVersion.trackId, t.id));
-
-  const versionCount = versionStats[0]?.count || 0;
-  const lastVersionAt = versionStats[0]?.lastVersionAt || null;
-  const defaultVersion = await getDefaultVersion(t.id, versionCount);
-
-  return {
-    ...t,
-    versionCount,
-    lastVersionAt,
-    defaultVersion,
-  };
-}
+import type { Track } from "@/types/track";
 
 // GET /api/projects/[id]/tracks - List all tracks for a project
 export async function GET(
@@ -138,18 +66,6 @@ export async function GET(
       );
     }
 
-    // Build order by clause based on sort parameters (for non-lastVersionAt sorts)
-    const orderByClause = (() => {
-      const direction = sortOrder === "asc" ? asc : desc;
-      switch (sortBy) {
-        case "name":
-          return direction(track.name);
-        case "createdAt":
-        default:
-          return direction(track.createdAt);
-      }
-    })();
-
     // Get total count for pagination
     const totalCountResult = await db
       .select({ count: count() })
@@ -157,63 +73,166 @@ export async function GET(
       .where(eq(track.projectId, projectId));
     const total = totalCountResult[0]?.count || 0;
 
-    // For lastVersionAt sorting, we need to fetch all tracks and sort in memory
-    if (sortBy === "lastVersionAt") {
-      // Fetch all tracks for the project
-      const allTracks = await db
-        .select()
-        .from(track)
-        .where(eq(track.projectId, projectId));
-
-      // Fetch version stats for all tracks
-      const tracksWithVersions = await Promise.all(
-        allTracks.map((t) => enrichTrackWithVersions(t))
+    // Fetch tracks with aggregated version stats in a single efficient query
+    // This uses a subquery to get the master/latest version and its uploader info
+    const tracksQuery = db
+      .select({
+        track: track,
+        versionCount: count(trackVersion.id),
+        lastVersionAt: max(trackVersion.createdAt),
+        // Get master version info (or latest if no master)
+        defaultVersionId: trackVersion.id,
+        defaultVersionNumber: trackVersion.versionNumber,
+        defaultVersionAudioUrl: trackVersion.audioUrl,
+        defaultVersionIsMaster: trackVersion.isMaster,
+        defaultVersionUploaderId: user.id,
+        defaultVersionUploaderName: user.name,
+        defaultVersionUploaderImage: user.image,
+      })
+      .from(track)
+      .leftJoin(trackVersion, eq(trackVersion.trackId, track.id))
+      .leftJoin(user, eq(trackVersion.uploadedById, user.id))
+      .where(eq(track.projectId, projectId))
+      .groupBy(
+        track.id,
+        track.name,
+        track.projectId,
+        track.createdById,
+        track.createdAt,
+        track.updatedAt,
+        trackVersion.id,
+        trackVersion.versionNumber,
+        trackVersion.audioUrl,
+        trackVersion.isMaster,
+        user.id,
+        user.name,
+        user.image
       );
 
-      // Sort by lastVersionAt (fall back to createdAt if null)
-      tracksWithVersions.sort((a, b) => {
-        const aVal = a.lastVersionAt
-          ? new Date(a.lastVersionAt)
-          : new Date(a.createdAt);
-        const bVal = b.lastVersionAt
-          ? new Date(b.lastVersionAt)
-          : new Date(b.createdAt);
+    // Execute query and get all results
+    const allTracksData = await tracksQuery;
 
-        if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
-        if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
-        return 0;
-      });
+    // Internal type for tracks during aggregation (uses Date objects before serialization)
+    type AggregatedTrack = Omit<
+      Track,
+      "createdAt" | "updatedAt" | "lastVersionAt"
+    > & {
+      createdAt: Date;
+      updatedAt: Date;
+      lastVersionAt: Date | null;
+    };
 
-      // Apply pagination
-      const paginatedTracks = tracksWithVersions.slice(offset, offset + limit);
+    // Group results by track and pick the default version (master or latest)
+    const tracksMap = new Map<string, AggregatedTrack>();
 
-      return NextResponse.json({
-        data: paginatedTracks,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-      });
+    for (const row of allTracksData) {
+      const trackId = row.track.id;
+
+      if (!tracksMap.has(trackId)) {
+        tracksMap.set(trackId, {
+          ...row.track,
+          versionCount: 0,
+          lastVersionAt: null,
+          defaultVersion: null,
+        });
+      }
+
+      const trackData = tracksMap.get(trackId)!;
+
+      // Update version count and lastVersionAt
+      if (row.versionCount > 0) {
+        trackData.versionCount = row.versionCount;
+        trackData.lastVersionAt = row.lastVersionAt;
+      }
+
+      // Set default version (prefer master, otherwise use latest by version number)
+      if (
+        row.defaultVersionId &&
+        row.defaultVersionNumber !== null &&
+        row.defaultVersionAudioUrl &&
+        row.defaultVersionIsMaster !== null
+      ) {
+        const currentDefault = trackData.defaultVersion;
+        const shouldUpdateDefault =
+          !currentDefault ||
+          row.defaultVersionIsMaster ||
+          (!currentDefault.isMaster &&
+            row.defaultVersionNumber > currentDefault.versionNumber);
+
+        if (shouldUpdateDefault) {
+          trackData.defaultVersion = {
+            id: row.defaultVersionId,
+            versionNumber: row.defaultVersionNumber,
+            audioUrl: row.defaultVersionAudioUrl,
+            isMaster: row.defaultVersionIsMaster,
+            uploadedBy: row.defaultVersionUploaderId
+              ? {
+                  userId: row.defaultVersionUploaderId,
+                  name: row.defaultVersionUploaderName || "Unknown User",
+                  image: row.defaultVersionUploaderImage,
+                }
+              : undefined,
+          };
+        }
+      }
     }
 
-    // Fetch tracks for the project with pagination (for other sort options)
-    const tracks = await db
-      .select()
-      .from(track)
-      .where(eq(track.projectId, projectId))
-      .orderBy(orderByClause)
-      .limit(limit)
-      .offset(offset);
+    // Convert map to array
+    const tracks = Array.from(tracksMap.values());
 
-    // For each track, fetch the master version (or latest) and version count
-    const tracksWithVersions = await Promise.all(
-      tracks.map((t) => enrichTrackWithVersions(t))
+    // Sort the results
+    tracks.sort((a, b) => {
+      let aVal: string | Date, bVal: string | Date;
+
+      switch (sortBy) {
+        case "name":
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case "lastVersionAt":
+          aVal = a.lastVersionAt
+            ? new Date(a.lastVersionAt)
+            : new Date(a.createdAt);
+          bVal = b.lastVersionAt
+            ? new Date(b.lastVersionAt)
+            : new Date(b.createdAt);
+          break;
+        case "createdAt":
+        default:
+          aVal = new Date(a.createdAt);
+          bVal = new Date(b.createdAt);
+      }
+
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    // Apply pagination
+    const paginatedTracks = tracks.slice(offset, offset + limit);
+
+    // Generate presigned URLs only for the paginated tracks that will be returned
+    const tracksWithUrls = await Promise.all(
+      paginatedTracks.map(async (t) => {
+        if (t.defaultVersion?.audioUrl) {
+          const presignedUrl = await generatePresignedGetUrl(
+            t.defaultVersion.audioUrl,
+            3600
+          );
+          return {
+            ...t,
+            defaultVersion: {
+              ...t.defaultVersion,
+              audioUrl: presignedUrl,
+            },
+          };
+        }
+        return t;
+      })
     );
 
     return NextResponse.json({
-      data: tracksWithVersions,
+      data: tracksWithUrls,
       pagination: {
         page,
         limit,

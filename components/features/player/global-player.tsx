@@ -15,6 +15,7 @@ export const GlobalPlayer = () => {
     waveSurfer,
     track,
     version,
+    projectName,
     duration,
     currentTime,
     url,
@@ -43,6 +44,67 @@ export const GlobalPlayer = () => {
       autoPlayRequestedRef.current = false;
     }
   }, [version]);
+
+  // Update Media Session API metadata when track/version changes
+  useEffect(() => {
+    if (!track || !version) return;
+
+    if ("mediaSession" in navigator) {
+      const title = `${track.name} (v${version.versionNumber})`;
+      const artist = version.uploadedBy?.name || "Unknown Artist";
+      const album = projectName || "WIPStudio";
+
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: title,
+        artist: artist,
+        album: album,
+      });
+
+      // Set up action handlers for media controls
+      navigator.mediaSession.setActionHandler("play", () => {
+        waveSurfer?.play();
+      });
+
+      navigator.mediaSession.setActionHandler("pause", () => {
+        waveSurfer?.pause();
+      });
+
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        if (details.seekTime && waveSurfer) {
+          waveSurfer.setTime(details.seekTime);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler("seekbackward", () => {
+        if (waveSurfer) {
+          const newTime = Math.max(0, waveSurfer.getCurrentTime() - 10);
+          waveSurfer.setTime(newTime);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler("seekforward", () => {
+        if (waveSurfer) {
+          const newTime = Math.min(
+            waveSurfer.getDuration(),
+            waveSurfer.getCurrentTime() + 10
+          );
+          waveSurfer.setTime(newTime);
+        }
+      });
+    }
+
+    return () => {
+      // Clean up media session when component unmounts
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.metadata = null;
+        navigator.mediaSession.setActionHandler("play", null);
+        navigator.mediaSession.setActionHandler("pause", null);
+        navigator.mediaSession.setActionHandler("seekto", null);
+        navigator.mediaSession.setActionHandler("seekbackward", null);
+        navigator.mediaSession.setActionHandler("seekforward", null);
+      }
+    };
+  }, [track, version, waveSurfer, projectName]);
 
   const handlePlayPause = () => {
     if (waveSurfer) waveSurfer.playPause();
@@ -128,7 +190,7 @@ export const GlobalPlayer = () => {
               autoPlayRequestedRef.current = true;
               setShouldAutoPlay(false);
             }
-            
+
             ws.play().catch((error) => {
               console.error("Failed to autoplay:", error);
             });

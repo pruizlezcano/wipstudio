@@ -1,4 +1,5 @@
 import { PaginationInfo } from "./pagination";
+import { Collaborator } from "./collaborator";
 
 export interface Track {
   id: string;
@@ -13,6 +14,7 @@ export interface Track {
     versionNumber: number;
     audioUrl: string;
     isMaster: boolean;
+    uploadedBy?: Collaborator;
   } | null;
 }
 
@@ -24,6 +26,7 @@ export interface TrackVersion {
   notes: string | null;
   isMaster: boolean;
   createdAt: string;
+  uploadedBy?: Collaborator;
 }
 
 export interface PaginatedTracksResponse {

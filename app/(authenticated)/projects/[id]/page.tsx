@@ -167,7 +167,7 @@ export default function ProjectDetailPage() {
           <LoadingSpinner />
         ) : tracks && tracks.length > 0 ? (
           <>
-            <TrackList tracks={tracks} projectId={projectId} />
+            <TrackList tracks={tracks} projectId={projectId} projectName={project?.name || ""} />
             {/* Infinite scroll trigger */}
             <div ref={loadMoreRef} className="py-4 flex justify-center">
               {isFetchingNextPage && <LoadingSpinner />}

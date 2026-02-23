@@ -11,9 +11,10 @@ import { pluralize } from "@/lib/utils";
 interface TrackListItemProps {
   track: Track;
   projectId: string;
+  projectName: string;
 }
 
-export function TrackListItem({ track, projectId }: TrackListItemProps) {
+export function TrackListItem({ track, projectId, projectName }: TrackListItemProps) {
   const router = useRouter();
   const {
     loadVersion,
@@ -37,6 +38,7 @@ export function TrackListItem({ track, projectId }: TrackListItemProps) {
       isMaster: track.defaultVersion.isMaster,
       notes: null,
       createdAt: track.createdAt,
+      uploadedBy: track.defaultVersion.uploadedBy,
     };
 
     // Check if this version is currently loaded and ready
@@ -52,7 +54,7 @@ export function TrackListItem({ track, projectId }: TrackListItemProps) {
       }
     } else {
       // Different version or no player loaded yet, load it with autoplay
-      loadVersion(track, version, true, 0);
+      loadVersion(track, version, projectName, true, 0);
     }
   };
 

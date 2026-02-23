@@ -42,6 +42,7 @@ import {
   useSetMasterVersion,
   trackKeys,
 } from "@/hooks/use-tracks";
+import { useProject } from "@/hooks/use-projects";
 import { useComments } from "@/hooks/use-comments";
 import { usePlayerStore } from "@/stores/playerStore";
 import { CommentThread } from "@/components/features/comments/comment-thread";
@@ -65,6 +66,7 @@ export default function TrackDetailPage() {
   const projectId = params.id as string;
   const dropzoneRef = useRef<FullScreenDropzoneRef>(null);
 
+  const { data: project } = useProject(projectId);
   const {
     data: track,
     isLoading: trackLoading,
@@ -296,10 +298,16 @@ export default function TrackDetailPage() {
   const handleSeekToTime = (time: number) => {
     window.scrollTo({ top: 0, behavior: "smooth" });
 
-    // If no player or wrong version loaded, load the correct version first
-    if (!playerWaveSurfer || playerVersion?.id !== selectedVersion?.id) {
-      if (selectedVersion && track) {
-        loadVersion(track, selectedVersion, true, time);
+      // If no player or wrong version loaded, load the correct version first
+      if (!playerWaveSurfer || playerVersion?.id !== selectedVersion?.id) {
+        if (selectedVersion && track && project) {
+          loadVersion(track, selectedVersion, project.name, true, time);
+        }
+      } else {
+        // Player is already loaded with the correct version
+        playerWaveSurfer.setTime(time);
+        playerWaveSurfer.play();
+        setIsPlaying(true);
       }
     } else {
       // Player is already loaded with the correct version
@@ -518,10 +526,11 @@ export default function TrackDetailPage() {
                 )}
               </CardHeader>
               <CardContent>
-                {selectedVersion && (
+                {selectedVersion && project && (
                   <Waveform
                     track={track}
                     version={selectedVersion}
+                    projectName={project.name}
                     comments={comments}
                     onTimeClick={handleWaveformClick}
                     onCommentClick={handleCommentClick}

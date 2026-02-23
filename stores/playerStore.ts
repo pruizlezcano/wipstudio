@@ -5,6 +5,7 @@ import WaveSurfer from "wavesurfer.js";
 interface PlayerState {
   track: Track | null;
   version: TrackVersion | null;
+  projectName: string | null;
   waveSurfer: WaveSurfer | null;
   duration: number;
   currentTime: number;
@@ -27,6 +28,7 @@ interface PlayerState {
   loadVersion: (
     track: Track,
     version: TrackVersion,
+    projectName: string,
     autoPlay?: boolean,
     startTime?: number
   ) => void;
@@ -36,6 +38,7 @@ interface PlayerState {
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   track: null,
   version: null,
+  projectName: null,
   waveSurfer: null,
   duration: 0,
   currentTime: 0,
@@ -66,6 +69,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   loadVersion: (
     track: Track,
     version: TrackVersion,
+    projectName: string,
     autoPlay = false,
     startTime = 0
   ) => {
@@ -76,6 +80,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({
       track,
       version,
+      projectName,
       url: version.audioUrl,
       isLoading: true,
       isPlaying: false,
@@ -95,6 +100,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({
       track: null,
       version: null,
+      projectName: null,
       waveSurfer: null,
       duration: 0,
       currentTime: 0,

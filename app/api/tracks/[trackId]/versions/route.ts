@@ -7,6 +7,7 @@ import {
   track,
   project,
   projectCollaborator,
+  user,
 } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { createTrackVersionSchema } from "@/lib/validations/track-version";
@@ -69,16 +70,21 @@ export async function GET(
       );
     }
 
-    // Fetch all versions
+    // Fetch all versions with uploader information
     const versions = await db
-      .select()
+      .select({
+        version: trackVersion,
+        uploader: user,
+      })
       .from(trackVersion)
+      .leftJoin(user, eq(trackVersion.uploadedById, user.id))
       .where(eq(trackVersion.trackId, trackId))
       .orderBy(desc(trackVersion.versionNumber));
 
     // Generate presigned URLs for each version with friendly filenames for download
     const versionsWithUrls = await Promise.all(
-      versions.map(async (version) => {
+      versions.map(async (versionRecord) => {
+        const version = versionRecord.version;
         const extension = version.audioUrl.split(".").pop() || "mp3";
         const safeTrackName = trackRecord[0].track.name;
         const filename = `${safeTrackName}-v${version.versionNumber}.${extension}`;
@@ -91,6 +97,13 @@ export async function GET(
         return {
           ...version,
           audioUrl,
+          uploadedBy: versionRecord.uploader
+            ? {
+                userId: versionRecord.uploader.id,
+                name: versionRecord.uploader.name,
+                image: versionRecord.uploader.image,
+              }
+            : undefined,
         };
       })
     );
