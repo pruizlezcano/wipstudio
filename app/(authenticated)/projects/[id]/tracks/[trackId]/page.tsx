@@ -65,8 +65,16 @@ export default function TrackDetailPage() {
   const projectId = params.id as string;
   const dropzoneRef = useRef<FullScreenDropzoneRef>(null);
 
-  const { data: track, isLoading: trackLoading, error: trackError } = useTrack(trackId);
-  const { data: versions, isLoading: versionsLoading, error: versionsError } = useVersions(trackId);
+  const {
+    data: track,
+    isLoading: trackLoading,
+    error: trackError,
+  } = useTrack(trackId);
+  const {
+    data: versions,
+    isLoading: versionsLoading,
+    error: versionsError,
+  } = useVersions(trackId);
   const deleteTrack = useDeleteTrack();
   const deleteVersion = useDeleteVersion();
   const setMasterVersion = useSetMasterVersion();
@@ -163,37 +171,50 @@ export default function TrackDetailPage() {
     showResolvedComments
   );
 
-  // Auto-scroll to comment when commentId is in URL
-  useEffect(() => {
-    if (commentIdParam && selectedVersion) {
-      // Add a small delay to ensure DOM is ready and comments are rendered
-      const timer = setTimeout(() => {
-        const commentElement = document.getElementById(
-          `comment-${commentIdParam}`
+  // Function to scroll to and highlight a comment
+  const scrollToComment = useCallback((commentId: string) => {
+    // Add a small delay to ensure DOM is ready and comments are rendered
+    setTimeout(() => {
+      const commentElement = document.getElementById(`comment-${commentId}`);
+      if (commentElement) {
+        commentElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        // Add a subtle highlight effect
+        commentElement.classList.add(
+          "ring-2",
+          "ring-foreground",
+          "ring-opacity-50"
         );
-        if (commentElement) {
-          commentElement.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-          // Add a subtle highlight effect
-          commentElement.classList.add(
+        setTimeout(() => {
+          commentElement.classList.remove(
             "ring-2",
             "ring-foreground",
             "ring-opacity-50"
           );
-          setTimeout(() => {
-            commentElement.classList.remove(
-              "ring-2",
-              "ring-foreground",
-              "ring-opacity-50"
-            );
-          }, 2000);
-        }
-      }, 100);
+        }, 2000);
+      }
+    }, 100);
+  }, []);
+
+  // Auto-scroll to comment when commentId is in URL (from notifications/deep links)
+  useEffect(() => {
+    if (commentIdParam && selectedVersion && comments.length > 0) {
+      scrollToComment(commentIdParam);
+      // Clear the URL parameter after scrolling completes
+      const timer = setTimeout(() => {
+        setCommentIdParam(null);
+      }, 200);
       return () => clearTimeout(timer);
     }
-  }, [commentIdParam, selectedVersion, comments]);
+  }, [
+    commentIdParam,
+    selectedVersion,
+    comments,
+    scrollToComment,
+    setCommentIdParam,
+  ]);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -288,19 +309,9 @@ export default function TrackDetailPage() {
     }
   };
 
-  const handleCommentClick = useCallback(
-    (commentId: string) => {
-      // If clicking the same comment, clear first to force re-scroll
-      if (commentIdParam === commentId) {
-        setCommentIdParam(null);
-        // Use setTimeout to ensure the state update completes before setting again
-        setTimeout(() => setCommentIdParam(commentId), 0);
-      } else {
-        setCommentIdParam(commentId);
-      }
-    },
-    [setCommentIdParam, commentIdParam]
-  );
+  const handleCommentClick = (commentId: string) => {
+    scrollToComment(commentId);
+  };
 
   if (trackLoading) {
     return <LoadingSpinner />;
@@ -310,7 +321,10 @@ export default function TrackDetailPage() {
     return (
       <ErrorState
         title={trackError ? "Error loading track" : "Track not found"}
-        message={trackError?.message || "The track you are looking for doesn't exist or has been moved."}
+        message={
+          trackError?.message ||
+          "The track you are looking for doesn't exist or has been moved."
+        }
         actionLabel="Back to Project"
         href={`/projects/${projectId}`}
       />
