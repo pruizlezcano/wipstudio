@@ -43,10 +43,12 @@ export function CommentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-1.5">
-      {timestamp !== undefined && <Badge>@ {formatTime(timestamp)}</Badge>}
-      <div className="flex gap-2">
+      {timestamp !== undefined && (
+        <Badge className="text-xs">@ {formatTime(timestamp)}</Badge>
+      )}
+      <div className="flex flex-col sm:flex-row gap-2">
         <TextareaAutosize
-          className="resize-none"
+          className="resize-none flex-1"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={
@@ -60,6 +62,7 @@ export function CommentForm({
         <Button
           type="submit"
           disabled={!content.trim() || createComment.isPending}
+          className="w-full sm:w-auto text-xs sm:text-sm shrink-0"
         >
           {createComment.isPending ? "Posting..." : "Post Comment"}
         </Button>

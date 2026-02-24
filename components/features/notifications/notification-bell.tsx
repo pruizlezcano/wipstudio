@@ -41,8 +41,8 @@ export function NotificationBell() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        align="end"
-        className="w-[400px] max-h-[600px] overflow-hidden flex flex-col p-0"
+        align="center"
+        className="w-screen sm:w-100 max-h-[70vh] sm:max-h-150 overflow-hidden flex flex-col p-0"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-background z-10">

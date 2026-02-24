@@ -90,32 +90,37 @@ export function InvitationDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Invite Collaborators</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs">
               Create an invitation link to share with collaborators
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreateInvitation} className="space-y-4">
             <div>
-              <Label htmlFor="inviteEmail">Email (Optional)</Label>
+              <Label htmlFor="inviteEmail" className="text-xs sm:text-sm">
+                Email (Optional)
+              </Label>
               <Input
                 id="inviteEmail"
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="Leave empty for anyone with the link"
+                className="text-xs sm:text-sm"
               />
               <p className="text-xs text-muted-foreground mt-1">
                 If specified, only this email can accept the invitation
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="inviteMaxUses">Max Uses (Optional)</Label>
+                <Label htmlFor="inviteMaxUses" className="text-xs sm:text-sm">
+                  Max Uses (Optional)
+                </Label>
                 <Input
                   id="inviteMaxUses"
                   type="number"
@@ -123,6 +128,7 @@ export function InvitationDialog({
                   value={inviteMaxUses}
                   onChange={(e) => setInviteMaxUses(e.target.value)}
                   placeholder="Unlimited"
+                  className="text-xs sm:text-sm"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Leave empty for unlimited uses
@@ -130,7 +136,12 @@ export function InvitationDialog({
               </div>
 
               <div>
-                <Label htmlFor="inviteExpiration">Expires At (Optional)</Label>
+                <Label
+                  htmlFor="inviteExpiration"
+                  className="text-xs sm:text-sm"
+                >
+                  Expires At (Optional)
+                </Label>
                 <DatePicker />
                 <p className="text-xs text-muted-foreground mt-1">
                   Leave empty for no expiration
@@ -138,15 +149,21 @@ export function InvitationDialog({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto text-xs sm:text-sm"
               >
                 Cancel
               </Button>
-              <Button type="submit">Create Invitation</Button>
+              <Button
+                type="submit"
+                className="w-full sm:w-auto text-xs sm:text-sm"
+              >
+                Create Invitation
+              </Button>
             </div>
           </form>
 

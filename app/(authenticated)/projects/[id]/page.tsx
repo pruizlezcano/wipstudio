@@ -49,7 +49,11 @@ export default function ProjectDetailPage() {
   const [sortValue, setSortValue] = useState("lastVersionAt:desc");
   const [sortBy, sortOrder] = sortValue.split(":") as [TrackSortBy, SortOrder];
 
-  const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
+  const {
+    data: project,
+    isLoading: projectLoading,
+    error: projectError,
+  } = useProject(projectId);
   const {
     data: tracksData,
     isLoading: tracksLoading,
@@ -120,7 +124,10 @@ export default function ProjectDetailPage() {
     return (
       <ErrorState
         title={projectError ? "Error loading project" : "Project not found"}
-        message={projectError?.message || "The project you are looking for doesn't exist or has been moved."}
+        message={
+          projectError?.message ||
+          "The project you are looking for doesn't exist or has been moved."
+        }
         actionLabel="Back to Projects"
         href="/projects"
       />
@@ -133,7 +140,7 @@ export default function ProjectDetailPage() {
       onFileDrop={handleFileDrop}
       message="Drop audio file to create a new track"
     >
-      <div className="container mx-auto py-12 max-w-6xl px-6 min-h-screen">
+      <div className="container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6 min-h-screen">
         <ProjectHeader
           project={project}
           collaboratorsCount={collaborators?.length || 0}
@@ -141,13 +148,13 @@ export default function ProjectDetailPage() {
           onShowCollaborators={() => setIsCollaboratorsDialogOpen(true)}
         />
 
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold">Tracks</h2>
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
+          <h2 className="text-xl sm:text-2xl font-semibold">Tracks</h2>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
             <Select value={sortValue} onValueChange={setSortValue}>
               <SelectTrigger
                 size="sm"
-                className="w-[180px] py-5 border-foreground"
+                className="w-full sm:w-45 py-5 border-foreground"
               >
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -159,7 +166,9 @@ export default function ProjectDetailPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handleUploadClick}>Upload Track</Button>
+            <Button onClick={handleUploadClick} className="w-full sm:w-auto">
+              Upload Track
+            </Button>
           </div>
         </div>
 
@@ -167,7 +176,11 @@ export default function ProjectDetailPage() {
           <LoadingSpinner />
         ) : tracks && tracks.length > 0 ? (
           <>
-            <TrackList tracks={tracks} projectId={projectId} projectName={project?.name || ""} />
+            <TrackList
+              tracks={tracks}
+              projectId={projectId}
+              projectName={project?.name || ""}
+            />
             {/* Infinite scroll trigger */}
             <div ref={loadMoreRef} className="py-4 flex justify-center">
               {isFetchingNextPage && <LoadingSpinner />}

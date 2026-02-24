@@ -89,19 +89,19 @@ export function CommentThread({
 
   return (
     <div className="space-y-3" id={`comment-${comment.id}`}>
-      <div className="flex gap-3">
+      <div className="flex gap-2 sm:gap-3">
         <div className="shrink-0">
           {comment.user ? (
-            <UserAvatar user={comment.user} />
+            <UserAvatar user={comment.user} className="size-7 sm:size-8" />
           ) : (
-            <div className="size-8 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground">
+            <div className="size-7 sm:size-8 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground text-xs">
               ?
             </div>
           )}
         </div>
-        <div className="flex-1 space-y-1">
-          <div className="flex items-baseline gap-1">
-            <span className="text-sm font-bold">
+        <div className="flex-1 space-y-1 min-w-0">
+          <div className="flex flex-wrap items-baseline gap-1">
+            <span className="text-xs sm:text-sm font-bold">
               {comment.user ? comment.user.name : "Deleted User"}
               {comment.timestamp !== null && (
                 <>
@@ -109,23 +109,29 @@ export function CommentThread({
                   at{" "}
                   <button
                     onClick={() => onSeek?.(comment.timestamp!)}
-                    className="text-sm font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+                    className="text-xs sm:text-sm font-bold text-muted-foreground hover:text-foreground cursor-pointer"
                   >
                     {formatTime(comment.timestamp)}
                   </button>
                 </>
               )}
             </span>
-            <span className="text-sm">
+            <span className="text-xs sm:text-sm">
               •{" "}
               {formatDistanceToNowStrict(new Date(comment.createdAt), {
                 addSuffix: true,
               })}
             </span>
-            {comment.resolvedAt && <Badge variant="secondary">Resolved</Badge>}
+            {comment.resolvedAt && (
+              <Badge variant="secondary" className="text-xs">
+                Resolved
+              </Badge>
+            )}
           </div>
-          <p className="text-sm">{comment.content}</p>
-          <div className="flex gap-2">
+          <p className="text-xs sm:text-sm wrap-break-words">
+            {comment.content}
+          </p>
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setIsReplying(!isReplying)}
               className="text-xs text-foreground hover:text-muted-foreground dark:text-muted-foreground dark:hover:text-foreground"
@@ -193,11 +199,12 @@ export function CommentThread({
                 minRows={1}
                 maxRows={10}
               />
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   type="submit"
                   size="sm"
                   disabled={!replyContent.trim() || createComment.isPending}
+                  className="text-xs w-full sm:w-auto"
                 >
                   {createComment.isPending ? "Posting..." : "Post Reply"}
                 </Button>
@@ -209,6 +216,7 @@ export function CommentThread({
                     setIsReplying(false);
                     setReplyContent("");
                   }}
+                  className="text-xs w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
@@ -218,7 +226,7 @@ export function CommentThread({
 
           {/* Render replies */}
           {comment.replies && comment.replies.length > 0 && (
-            <div className="mt-3 space-y-3 pl-4 border-l">
+            <div className="mt-3 space-y-3 pl-3 sm:pl-4 border-l">
               {comment.replies.map((reply) => (
                 <CommentThread
                   key={reply.id}

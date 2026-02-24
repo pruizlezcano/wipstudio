@@ -345,7 +345,7 @@ export default function TrackDetailPage() {
 
   if (versionsError) {
     return (
-      <div className="container mx-auto py-12 max-w-6xl px-6">
+      <div className="container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6">
         <ErrorState
           variant="inline"
           title="Error loading versions"
@@ -363,35 +363,38 @@ export default function TrackDetailPage() {
       onFileDrop={handleFileDrop}
       message="Drop audio file to create a new version"
     >
-      <div className="container mx-auto py-12 max-w-6xl px-6 min-h-screen">
+      <div className="container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6 min-h-screen">
         <div className="mb-6">
           <Button
             variant="outline"
             onClick={() => router.push(`/projects/${projectId}`)}
-            className="mb-4"
+            className="mb-4 text-xs sm:text-sm"
           >
             ← Back to Project
           </Button>
 
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2 uppercase tracking-tighter">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-3 sm:gap-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 uppercase tracking-tighter">
                 {track.name}
               </h1>
               <p className="text-muted-foreground text-xs font-medium uppercase tracking-tight">
                 Created {new Date(track.createdAt).toLocaleDateString()}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Button
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(true)}
+                className="text-xs sm:text-sm"
               >
                 Rename
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive">Delete Track</Button>
+                  <Button variant="destructive" className="text-xs sm:text-sm">
+                    Delete Track
+                  </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
@@ -420,12 +423,15 @@ export default function TrackDetailPage() {
         {track.versionCount > 0 ? (
           <>
             {/* Version Selector */}
-            <div className="mb-2 flex items-center gap-2 flex-wrap">
+            <div className="mb-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 sm:flex-wrap">
               <Select
                 value={selectedVersion?.versionNumber.toString() || ""}
                 onValueChange={(value) => handleSelectVersion(parseInt(value))}
               >
-                <SelectTrigger className="border-foreground" size="sm">
+                <SelectTrigger
+                  className="border-foreground w-full sm:w-auto"
+                  size="sm"
+                >
                   <SelectValue placeholder="Select version" />
                 </SelectTrigger>
                 <SelectContent>
@@ -442,66 +448,86 @@ export default function TrackDetailPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {selectedVersion && !selectedVersion.isMaster && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSetMasterVersion(selectedVersion.id)}
-                  disabled={setMasterVersion.isPending}
-                >
-                  Set as Master
-                </Button>
-              )}
-              {selectedVersion && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={selectedVersion.audioUrl}>Download</a>
-                </Button>
-              )}
-              {selectedVersion && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    handleEditVersion(selectedVersion.id, selectedVersion.notes)
-                  }
-                >
-                  Edit Notes
-                </Button>
-              )}
-              {selectedVersion && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={versions?.length === 1}
-                    >
-                      Delete Version
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Version</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete version{" "}
-                        {selectedVersion.versionNumber}? This action cannot be
-                        undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDeleteVersion(selectedVersion.id)}
-                        className="bg-destructive text-white border-destructive hover:bg-white hover:text-destructive hover:border-destructive"
+              <div className="flex flex-wrap gap-2">
+                {selectedVersion && !selectedVersion.isMaster && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSetMasterVersion(selectedVersion.id)}
+                    disabled={setMasterVersion.isPending}
+                    className="text-xs"
+                  >
+                    Set as Master
+                  </Button>
+                )}
+                {selectedVersion && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="text-xs"
+                  >
+                    <a href={selectedVersion.audioUrl}>Download</a>
+                  </Button>
+                )}
+                {selectedVersion && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      handleEditVersion(
+                        selectedVersion.id,
+                        selectedVersion.notes
+                      )
+                    }
+                    className="text-xs"
+                  >
+                    Edit Notes
+                  </Button>
+                )}
+                {selectedVersion && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={versions?.length === 1}
+                        className="text-xs"
                       >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-              <div className="ml-auto">
-                <Button variant="default" size="sm" onClick={handleUploadClick}>
+                        Delete Version
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Version</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete version{" "}
+                          {selectedVersion.versionNumber}? This action cannot be
+                          undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() =>
+                            handleDeleteVersion(selectedVersion.id)
+                          }
+                          className="bg-destructive text-white border-destructive hover:bg-white hover:text-destructive hover:border-destructive"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+              <div className="sm:ml-auto w-full sm:w-auto">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleUploadClick}
+                  className="w-full sm:w-auto text-xs"
+                >
                   + New Version
                 </Button>
               </div>
@@ -542,14 +568,14 @@ export default function TrackDetailPage() {
             {/* Comments Section */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
                     <CardTitle>Comments ({comments.length})</CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-xs">
                       Click on the waveform to add a comment at a specific time
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <Checkbox
                       id="show-resolved"
                       checked={showResolvedComments}
@@ -557,7 +583,10 @@ export default function TrackDetailPage() {
                         setShowResolvedComments(checked as boolean)
                       }
                     />
-                    <Label htmlFor="show-resolved" className="mb-0">
+                    <Label
+                      htmlFor="show-resolved"
+                      className="mb-0 text-xs sm:text-sm"
+                    >
                       Show resolved
                     </Label>
                   </div>

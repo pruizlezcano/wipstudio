@@ -14,7 +14,11 @@ interface TrackListItemProps {
   projectName: string;
 }
 
-export function TrackListItem({ track, projectId, projectName }: TrackListItemProps) {
+export function TrackListItem({
+  track,
+  projectId,
+  projectName,
+}: TrackListItemProps) {
   const router = useRouter();
   const {
     loadVersion,
@@ -65,17 +69,17 @@ export function TrackListItem({ track, projectId, projectName }: TrackListItemPr
 
   return (
     <div
-      className="border border-border bg-card hover:border-foreground transition-colors cursor-pointer flex items-center justify-between p-4 gap-4"
+      className="border border-border bg-card hover:border-foreground transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 gap-2 sm:gap-4"
       onClick={() => router.push(`/projects/${projectId}/tracks/${track.id}`)}
     >
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {track.defaultVersion && (
             <Button
               onClick={handlePlayPause}
               size="icon"
               variant="ghost"
-              className="h-8 w-8"
+              className="h-8 w-8 shrink-0"
             >
               {isThisTrackLoading ? (
                 <LoadingSpinner size="xs" />
@@ -86,7 +90,7 @@ export function TrackListItem({ track, projectId, projectName }: TrackListItemPr
               )}
             </Button>
           )}
-          <div className="flex items-baseline gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 min-w-0">
             <h3 className="text-sm font-bold uppercase tracking-tight truncate">
               {track.name}
             </h3>
@@ -96,7 +100,7 @@ export function TrackListItem({ track, projectId, projectName }: TrackListItemPr
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-4 shrink-0">
+      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0 pl-10 sm:pl-0">
         <span className="text-xs font-mono text-muted-foreground">
           {new Date(
             track.lastVersionAt ?? track.createdAt

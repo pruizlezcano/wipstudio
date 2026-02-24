@@ -22,11 +22,11 @@ export function InvitationListItem({
   onDelete,
 }: InvitationListItemProps) {
   return (
-    <div className="flex items-center justify-between p-3 border rounded-lg">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-xs sm:text-sm">
           {invitation.email ? (
-            <span className="font-medium">{invitation.email}</span>
+            <span className="font-medium truncate">{invitation.email}</span>
           ) : (
             <span className="font-medium text-muted-foreground">
               Anyone with link
@@ -46,11 +46,12 @@ export function InvitationListItem({
           )}
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 sm:shrink-0">
         <Button
           size="sm"
           variant="outline"
           onClick={() => onCopy(invitation.token)}
+          className="flex-1 sm:flex-initial text-xs"
         >
           Copy Link
         </Button>
@@ -58,6 +59,7 @@ export function InvitationListItem({
           size="sm"
           variant="destructive"
           onClick={() => onDelete(invitation.id)}
+          className="flex-1 sm:flex-initial text-xs"
         >
           Delete
         </Button>

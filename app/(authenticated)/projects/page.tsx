@@ -99,16 +99,16 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="container mx-auto py-12 max-w-6xl px-6 min-h-screen">
+    <div className="container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6 min-h-screen">
       <PageHeader
         title="PROJECTS"
         subtitle="AUDIO COLLABORATION WORKSPACE"
         action={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Select value={sortValue} onValueChange={setSortValue}>
               <SelectTrigger
                 size="sm"
-                className="w-[180px] py-5 border-foreground"
+                className="w-full sm:w-45 py-5 border-foreground"
               >
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -120,7 +120,10 @@ export default function ProjectsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="w-full sm:w-auto"
+            >
               <Plus className="h-4 w-4" />
               New Project
             </Button>

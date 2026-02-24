@@ -31,8 +31,13 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
     >
       <CardHeader className="border-b">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="flex-1 line-clamp-1">{project.name}</CardTitle>
-          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <CardTitle className="flex-1 line-clamp-1 text-base sm:text-lg">
+            {project.name}
+          </CardTitle>
+          <div
+            className="flex gap-1 shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Button
               variant="ghost"
               size="icon-sm"
@@ -40,8 +45,9 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
                 e.stopPropagation();
                 onEdit(project);
               }}
+              className="h-8 w-8 sm:h-7 sm:w-7"
             >
-              <Pencil className="h-3 w-3" />
+              <Pencil className="h-4 w-4 sm:h-3 sm:w-3" />
             </Button>
             <Button
               variant="ghost"
@@ -50,18 +56,19 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
                 e.stopPropagation();
                 onDelete(project);
               }}
+              className="h-8 w-8 sm:h-7 sm:w-7"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="h-4 w-4 sm:h-3 sm:w-3" />
             </Button>
           </div>
         </div>
-        <CardDescription className="line-clamp-2">
+        <CardDescription className="line-clamp-2 text-xs">
           {project.description || "NO DESCRIPTION"}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <CardContent className="p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
             <p className="text-xs text-muted-foreground font-mono">
               {new Date(
                 project.lastVersionAt ?? project.createdAt
@@ -92,6 +99,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
               e.stopPropagation();
               router.push(`/projects/${project.id}`);
             }}
+            className="text-xs sm:text-sm self-end sm:self-auto"
           >
             View →
           </Button>

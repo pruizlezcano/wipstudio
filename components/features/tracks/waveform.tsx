@@ -54,8 +54,8 @@ const WaveformTimer = memo(({ waveSurfer }: { waveSurfer: WaveSurfer }) => {
   if (duration === 0) return null;
 
   return (
-    <span className="text-sm text-muted-foreground tabular-nums font-mono">
-      {formatTime(currentTime)} / {formatTime(duration)}
+    <span className="text-xs sm:text-sm text-muted-foreground tabular-nums font-mono">
+      {formatTime(currentTime)}/{formatTime(duration)}
     </span>
   );
 });
@@ -271,12 +271,13 @@ export const Waveform = memo(
             }}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <Button
             onClick={handlePlayPause}
             variant="outline"
             size="sm"
             disabled={playerIsLoading && playerVersion?.id === version.id}
+            className="text-xs sm:text-sm"
           >
             {isPlaying ? "Pause" : "Play"}
           </Button>
