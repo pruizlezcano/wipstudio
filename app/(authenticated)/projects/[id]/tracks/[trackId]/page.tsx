@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryState, parseAsInteger } from "nuqs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -166,12 +166,21 @@ export default function TrackDetailPage() {
     }
   }, [versionNumberParam, versions, versionsLoading, trackId, queryClient]);
 
-  // Fetch comments for the selected version
-  const { data: comments = [], isLoading: commentsLoading } = useComments(
+  // Fetch ALL comments for the selected version (including resolved)
+  const { data: allComments = [], isLoading: commentsLoading } = useComments(
     trackId,
     selectedVersion?.id || "",
-    showResolvedComments
+    true
   );
+
+  // Filter comments based on showResolvedComments state (client-side filtering)
+  const comments = useMemo(() => {
+    if (showResolvedComments) {
+      return allComments;
+    }
+    // Filter out resolved top-level comments and their replies
+    return allComments.filter((comment) => !comment.resolvedAt);
+  }, [allComments, showResolvedComments]);
 
   // Function to scroll to and highlight a comment
   const scrollToComment = useCallback((commentId: string) => {
@@ -295,8 +304,9 @@ export default function TrackDetailPage() {
     setCommentTimestamp(time);
   }, []);
 
-  const handleSeekToTime = (time: number) => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const handleSeekToTime = useCallback(
+    (time: number) => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
 
       // If no player or wrong version loaded, load the correct version first
       if (!playerWaveSurfer || playerVersion?.id !== selectedVersion?.id) {
@@ -309,13 +319,17 @@ export default function TrackDetailPage() {
         playerWaveSurfer.play();
         setIsPlaying(true);
       }
-    } else {
-      // Player is already loaded with the correct version
-      playerWaveSurfer.setTime(time);
-      playerWaveSurfer.play();
-      setIsPlaying(true);
-    }
-  };
+    },
+    [
+      playerWaveSurfer,
+      playerVersion?.id,
+      selectedVersion,
+      track,
+      project,
+      loadVersion,
+      setIsPlaying,
+    ]
+  );
 
   const handleCommentClick = (commentId: string) => {
     scrollToComment(commentId);
