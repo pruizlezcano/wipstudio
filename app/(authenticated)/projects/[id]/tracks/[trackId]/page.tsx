@@ -612,6 +612,7 @@ export default function TrackDetailPage() {
                     trackId={trackId}
                     versionId={selectedVersion.id}
                     timestamp={commentTimestamp}
+                    onSeek={handleSeekToTime}
                   />
                 )}
 

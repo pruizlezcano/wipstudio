@@ -10,12 +10,14 @@ interface CommentFormProps {
   trackId: string;
   versionId: string;
   timestamp?: number;
+  onSeek?: (time: number) => void;
 }
 
 export function CommentForm({
   trackId,
   versionId,
   timestamp,
+  onSeek,
 }: CommentFormProps) {
   const [content, setContent] = useState("");
   const createComment = useCreateComment();
@@ -44,7 +46,12 @@ export function CommentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-1.5">
       {timestamp !== undefined && (
-        <Badge className="text-xs">@ {formatTime(timestamp)}</Badge>
+        <Badge
+          className="text-xs cursor-pointer hover:bg-primary/60 transition-colors select-none"
+          onClick={() => onSeek?.(timestamp)}
+        >
+          @ {formatTime(timestamp)}
+        </Badge>
       )}
       <div className="flex flex-col sm:flex-row gap-2">
         <TextareaAutosize
