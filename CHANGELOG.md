@@ -1,6 +1,25 @@
 # Changelog
 
-[0.4.0](https://github.com/pruizlezcano/wipstudio/compare/v0.3.0...v0.4.0) (2026-01-28)
+## [0.5.0](https://github.com/pruizlezcano/wipstudio/compare/v0.4.0...v0.5.0) (2026-02-25)
+
+
+### Features
+
+* **comments:** allow seeking to timestamp in comment form ([183ebcd](https://github.com/pruizlezcano/wipstudio/commit/183ebcd981e5e8a8c61f447e3824dd3e6bafdef0))
+* **player:** add media session support and optimize track metadata fetching ([6b15d0d](https://github.com/pruizlezcano/wipstudio/commit/6b15d0d2771e0d63e9d604741b2d0a95c44ae8ca))
+* **player:** add start time support to loadVersion ([a45ca7c](https://github.com/pruizlezcano/wipstudio/commit/a45ca7c77211dff267128755d0ec32f2b97d0fa3))
+* **tracks:** add inline playback support to track list ([32e7231](https://github.com/pruizlezcano/wipstudio/commit/32e72318e7753e253713b67c1f12bb4b951c40cf))
+* **tracks:** pluralize track version count ([f6008d0](https://github.com/pruizlezcano/wipstudio/commit/f6008d03ddd8f245822ec2fff4b42c078acb2faf))
+* **ui:** improve mobile responsiveness ([83d91df](https://github.com/pruizlezcano/wipstudio/commit/83d91df304980c3a2f46f2629629c7eb76d1803e))
+* **waveform:** extract WaveformTimer and improve playback sync ([f4ef1f9](https://github.com/pruizlezcano/wipstudio/commit/f4ef1f9c763cf0442f1cce1eca0f9afd7e734ee4))
+
+
+### Bug Fixes
+
+* **player:** sync play state and time across components ([2e23f00](https://github.com/pruizlezcano/wipstudio/commit/2e23f0094d2e220beb8a5ddc84e5e2c6cd4fe32f))
+* **waveform:** use resolvedTheme instead of theme ([cd8d87a](https://github.com/pruizlezcano/wipstudio/commit/cd8d87a06fdf1b1dc8f9271c781ff3fa7ee64447))
+
+## [0.4.0](https://github.com/pruizlezcano/wipstudio/compare/v0.3.0...v0.4.0) (2026-01-28)
 
 
 ### Features
