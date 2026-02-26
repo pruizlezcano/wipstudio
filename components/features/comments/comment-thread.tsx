@@ -200,7 +200,7 @@ export function CommentThread({
             </form>
           ) : (
             <>
-              <p className="text-xs sm:text-sm wrap-break-word">
+              <p className="text-xs sm:text-sm wrap-break-word whitespace-pre-wrap">
                 {comment.content}
               </p>
               <div className="flex flex-wrap gap-2">
