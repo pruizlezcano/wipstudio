@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
 import { authClient } from "@/lib/auth/auth-client";
-import { formatDistanceToNowStrict } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { RelativeTime } from "@/components/common/relative-time";
 import { Button } from "@/components/ui/button";
 import { TextareaAutosize } from "@/components/ui/textarea";
 import {
@@ -146,10 +146,7 @@ export function CommentThread({
               )}
             </span>
             <span className="text-xs sm:text-sm">
-              •{" "}
-              {formatDistanceToNowStrict(new Date(comment.createdAt), {
-                addSuffix: true,
-              })}
+              • <RelativeTime date={comment.createdAt} />
               {comment.editedAt && (
                 <span className="text-muted-foreground"> (edited)</span>
               )}

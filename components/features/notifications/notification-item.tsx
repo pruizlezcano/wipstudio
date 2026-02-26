@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { NotificationMetadata } from "@/lib/notifications/types";
-import { formatDistanceToNowStrict } from "date-fns";
+import { RelativeTime } from "@/components/common/relative-time";
 
 interface Notification {
   id: string;
@@ -106,9 +106,7 @@ export function NotificationItem({
           </p>
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground font-mono">
-              {formatDistanceToNowStrict(notification.createdAt, {
-                addSuffix: true,
-              })}
+              <RelativeTime date={notification.createdAt} />
             </span>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {isUnread && (
