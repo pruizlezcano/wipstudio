@@ -114,6 +114,11 @@ export default function TrackDetailPage() {
   // State for showing resolved comments
   const [showResolvedComments, setShowResolvedComments] = useState(false);
 
+  // State for sorting comments
+  const [commentSortBy, setCommentSortBy] = useState<"createdAt" | "timestamp">(
+    "createdAt"
+  );
+
   // Update URL param when defaultVersion changes (new upload or initial load)
   useEffect(() => {
     if (defaultVersion && versions) {
@@ -173,14 +178,53 @@ export default function TrackDetailPage() {
     true
   );
 
-  // Filter comments based on showResolvedComments state (client-side filtering)
+  // Filter and sort comments based on showResolvedComments and commentSortBy state
   const comments = useMemo(() => {
-    if (showResolvedComments) {
-      return allComments;
+    let filtered = allComments;
+
+    if (!showResolvedComments) {
+      // Filter out resolved top-level comments and their replies
+      filtered = allComments.filter((comment) => !comment.resolvedAt);
     }
-    // Filter out resolved top-level comments and their replies
-    return allComments.filter((comment) => !comment.resolvedAt);
-  }, [allComments, showResolvedComments]);
+
+    // Helper function to sort comments
+    const sortComments = (commentsToSort: typeof allComments) => {
+      return [...commentsToSort].sort((a, b) => {
+        if (commentSortBy === "timestamp") {
+          // Sort by timestamp (audio position)
+          // Comments without timestamp go to the end
+          if (a.timestamp === null && b.timestamp === null) return 0;
+          if (a.timestamp === null) return 1;
+          if (b.timestamp === null) return -1;
+          return a.timestamp - b.timestamp;
+        } else {
+          // Sort by createdAt (newest first)
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        }
+      });
+    };
+
+    // Recursive function to sort replies within each comment
+    const sortRepliesRecursively = (
+      comment: (typeof allComments)[0]
+    ): (typeof allComments)[0] => {
+      if (!comment.replies || comment.replies.length === 0) {
+        return comment;
+      }
+
+      return {
+        ...comment,
+        replies: sortComments(comment.replies).map(sortRepliesRecursively),
+      };
+    };
+
+    // Sort top-level comments and their replies
+    const sorted = sortComments(filtered).map(sortRepliesRecursively);
+
+    return sorted;
+  }, [allComments, showResolvedComments, commentSortBy]);
 
   // Function to scroll to and highlight a comment
   const scrollToComment = useCallback((commentId: string) => {
@@ -603,6 +647,21 @@ export default function TrackDetailPage() {
                     >
                       Show resolved
                     </Label>
+                    <div className="h-4 w-px bg-border" />
+                    <Select
+                      value={commentSortBy}
+                      onValueChange={(value) =>
+                        setCommentSortBy(value as "createdAt" | "timestamp")
+                      }
+                    >
+                      <SelectTrigger className="w-36 h-8 text-xs sm:text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="createdAt">Sort by Date</SelectItem>
+                        <SelectItem value="timestamp">Sort by Time</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </CardHeader>
