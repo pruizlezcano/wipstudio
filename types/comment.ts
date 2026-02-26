@@ -7,6 +7,7 @@ export interface Comment {
   parentId: string | null;
   resolvedAt: string | null;
   resolvedById: string | null;
+  editedAt: string | null;
   createdAt: string;
   updatedAt: string;
   user?: {

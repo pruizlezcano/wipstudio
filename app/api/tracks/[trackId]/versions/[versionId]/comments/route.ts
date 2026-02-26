@@ -28,6 +28,7 @@ type CommentWithUserAndReplies = {
   parentId: string | null;
   resolvedAt: Date | null;
   resolvedById: string | null;
+  editedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   user: {

@@ -287,16 +287,13 @@ export const Waveform = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Custom comparison function to prevent re-renders
-    // Only re-render if version ID or comments actually changed
-    const prevComments = prevProps.comments ?? [];
-    const nextComments = nextProps.comments ?? [];
-
+    // Custom comparison function to prevent unnecessary re-renders
+    // Re-render if version or track changes
+    // Always re-render if comments reference changes (React Query will provide new reference when data updates)
     return (
       prevProps.version.id === nextProps.version.id &&
       prevProps.track.id === nextProps.track.id &&
-      prevComments.length === nextComments.length &&
-      prevComments.every((c, i) => c.id === nextComments[i]?.id)
+      prevProps.comments === nextProps.comments
     );
   }
 );

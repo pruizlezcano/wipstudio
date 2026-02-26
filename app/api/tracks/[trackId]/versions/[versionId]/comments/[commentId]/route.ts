@@ -40,20 +40,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Track not found" }, { status: 404 });
     }
 
-    // Check if user has access to the project (owner or collaborator)
-    const { isOwner } = await checkProjectAccess(
-      trackRecord[0].project.id,
-      session.user.id
-    );
-
-    // Verify user owns the comment OR the project
-    if (!isOwner && session.user.id !== trackRecord[0].project.ownerId) {
-      return NextResponse.json(
-        { error: "Track not found or access denied. Only owners can update." },
-        { status: 404 }
-      );
-    }
-
     // Verify comment exists
     const commentRecord = await db
       .select()
@@ -72,6 +58,16 @@ export async function PATCH(
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
+    // Verify user owns the comment
+    if (session.user.id !== commentRecord[0].comment.userId) {
+      return NextResponse.json(
+        {
+          error: "Only the comment owner can update the comment.",
+        },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = updateCommentSchema.parse(body);
 
@@ -79,6 +75,7 @@ export async function PATCH(
       .update(comment)
       .set({
         content: validatedData.content,
+        editedAt: new Date(),
       })
       .where(eq(comment.id, commentId))
       .returning();

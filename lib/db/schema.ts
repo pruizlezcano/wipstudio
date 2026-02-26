@@ -129,6 +129,7 @@ export const comment = pgTable("comment", {
     resolvedAt: timestamp("resolved_at"), // When comment was resolved
     resolvedById: text("resolved_by_id")
         .references(() => user.id, { onDelete: "set null" }), // Who resolved the comment
+    editedAt: timestamp("edited_at"), // When comment content was last edited
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .defaultNow()

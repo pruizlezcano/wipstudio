@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
+import { authClient } from "@/lib/auth/auth-client";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   useDeleteComment,
   useResolveComment,
   useUnresolveComment,
+  useUpdateComment,
 } from "@/hooks/use-comments";
 import type { Comment } from "@/types";
 
@@ -29,6 +31,7 @@ interface CommentThreadProps {
   comment: Comment;
   trackId: string;
   versionId: string;
+  projectOwnerId?: string;
   onSeek?: (time: number) => void;
 }
 
@@ -36,14 +39,22 @@ export function CommentThread({
   comment,
   trackId,
   versionId,
+  projectOwnerId,
   onSeek,
 }: CommentThreadProps) {
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
   const createComment = useCreateComment();
   const deleteComment = useDeleteComment();
   const resolveComment = useResolveComment();
   const unresolveComment = useUnresolveComment();
+  const updateComment = useUpdateComment();
+
+  // Get current user session
+  const { data: session } = authClient.useSession();
+  const isCommentAuthor = session?.user?.id === comment.userId;
 
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +90,24 @@ export function CommentThread({
       versionId,
       commentId: comment.id,
     });
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editContent.trim() || editContent === comment.content) {
+      setIsEditing(false);
+      return;
+    }
+
+    await updateComment.mutateAsync({
+      trackId,
+      versionId,
+      commentId: comment.id,
+      data: {
+        content: editContent,
+      },
+    });
+    setIsEditing(false);
   };
 
   const formatTime = (seconds: number) => {
@@ -121,6 +150,9 @@ export function CommentThread({
               {formatDistanceToNowStrict(new Date(comment.createdAt), {
                 addSuffix: true,
               })}
+              {comment.editedAt && (
+                <span className="text-muted-foreground"> (edited)</span>
+              )}
             </span>
             {comment.resolvedAt && (
               <Badge variant="secondary" className="text-xs">
@@ -128,66 +160,116 @@ export function CommentThread({
               </Badge>
             )}
           </div>
-          <p className="text-xs sm:text-sm wrap-break-words">
-            {comment.content}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setIsReplying(!isReplying)}
-              className="text-xs text-foreground hover:text-muted-foreground dark:text-muted-foreground dark:hover:text-foreground"
-            >
-              Reply
-            </button>
-            {/* Only show resolve/unresolve for top-level comments (with timestamp) */}
-            {comment.timestamp !== null && !comment.parentId && (
-              <>
-                {comment.resolvedAt ? (
+          {isEditing ? (
+            <form onSubmit={handleEdit} className="mt-2 space-y-2">
+              <TextareaAutosize
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                placeholder="Edit your comment..."
+                className="resize-none"
+                minRows={1}
+                maxRows={10}
+                autoFocus
+              />
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={
+                    !editContent.trim() ||
+                    editContent === comment.content ||
+                    updateComment.isPending
+                  }
+                  className="text-xs w-full sm:w-auto"
+                >
+                  {updateComment.isPending ? "Saving..." : "Save"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditContent(comment.content);
+                  }}
+                  className="text-xs w-full sm:w-auto"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <p className="text-xs sm:text-sm wrap-break-word">
+                {comment.content}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setIsReplying(!isReplying)}
+                  className="text-xs text-foreground hover:text-muted-foreground dark:text-muted-foreground dark:hover:text-foreground"
+                >
+                  Reply
+                </button>
+                {isCommentAuthor && (
                   <button
-                    onClick={handleUnresolve}
-                    disabled={unresolveComment.isPending}
-                    className="text-xs text-green-600 hover:text-green-700"
+                    onClick={() => setIsEditing(true)}
+                    className="text-xs text-foreground hover:text-muted-foreground dark:text-muted-foreground dark:hover:text-foreground"
                   >
-                    {unresolveComment.isPending
-                      ? "Unresolving..."
-                      : "Unresolve"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleResolve}
-                    disabled={resolveComment.isPending}
-                    className="text-xs text-blue-700 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-200"
-                  >
-                    {resolveComment.isPending ? "Resolving..." : "Resolve"}
+                    Edit
                   </button>
                 )}
-              </>
-            )}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button className="text-xs text-red-900 hover:text-red-500 dark:text-red-500 dark:hover:text-red-300">
-                  Delete
-                </button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Comment</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete this comment? This action
-                    cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => handleDelete(comment.id)}
-                    className="bg-destructive text-white border-destructive hover:bg-white hover:text-destructive hover:border-destructive"
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+                {/* Only show resolve/unresolve for top-level comments (with timestamp) */}
+                {comment.timestamp !== null && !comment.parentId && (
+                  <>
+                    {comment.resolvedAt ? (
+                      <button
+                        onClick={handleUnresolve}
+                        disabled={unresolveComment.isPending}
+                        className="text-xs text-green-600 hover:text-green-700"
+                      >
+                        {unresolveComment.isPending
+                          ? "Unresolving..."
+                          : "Unresolve"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleResolve}
+                        disabled={resolveComment.isPending}
+                        className="text-xs text-blue-700 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-200"
+                      >
+                        {resolveComment.isPending ? "Resolving..." : "Resolve"}
+                      </button>
+                    )}
+                  </>
+                )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="text-xs text-red-900 hover:text-red-500 dark:text-red-500 dark:hover:text-red-300">
+                      Delete
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this comment? This
+                        action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(comment.id)}
+                        className="bg-destructive text-white border-destructive hover:bg-white hover:text-destructive hover:border-destructive"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </>
+          )}
 
           {isReplying && (
             <form onSubmit={handleReply} className="mt-2 space-y-2">
@@ -233,6 +315,7 @@ export function CommentThread({
                   comment={reply}
                   trackId={trackId}
                   versionId={versionId}
+                  projectOwnerId={projectOwnerId}
                   onSeek={onSeek}
                 />
               ))}

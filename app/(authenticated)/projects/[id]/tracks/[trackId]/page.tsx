@@ -628,6 +628,7 @@ export default function TrackDetailPage() {
                         comment={comment}
                         trackId={trackId}
                         versionId={selectedVersion!.id}
+                        projectOwnerId={project?.owner.userId}
                         onSeek={handleSeekToTime}
                       />
                     ))}
