@@ -9,7 +9,7 @@ import {
   projectCollaborator,
   user,
 } from "@/lib/db/schema";
-import { eq, count, max } from "drizzle-orm";
+import { eq, count, inArray } from "drizzle-orm";
 import { createTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -73,44 +73,111 @@ export async function GET(
       .where(eq(track.projectId, projectId));
     const total = totalCountResult[0]?.count || 0;
 
-    // Fetch tracks with aggregated version stats in a single efficient query
-    // This uses a subquery to get the master/latest version and its uploader info
-    const tracksQuery = db
-      .select({
-        track: track,
-        versionCount: count(trackVersion.id),
-        lastVersionAt: max(trackVersion.createdAt),
-        // Get master version info (or latest if no master)
-        defaultVersionId: trackVersion.id,
-        defaultVersionNumber: trackVersion.versionNumber,
-        defaultVersionAudioUrl: trackVersion.audioUrl,
-        defaultVersionIsMaster: trackVersion.isMaster,
-        defaultVersionUploaderId: user.id,
-        defaultVersionUploaderName: user.name,
-        defaultVersionUploaderImage: user.image,
-      })
+    // Fetch all tracks for the project
+    const tracksQuery = await db
+      .select()
       .from(track)
-      .leftJoin(trackVersion, eq(trackVersion.trackId, track.id))
-      .leftJoin(user, eq(trackVersion.uploadedById, user.id))
-      .where(eq(track.projectId, projectId))
-      .groupBy(
-        track.id,
-        track.name,
-        track.projectId,
-        track.createdById,
-        track.createdAt,
-        track.updatedAt,
-        trackVersion.id,
-        trackVersion.versionNumber,
-        trackVersion.audioUrl,
-        trackVersion.isMaster,
-        user.id,
-        user.name,
-        user.image
-      );
+      .where(eq(track.projectId, projectId));
 
-    // Execute query and get all results
-    const allTracksData = await tracksQuery;
+    // Fetch all versions for all tracks in a single query
+    const trackIds = tracksQuery.map((t) => t.id);
+
+    let allVersions: {
+      trackId: string;
+      id: string;
+      versionNumber: number;
+      audioUrl: string;
+      isMaster: boolean;
+      createdAt: Date;
+      uploaderId: string | null;
+      uploaderName: string | null;
+      uploaderImage: string | null;
+    }[] = [];
+
+    if (trackIds.length > 0) {
+      allVersions = await db
+        .select({
+          trackId: trackVersion.trackId,
+          id: trackVersion.id,
+          versionNumber: trackVersion.versionNumber,
+          audioUrl: trackVersion.audioUrl,
+          isMaster: trackVersion.isMaster,
+          createdAt: trackVersion.createdAt,
+          uploaderId: user.id,
+          uploaderName: user.name,
+          uploaderImage: user.image,
+        })
+        .from(trackVersion)
+        .leftJoin(user, eq(trackVersion.uploadedById, user.id))
+        .where(inArray(trackVersion.trackId, trackIds));
+    }
+
+    // Group versions by track
+    const versionsByTrack = new Map<
+      string,
+      {
+        id: string;
+        versionNumber: number;
+        audioUrl: string;
+        isMaster: boolean;
+        createdAt: Date;
+        uploaderId: string | null;
+        uploaderName: string | null;
+        uploaderImage: string | null;
+      }[]
+    >();
+
+    for (const version of allVersions) {
+      if (!versionsByTrack.has(version.trackId)) {
+        versionsByTrack.set(version.trackId, []);
+      }
+      versionsByTrack.get(version.trackId)!.push(version);
+    }
+
+    // Build track objects with version info
+    const tracksWithVersions = tracksQuery.map((t) => {
+      const versions = versionsByTrack.get(t.id) || [];
+
+      // Calculate version count
+      const versionCount = versions.length;
+
+      // Find the latest version timestamp
+      const lastVersionAt =
+        versions.length > 0
+          ? versions.reduce(
+              (latest, v) => (v.createdAt > latest ? v.createdAt : latest),
+              versions[0].createdAt
+            )
+          : null;
+
+      // Pick default version (master first, or latest by version number)
+      const masterVersion = versions.find((v) => v.isMaster);
+      const latestVersion = [...versions].sort(
+        (a, b) => b.versionNumber - a.versionNumber
+      )[0];
+      const defaultVersion = masterVersion || latestVersion;
+
+      return {
+        ...t,
+        versionCount,
+        lastVersionAt,
+        defaultVersion: defaultVersion
+          ? {
+              id: defaultVersion.id,
+              versionNumber: defaultVersion.versionNumber,
+              audioUrl: defaultVersion.audioUrl,
+              isMaster: defaultVersion.isMaster,
+              uploadedBy: defaultVersion.uploaderId
+                ? {
+                    userId: defaultVersion.uploaderId,
+                    name: defaultVersion.uploaderName || "Unknown User",
+                    image: defaultVersion.uploaderImage,
+                  }
+                : undefined,
+            }
+          : null,
+      };
+    });
 
     // Internal type for tracks during aggregation (uses Date objects before serialization)
     type AggregatedTrack = Omit<
@@ -122,63 +189,7 @@ export async function GET(
       lastVersionAt: Date | null;
     };
 
-    // Group results by track and pick the default version (master or latest)
-    const tracksMap = new Map<string, AggregatedTrack>();
-
-    for (const row of allTracksData) {
-      const trackId = row.track.id;
-
-      if (!tracksMap.has(trackId)) {
-        tracksMap.set(trackId, {
-          ...row.track,
-          versionCount: 0,
-          lastVersionAt: null,
-          defaultVersion: null,
-        });
-      }
-
-      const trackData = tracksMap.get(trackId)!;
-
-      // Update version count and lastVersionAt
-      if (row.versionCount > 0) {
-        trackData.versionCount = row.versionCount;
-        trackData.lastVersionAt = row.lastVersionAt;
-      }
-
-      // Set default version (prefer master, otherwise use latest by version number)
-      if (
-        row.defaultVersionId &&
-        row.defaultVersionNumber !== null &&
-        row.defaultVersionAudioUrl &&
-        row.defaultVersionIsMaster !== null
-      ) {
-        const currentDefault = trackData.defaultVersion;
-        const shouldUpdateDefault =
-          !currentDefault ||
-          row.defaultVersionIsMaster ||
-          (!currentDefault.isMaster &&
-            row.defaultVersionNumber > currentDefault.versionNumber);
-
-        if (shouldUpdateDefault) {
-          trackData.defaultVersion = {
-            id: row.defaultVersionId,
-            versionNumber: row.defaultVersionNumber,
-            audioUrl: row.defaultVersionAudioUrl,
-            isMaster: row.defaultVersionIsMaster,
-            uploadedBy: row.defaultVersionUploaderId
-              ? {
-                  userId: row.defaultVersionUploaderId,
-                  name: row.defaultVersionUploaderName || "Unknown User",
-                  image: row.defaultVersionUploaderImage,
-                }
-              : undefined,
-          };
-        }
-      }
-    }
-
-    // Convert map to array
-    const tracks = Array.from(tracksMap.values());
+    const tracks: AggregatedTrack[] = tracksWithVersions;
 
     // Sort the results
     tracks.sort((a, b) => {

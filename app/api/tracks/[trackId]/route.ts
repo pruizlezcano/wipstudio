@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { track, project, trackVersion } from "@/lib/db/schema";
-import { eq, count } from "drizzle-orm";
+import { track, project, trackVersion, user } from "@/lib/db/schema";
+import { eq, count, max, desc } from "drizzle-orm";
 import { updateTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { deleteS3File } from "@/lib/storage/s3";
@@ -61,9 +61,52 @@ export async function GET(
 
     const versionCount = versionCountResult[0]?.count || 0;
 
+    // Get lastVersionAt (most recent version timestamp)
+    const lastVersionResult = await db
+      .select({ lastVersionAt: max(trackVersion.createdAt) })
+      .from(trackVersion)
+      .where(eq(trackVersion.trackId, trackId));
+
+    const lastVersionAt = lastVersionResult[0]?.lastVersionAt || null;
+
+    // Get default version (master or latest)
+    const versions = await db
+      .select({
+        id: trackVersion.id,
+        versionNumber: trackVersion.versionNumber,
+        audioUrl: trackVersion.audioUrl,
+        isMaster: trackVersion.isMaster,
+        uploaderId: user.id,
+        uploaderName: user.name,
+        uploaderImage: user.image,
+      })
+      .from(trackVersion)
+      .leftJoin(user, eq(trackVersion.uploadedById, user.id))
+      .where(eq(trackVersion.trackId, trackId))
+      .orderBy(desc(trackVersion.versionNumber));
+
+    const masterVersion = versions.find((v) => v.isMaster);
+    const defaultVersion = masterVersion || versions[0];
+
     return NextResponse.json({
       ...trackRecord[0].track,
       versionCount,
+      lastVersionAt,
+      defaultVersion: defaultVersion
+        ? {
+            id: defaultVersion.id,
+            versionNumber: defaultVersion.versionNumber,
+            audioUrl: defaultVersion.audioUrl,
+            isMaster: defaultVersion.isMaster,
+            uploadedBy: defaultVersion.uploaderId
+              ? {
+                  userId: defaultVersion.uploaderId,
+                  name: defaultVersion.uploaderName || "Unknown User",
+                  image: defaultVersion.uploaderImage,
+                }
+              : undefined,
+          }
+        : null,
     });
   } catch (error) {
     console.error("Error fetching track:", error);
@@ -136,9 +179,52 @@ export async function PATCH(
 
     const versionCount = versionCountResult[0]?.count || 0;
 
+    // Get lastVersionAt
+    const lastVersionResult = await db
+      .select({ lastVersionAt: max(trackVersion.createdAt) })
+      .from(trackVersion)
+      .where(eq(trackVersion.trackId, trackId));
+
+    const lastVersionAt = lastVersionResult[0]?.lastVersionAt || null;
+
+    // Get default version
+    const versions = await db
+      .select({
+        id: trackVersion.id,
+        versionNumber: trackVersion.versionNumber,
+        audioUrl: trackVersion.audioUrl,
+        isMaster: trackVersion.isMaster,
+        uploaderId: user.id,
+        uploaderName: user.name,
+        uploaderImage: user.image,
+      })
+      .from(trackVersion)
+      .leftJoin(user, eq(trackVersion.uploadedById, user.id))
+      .where(eq(trackVersion.trackId, trackId))
+      .orderBy(desc(trackVersion.versionNumber));
+
+    const masterVersion = versions.find((v) => v.isMaster);
+    const defaultVersion = masterVersion || versions[0];
+
     return NextResponse.json({
       ...updatedTrack[0],
       versionCount,
+      lastVersionAt,
+      defaultVersion: defaultVersion
+        ? {
+            id: defaultVersion.id,
+            versionNumber: defaultVersion.versionNumber,
+            audioUrl: defaultVersion.audioUrl,
+            isMaster: defaultVersion.isMaster,
+            uploadedBy: defaultVersion.uploaderId
+              ? {
+                  userId: defaultVersion.uploaderId,
+                  name: defaultVersion.uploaderName || "Unknown User",
+                  image: defaultVersion.uploaderImage,
+                }
+              : undefined,
+          }
+        : null,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
