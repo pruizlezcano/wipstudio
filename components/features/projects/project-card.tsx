@@ -66,8 +66,8 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
           {project.description || "NO DESCRIPTION"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-3 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <CardContent>
+        <div className="flex flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-3 sm:gap-4">
             <p className="text-xs text-muted-foreground font-mono">
               {new Date(
@@ -92,17 +92,9 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
               </div>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/projects/${project.id}`);
-            }}
-            className="text-xs sm:text-sm self-end sm:self-auto"
-          >
-            View →
-          </Button>
+          <div className="text-xs sm:text-sm font-bold uppercase tracking-tight">
+            VIEW →
+          </div>
         </div>
       </CardContent>
     </Card>
