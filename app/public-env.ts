@@ -10,6 +10,7 @@ export const { getPublicEnv, PublicEnv } = createPublicEnv(
     DISABLE_EMAIL_PASSWORD_AUTH: process.env.DISABLE_EMAIL_PASSWORD_AUTH,
     OPENID_ID: process.env.OPENID_ID,
     OPENID_NAME: process.env.OPENID_NAME,
+    WS_URL: process.env.WS_URL,
   },
   {
     schema: (z) => ({
@@ -22,6 +23,7 @@ export const { getPublicEnv, PublicEnv } = createPublicEnv(
       DISABLE_EMAIL_PASSWORD_AUTH: z.enum(["true", "false"]).default("false"),
       OPENID_ID: z.string().nullable().default(null),
       OPENID_NAME: z.string().nullable().default(null),
+      WS_URL: z.string().nullable().default(null),
     }),
   }
 );

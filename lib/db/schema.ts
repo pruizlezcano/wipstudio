@@ -90,6 +90,7 @@ export const track = pgTable("track", {
         .references(() => project.id, { onDelete: "cascade" }),
     createdById: text("created_by_id")
         .references(() => user.id, { onDelete: "set null" }),
+    lyrics: text("lyrics"), // Y.js document as base64-encoded binary
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .defaultNow()

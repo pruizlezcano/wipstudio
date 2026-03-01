@@ -35,12 +35,17 @@ ENV NODE_ENV=production \
 RUN groupadd --system --gid 1001 nodejs && \
     useradd --system --uid 1001 nextjs
 
-# COPY --from=builder /app/public ./public
-
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Overwrite standalone node_modules with the full node_modules so websocket dependencies are present
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Copy files required by the websocket server
+COPY --from=builder --chown=nextjs:nodejs /app/websocket.js ./websocket.js
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 
 USER nextjs

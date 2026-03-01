@@ -443,6 +443,13 @@ export default function TrackDetailPage() {
             <div className="flex gap-2 shrink-0">
               <Button
                 variant="outline"
+                onClick={() => router.push(`/projects/${projectId}/tracks/${trackId}/lyrics`)}
+                className="text-xs sm:text-sm"
+              >
+                Lyrics
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setIsEditDialogOpen(true)}
                 className="text-xs sm:text-sm"
               >

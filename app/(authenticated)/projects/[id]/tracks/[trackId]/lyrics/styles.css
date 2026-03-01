@@ -1,0 +1,72 @@
+/* Basic editor styles */
+.tiptap {
+  outline: none;
+  min-height: 400px;
+  padding: 1rem;
+}
+
+/* Placeholder styling */
+.tiptap p.is-editor-empty:first-child::before {
+  color: var(--color-muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Text formatting */
+.tiptap p {
+  margin: 0;
+  line-height: 1.2;
+}
+
+.tiptap strong {
+  font-weight: 700;
+}
+
+.tiptap em {
+  font-style: italic;
+}
+
+/* Collaboration carets */
+.tiptap .collaboration-carets__caret {
+  border-left: 2px solid #0d0d0d;
+  border-right: 2px solid #0d0d0d;
+  margin-left: -1px;
+  margin-right: -1px;
+  pointer-events: none;
+  position: relative;
+  word-break: normal;
+}
+
+/* Collaboration labels */
+.tiptap .collaboration-carets__label {
+  border-radius: 0;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  left: -1px;
+  line-height: normal;
+  padding: 0.2rem 0.4rem;
+  position: absolute;
+  top: -1.6em;
+  user-select: none;
+  white-space: nowrap;
+  background-color: var(--color-foreground) !important;
+  color: var(--color-background);
+}
+
+.tiptap .collaboration-carets__caret {
+  border-width: 1px;
+  border-color: var(--color-foreground) !important;
+}
+
+/* Selection styling */
+.tiptap ::selection {
+  background-color: rgba(124, 58, 237, 0.2);
+}
+
+/* Focus styling */
+.tiptap:focus {
+  outline: none;
+}
