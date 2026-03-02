@@ -6,6 +6,8 @@ export const notificationTypeEnum = pgEnum("notification_type", [
     "new_version",
     "new_comment",
     "comment_reply",
+    "new_lyrics_comment",
+    "lyrics_comment_reply",
 ]);
 
 export const user = pgTable("user", {

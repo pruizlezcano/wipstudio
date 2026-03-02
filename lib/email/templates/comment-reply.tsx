@@ -9,6 +9,8 @@ interface CommentReplyEmailProps {
   replyContent: string;
   commentTimestamp?: number | null;
   replyUrl: string;
+  isLyric?: boolean;
+  lyricContext?: string | null;
 }
 
 function formatTimestamp(seconds: number | null | undefined): string {
@@ -26,26 +28,36 @@ export function CommentReplyEmail({
   replyContent,
   commentTimestamp,
   replyUrl,
+  isLyric,
+  lyricContext,
 }: CommentReplyEmailProps) {
+  const previewText = isLyric
+    ? `${replierName} replied to your lyric comment on ${trackName}`
+    : `${replierName} replied to your comment on ${trackName}`;
+
   return (
-    <EmailLayout
-      preview={`${replierName} replied to your comment on ${trackName}`}
-    >
+    <EmailLayout preview={previewText}>
       <Section style={content}>
-        <Text style={label}>REPLY</Text>
+        <Text style={label}>{isLyric ? "LYRIC REPLY" : "REPLY"}</Text>
         <Text style={heading}>{trackName}</Text>
         <Section style={actorSection}>
           <Text style={actorText}>
             <strong>{replierName}</strong> replied to your comment
-            {commentTimestamp !== null && commentTimestamp !== undefined
+            {!isLyric && commentTimestamp !== null && commentTimestamp !== undefined
               ? ` at ${formatTimestamp(commentTimestamp)}`
-              : ""}
+              : isLyric ? " on lyrics" : ""}
             :
           </Text>
         </Section>
+        {isLyric && lyricContext && (
+          <Section style={contextBox}>
+            <Text style={boxLabel}>CONTEXT</Text>
+            <Text style={contextText}>&ldquo;{lyricContext}&rdquo;</Text>
+          </Section>
+        )}
         <Section style={originalCommentBox}>
           <Text style={boxLabel}>YOUR COMMENT</Text>
-          {commentTimestamp !== null && commentTimestamp !== undefined && (
+          {!isLyric && commentTimestamp !== null && commentTimestamp !== undefined && (
             <Text style={timestampBadge}>
               {formatTimestamp(commentTimestamp)}
             </Text>
@@ -113,6 +125,21 @@ const originalCommentBox = {
   border: "1px solid #e5e5e5",
   padding: "16px",
   margin: "16px 0 12px 0",
+};
+
+const contextBox = {
+  backgroundColor: "#f5f5f5",
+  padding: "12px 16px",
+  marginBottom: "16px",
+  borderRadius: "4px",
+  borderLeft: "2px solid #e5e5e5",
+};
+
+const contextText = {
+  fontSize: "13px",
+  fontStyle: "italic",
+  color: "#404040",
+  margin: "0",
 };
 
 const replyBox = {

@@ -8,6 +8,8 @@ interface NewCommentEmailProps {
   commentContent: string;
   commentTimestamp?: number | null;
   commentUrl: string;
+  isLyric?: boolean;
+  lyricContext?: string | null;
 }
 
 function formatTimestamp(seconds: number | null | undefined): string {
@@ -24,21 +26,33 @@ export function NewCommentEmail({
   commentContent,
   commentTimestamp,
   commentUrl,
+  isLyric,
+  lyricContext,
 }: NewCommentEmailProps) {
+  const previewText = isLyric 
+    ? `${commenterName} commented on lyrics of ${trackName}`
+    : `${commenterName} commented on ${trackName}`;
+
   return (
-    <EmailLayout preview={`${commenterName} commented on ${trackName}`}>
+    <EmailLayout preview={previewText}>
       <Section style={content}>
-        <Text style={label}>NEW COMMENT</Text>
+        <Text style={label}>{isLyric ? "NEW LYRIC COMMENT" : "NEW COMMENT"}</Text>
         <Text style={heading}>{trackName}</Text>
         <Section style={actorSection}>
           <Text style={paragraph}>
             <strong>{commenterName}</strong> left a comment
-            {commentTimestamp !== null && commentTimestamp !== undefined
+            {!isLyric && commentTimestamp !== null && commentTimestamp !== undefined
               ? ` at ${formatTimestamp(commentTimestamp)}`
-              : ""}
+              : isLyric ? " on lyrics" : ""}
             :
           </Text>
         </Section>
+        {isLyric && lyricContext && (
+          <Section style={contextBox}>
+            <Text style={boxLabel}>CONTEXT</Text>
+            <Text style={contextText}>&ldquo;{lyricContext}&rdquo;</Text>
+          </Section>
+        )}
         <Section style={commentBox}>
           <Text style={commentText}>{commentContent}</Text>
         </Section>
@@ -82,6 +96,29 @@ const paragraph = {
   fontSize: "14px",
   lineHeight: "22px",
   color: "#525252",
+  margin: "0",
+};
+
+const contextBox = {
+  backgroundColor: "#f5f5f5",
+  padding: "12px 16px",
+  marginBottom: "16px",
+  borderRadius: "4px",
+  borderLeft: "2px solid #e5e5e5",
+};
+
+const boxLabel = {
+  fontSize: "9px",
+  fontWeight: "600",
+  color: "#737373",
+  margin: "0 0 4px 0",
+  textTransform: "uppercase" as const,
+};
+
+const contextText = {
+  fontSize: "13px",
+  fontStyle: "italic",
+  color: "#404040",
   margin: "0",
 };
 

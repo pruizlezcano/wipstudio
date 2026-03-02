@@ -8,6 +8,7 @@ import {
   Upload,
   MessageCircle,
   Mail,
+  Type,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,9 @@ interface Notification {
     | "new_track"
     | "new_version"
     | "new_comment"
-    | "comment_reply";
+    | "comment_reply"
+    | "new_lyrics_comment"
+    | "lyrics_comment_reply";
   title: string;
   message: string;
   metadata: NotificationMetadata | null;
@@ -42,6 +45,8 @@ const notificationIcons = {
   new_version: Upload,
   new_comment: MessageCircle,
   comment_reply: MessageCircle,
+  new_lyrics_comment: Type,
+  lyrics_comment_reply: Type,
 };
 
 export function NotificationItem({

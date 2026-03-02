@@ -3,7 +3,9 @@ export type NotificationType =
   | "new_track"
   | "new_version"
   | "new_comment"
-  | "comment_reply";
+  | "comment_reply"
+  | "new_lyrics_comment"
+  | "lyrics_comment_reply";
 
 export interface NotificationMetadata {
   projectId: string;
@@ -18,6 +20,7 @@ export interface NotificationMetadata {
   commentTimestamp?: number | null; // Audio timestamp in seconds
   replyContent?: string; // The reply text (for reply notifications)
   parentCommentContent?: string; // Original comment being replied to
+  lyricContext?: string | null; // The text of the lyrics being commented on
   invitationToken?: string;
   actorId: string;
   actorName: string;

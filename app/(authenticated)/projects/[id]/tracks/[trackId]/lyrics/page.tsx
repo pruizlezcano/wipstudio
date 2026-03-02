@@ -9,6 +9,7 @@ import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
 import StarterKit from "@tiptap/starter-kit";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,6 +38,7 @@ import { useTheme } from "next-themes";
 export default function Lyrics() {
   const params = useParams();
   const router = useRouter();
+  const [commentIdParam, setCommentIdParam] = useQueryState("c");
   const trackId = params.trackId as string;
   const projectId = params.id as string;
 
@@ -122,6 +124,59 @@ export default function Lyrics() {
     },
     []
   );
+
+  const scrollToComment = useCallback((commentId: string) => {
+    // Add a small delay to ensure DOM is ready and comments are rendered
+    setTimeout(() => {
+      // 1. Scroll Sidebar
+      const sidebarElement = document.getElementById(`comment-${commentId}`);
+      if (sidebarElement) {
+        sidebarElement.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+
+        // Add a subtle highlight effect
+        sidebarElement.classList.add(
+          "ring-2",
+          "ring-foreground",
+          "ring-opacity-50"
+        );
+        setTimeout(() => {
+          sidebarElement.classList.remove(
+            "ring-2",
+            "ring-foreground",
+            "ring-opacity-50"
+          );
+        }, 2000);
+      }
+
+      // 2. Scroll Editor
+      const editorElement = document.querySelector(
+        `[data-comment-id="${commentId}"]`
+      );
+      if (editorElement) {
+        editorElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+
+      setActiveCommentId(commentId);
+    }, 150);
+  }, []);
+
+  // Auto-scroll to comment when commentId is in URL (from notifications/deep links)
+  useEffect(() => {
+    if (commentIdParam && comments.length > 0) {
+      scrollToComment(commentIdParam);
+      // Clear the URL parameter after scrolling completes
+      const timer = setTimeout(() => {
+        setCommentIdParam(null);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [commentIdParam, comments, scrollToComment, setCommentIdParam]);
 
   // Reactive Sync: Invalidate queries when document marks change
   useEffect(() => {

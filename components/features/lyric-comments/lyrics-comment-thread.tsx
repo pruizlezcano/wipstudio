@@ -112,9 +112,18 @@ export function LyricsCommentThread({
     });
     setIsEditing(false);
   };
+  const handleThreadClick = () => {
+    if (editor && !comment.parentId) {
+      editor.chain().focus().setComment(comment.id).run();
+    }
+  };
 
   return (
-    <div className="space-y-3" id={`comment-${comment.id}`}>
+    <div
+      className="space-y-3"
+      id={`comment-${comment.id}`}
+      onClick={handleThreadClick}
+    >
       <div className="flex gap-2 sm:gap-3">
         <div className="shrink-0">
           {comment.user ? (

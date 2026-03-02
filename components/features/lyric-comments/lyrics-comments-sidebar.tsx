@@ -92,7 +92,6 @@ export function LyricsCommentsSidebar({
               return (
                 <div
                   key={comment.id}
-                  id={`comment-${comment.id}`}
                   className={`
                     p-2 -mx-2 transition-colors
                     ${isActive && "bg-accent/30"}

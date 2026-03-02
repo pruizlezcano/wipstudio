@@ -7,11 +7,14 @@ import {
   track,
   project,
   user,
+  projectCollaborator,
 } from "@/lib/db/schema";
-import { eq, and, desc, isNull } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { createLyricsCommentSchema } from "@/lib/validations/lyrics-comment";
 import { z } from "zod";
 import { checkProjectAccess } from "@/lib/access-control";
+import { createNotification } from "@/lib/notifications/service";
+import { getAppConfig } from "@/lib/config";
 
 // Type for comment with user and nested replies
 type LyricsCommentWithUserAndReplies = {
@@ -256,6 +259,81 @@ export async function POST(
       .leftJoin(user, eq(lyricsComment.userId, user.id))
       .where(eq(lyricsComment.id, newComment[0].id))
       .limit(1);
+
+    // Send notifications
+    const appUrl = getAppConfig().url;
+    const commentUrl = `${appUrl}/projects/${trackRecord[0].project.id}/tracks/${trackId}/lyrics?c=${newComment[0].id}`;
+
+    if (validatedData.parentId) {
+      // This is a reply - notify the parent comment author
+      const parentComment = await db
+        .select()
+        .from(lyricsComment)
+        .where(eq(lyricsComment.id, validatedData.parentId))
+        .limit(1);
+
+      if (
+        parentComment.length > 0 &&
+        parentComment[0].userId &&
+        parentComment[0].userId !== session.user.id
+      ) {
+        await createNotification({
+          type: "lyrics_comment_reply",
+          recipientUserIds: [parentComment[0].userId],
+          title: `${session.user.name} replied to your lyric comment`,
+          message: `${session.user.name} replied to your lyric comment on "${trackRecord[0].track.name}".`,
+          metadata: {
+            projectId: trackRecord[0].project.id,
+            projectName: trackRecord[0].project.name,
+            trackId: trackId,
+            trackName: trackRecord[0].track.name,
+            commentId: newComment[0].id,
+            parentCommentContent: parentComment[0].content,
+            replyContent: validatedData.content,
+            lyricContext: parentComment[0].rangeText,
+            actorId: session.user.id,
+            actorName: session.user.name,
+            url: commentUrl,
+          },
+        });
+      }
+    } else {
+      // This is a new comment - notify all collaborators
+      const collaborators = await db
+        .select({ userId: projectCollaborator.userId })
+        .from(projectCollaborator)
+        .where(eq(projectCollaborator.projectId, trackRecord[0].project.id));
+
+      const recipientIds = collaborators
+        .map((c) => c.userId)
+        .filter((userId) => userId !== session.user.id);
+
+      // Also notify the project owner if they're not the commenter
+      if (trackRecord[0].project.ownerId !== session.user.id) {
+        recipientIds.push(trackRecord[0].project.ownerId);
+      }
+
+      if (recipientIds.length > 0) {
+        await createNotification({
+          type: "new_lyrics_comment",
+          recipientUserIds: recipientIds,
+          title: `New lyric comment on ${trackRecord[0].track.name}`,
+          message: `${session.user.name} commented on lyrics for "${trackRecord[0].track.name}".`,
+          metadata: {
+            projectId: trackRecord[0].project.id,
+            projectName: trackRecord[0].project.name,
+            trackId: trackId,
+            trackName: trackRecord[0].track.name,
+            commentId: newComment[0].id,
+            commentContent: validatedData.content,
+            lyricContext: validatedData.rangeText ?? null,
+            actorId: session.user.id,
+            actorName: session.user.name,
+            url: commentUrl,
+          },
+        });
+      }
+    }
 
     return NextResponse.json({
       ...commentWithUser[0].comment,

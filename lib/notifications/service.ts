@@ -108,15 +108,19 @@ function getEmailTemplate(type: string, metadata: NotificationMetadata) {
       });
 
     case "new_comment":
+    case "new_lyrics_comment":
       return NewCommentEmail({
         commenterName: metadata.actorName,
         trackName: metadata.trackName!,
         commentContent: metadata.commentContent || "Check out the new comment",
         commentTimestamp: metadata.commentTimestamp,
         commentUrl: metadata.url,
+        isLyric: type === "new_lyrics_comment",
+        lyricContext: metadata.lyricContext,
       });
 
     case "comment_reply":
+    case "lyrics_comment_reply":
       return CommentReplyEmail({
         replierName: metadata.actorName,
         trackName: metadata.trackName!,
@@ -124,6 +128,8 @@ function getEmailTemplate(type: string, metadata: NotificationMetadata) {
         replyContent: metadata.replyContent || "Check out the reply",
         commentTimestamp: metadata.commentTimestamp,
         replyUrl: metadata.url,
+        isLyric: type === "lyrics_comment_reply",
+        lyricContext: metadata.lyricContext,
       });
 
     default:
@@ -143,9 +149,11 @@ function getEmailSubject(type: string, metadata: NotificationMetadata): string {
       return `New version of ${metadata.trackName}`;
 
     case "new_comment":
+    case "new_lyrics_comment":
       return `New comment on ${metadata.trackName}`;
 
     case "comment_reply":
+    case "lyrics_comment_reply":
       return `${metadata.actorName} replied to your comment`;
 
     default:
