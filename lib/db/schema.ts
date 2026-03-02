@@ -173,6 +173,31 @@ export const projectInvitation = pgTable("project_invitation", {
         .notNull(),
 });
 
+export const lyricsComment = pgTable("lyrics_comment", {
+    id: text("id").primaryKey(),
+    trackId: text("track_id")
+        .notNull()
+        .references(() => track.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+        .references(() => user.id, { onDelete: "set null" }),
+    content: text("content").notNull(),
+    parentId: text("parent_id")
+        .references((): AnyPgColumn => lyricsComment.id, { onDelete: "cascade" }), // For threaded replies
+    // Position fields for the comment range in the document (only for top-level comments)
+    rangeFrom: integer("range_from"), // Start position of the commented text
+    rangeTo: integer("range_to"), // End position of the commented text
+    rangeText: text("range_text"), // The actual text that was commented (for recovery if positions change)
+    resolvedAt: timestamp("resolved_at"), // When comment was resolved
+    resolvedById: text("resolved_by_id")
+        .references(() => user.id, { onDelete: "set null" }), // Who resolved the comment
+    editedAt: timestamp("edited_at"), // When comment content was last edited
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => /* @__PURE__ */ new Date())
+        .notNull(),
+});
+
 export const notification = pgTable("notification", {
     id: text("id").primaryKey(),
     userId: text("user_id")
