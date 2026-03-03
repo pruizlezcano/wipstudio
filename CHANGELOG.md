@@ -1,5 +1,24 @@
 # Changelog
 
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+
+## [0.6.0](https://github.com/pruizlezcano/wipstudio/compare/v0.5.0...v0.6.0) (2026-03-03)
+
+
+### Features
+
+* **comments:** add sorting by date and audio timestamp ([fd506e8](https://github.com/pruizlezcano/wipstudio/commit/fd506e8469da8396f35cd27c166e5062a543d3ee))
+* **comments:** allow users to edit their own comments ([4b2bfd6](https://github.com/pruizlezcano/wipstudio/commit/4b2bfd6f437d5173a3e215ba23338da13aa0ea0f))
+* **lyrics:** add real-time collaborative editor ([9fd13a1](https://github.com/pruizlezcano/wipstudio/commit/9fd13a192d586f3fd5040a9399a090911a370fbf))
+* **lyrics:** implement collaborative commenting system ([12069d5](https://github.com/pruizlezcano/wipstudio/commit/12069d5899e95dbbcc3d373291313d79f6794765))
+* **lyrics:** add comment notifications and deep linking ([fdc0c87](https://github.com/pruizlezcano/wipstudio/commit/fdc0c875e6dcdaa729b23a36d429d2600256d3cc))
+
+
+### Bug Fixes
+
+* **comments:** preserve whitespace in comment content ([e85f0be](https://github.com/pruizlezcano/wipstudio/commit/e85f0bea59311f282ab69641e4c02ecb9f5091ea))
+* **tracks:** correct versionCount and standardize track DTOs ([0fe43f4](https://github.com/pruizlezcano/wipstudio/commit/0fe43f48ea4ca213ac1359d870841ac7457a82de))
+
 ## [0.5.0](https://github.com/pruizlezcano/wipstudio/compare/v0.4.0...v0.5.0) (2026-02-25)
 
 
