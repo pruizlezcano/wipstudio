@@ -12,6 +12,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQueryState } from "nuqs";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
+import { Transaction } from "@tiptap/pm/state";
 import { useQueryClient } from "@tanstack/react-query";
 import { lyricsCommentKeys } from "@/hooks/use-lyrics-comments";
 import { authClient } from "@/lib/auth/auth-client";
@@ -182,7 +183,11 @@ export default function Lyrics() {
   useEffect(() => {
     if (!editor) return;
 
-    const handleTransaction = () => {
+    const handleTransaction = ({ transaction }: { transaction: Transaction }) => {
+      // ONLY check for reconcillation if the document actually changed.
+      // Selection changes (which happen on every click/drag) should not trigger this.
+      if (!transaction.docChanged) return;
+
       const markIds = new Set<string>();
       editor.state.doc.descendants((node) => {
         node.marks.forEach((mark) => {
@@ -231,32 +236,35 @@ export default function Lyrics() {
 
   const deleteComment = useDeleteLyricsComment();
 
-  const handleAddComment = async (content: string) => {
-    if (!editor) return;
+  const handleAddComment = useCallback(
+    async (content: string) => {
+      if (!editor) return;
 
-    const { from, to } = editor.state.selection;
-    if (from === to) return;
+      const { from, to } = editor.state.selection;
+      if (from === to) return;
 
-    const text = editor.state.doc.textBetween(from, to);
-    const id = nanoid();
+      const text = editor.state.doc.textBetween(from, to);
+      const id = nanoid();
 
-    try {
-      await createComment.mutateAsync({
-        trackId,
-        data: {
-          id,
-          content,
-          rangeFrom: from,
-          rangeTo: to,
-          rangeText: text,
-        },
-      });
+      try {
+        await createComment.mutateAsync({
+          trackId,
+          data: {
+            id,
+            content,
+            rangeFrom: from,
+            rangeTo: to,
+            rangeText: text,
+          },
+        });
 
-      editor.chain().focus().setComment(id).run();
-    } catch (error) {
-      console.error("Failed to create comment:", error);
-    }
-  };
+        editor.chain().focus().setComment(id).run();
+      } catch (error) {
+        console.error("Failed to create comment:", error);
+      }
+    },
+    [editor, trackId, createComment]
+  );
 
   // Reconciliation Effect: Inject missing anchors (marks) from API
   useEffect(() => {
