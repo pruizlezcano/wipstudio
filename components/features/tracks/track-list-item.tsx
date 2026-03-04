@@ -1,6 +1,4 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { PlayIcon, PauseIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/stores/playerStore";
@@ -19,7 +17,6 @@ export function TrackListItem({
   projectId,
   projectName,
 }: TrackListItemProps) {
-  const router = useRouter();
   const {
     loadVersion,
     version: playerVersion,
@@ -29,6 +26,7 @@ export function TrackListItem({
   } = usePlayerStore();
 
   const handlePlayPause = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation(); // Prevent navigation when clicking play button
 
     if (!track.defaultVersion) return;
@@ -68,9 +66,9 @@ export function TrackListItem({
     playerVersion?.id === track.defaultVersion?.id && playerIsLoading;
 
   return (
-    <div
-      className="border border-border bg-card hover:border-foreground transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 gap-2 sm:gap-4"
-      onClick={() => router.push(`/projects/${projectId}/tracks/${track.id}`)}
+    <Link
+      href={`/projects/${projectId}/tracks/${track.id}`}
+      className="border border-border bg-card hover:border-foreground transition-colors flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 gap-2 sm:gap-4 no-underline text-foreground"
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -79,7 +77,7 @@ export function TrackListItem({
               onClick={handlePlayPause}
               size="icon"
               variant="ghost"
-              className="h-8 w-8 shrink-0"
+              className="h-8 w-8 shrink-0 relative z-10"
             >
               {isThisTrackLoading ? (
                 <LoadingSpinner size="xs" />
@@ -108,6 +106,6 @@ export function TrackListItem({
         </span>
         <div className="text-xs font-bold uppercase tracking-tight">VIEW →</div>
       </div>
-    </div>
+    </Link>
   );
 }

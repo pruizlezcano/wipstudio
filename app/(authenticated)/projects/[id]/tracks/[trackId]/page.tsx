@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQueryState, parseAsInteger } from "nuqs";
 import { useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,7 @@ import {
   FullScreenDropzone,
   FullScreenDropzoneRef,
 } from "@/components/common/full-screen-dropzone";
+import { BackButton } from "@/components/common/back-button";
 
 export default function TrackDetailPage() {
   const params = useParams();
@@ -423,13 +425,7 @@ export default function TrackDetailPage() {
     >
       <div className="container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6 min-h-screen">
         <div className="mb-6">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/projects/${projectId}`)}
-            className="mb-4 text-xs sm:text-sm"
-          >
-            ← Back to Project
-          </Button>
+          <BackButton href={`/projects/${projectId}`} label="Back to Project" />
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-3 sm:gap-4">
             <div className="min-w-0">
@@ -441,12 +437,10 @@ export default function TrackDetailPage() {
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/projects/${projectId}/tracks/${trackId}/lyrics`)}
-                className="text-xs sm:text-sm"
-              >
-                Lyrics
+              <Button variant="outline" asChild className="text-xs sm:text-sm">
+                <Link href={`/projects/${projectId}/tracks/${trackId}/lyrics`}>
+                  Lyrics
+                </Link>
               </Button>
               <Button
                 variant="outline"

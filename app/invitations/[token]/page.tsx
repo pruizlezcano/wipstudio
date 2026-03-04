@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -121,8 +122,8 @@ export default function InvitationAcceptPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => router.push("/projects")} variant="outline">
-              Go to Projects
+            <Button asChild variant="outline">
+              <Link href="/projects">Go to Projects</Link>
             </Button>
           </CardContent>
         </Card>
@@ -141,8 +142,8 @@ export default function InvitationAcceptPage() {
             <p className="text-muted-foreground mb-4">
               This invitation does not exist or has been deleted.
             </p>
-            <Button onClick={() => router.push("/projects")} variant="outline">
-              Go to Projects
+            <Button asChild variant="outline">
+              <Link href="/projects">Go to Projects</Link>
             </Button>
           </CardContent>
         </Card>
@@ -170,8 +171,8 @@ export default function InvitationAcceptPage() {
                 ? "This invitation has expired."
                 : "This invitation has reached its maximum number of uses."}
             </p>
-            <Button onClick={() => router.push("/projects")} variant="outline">
-              Go to Projects
+            <Button asChild variant="outline">
+              <Link href="/projects">Go to Projects</Link>
             </Button>
           </CardContent>
         </Card>
@@ -226,11 +227,11 @@ export default function InvitationAcceptPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => router.push("/projects")}
+              asChild
               disabled={accepting}
               className="w-full"
             >
-              Cancel
+              <Link href="/">Cancel</Link>
             </Button>
           </div>
         </CardContent>

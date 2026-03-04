@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function Error({
@@ -27,8 +28,8 @@ export default function Error({
       </p>
       <div className="flex gap-4">
         <Button onClick={() => reset()}>Try again</Button>
-        <Button variant="outline" onClick={() => (window.location.href = "/")}>
-          Go back home
+        <Button variant="outline" asChild>
+          <Link href="/">Go back home</Link>
         </Button>
       </div>
     </main>

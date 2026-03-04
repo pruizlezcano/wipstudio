@@ -8,7 +8,7 @@ import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
 import StarterKit from "@tiptap/starter-kit";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useQueryState } from "nuqs";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCaret from "@tiptap/extension-collaboration-caret";
@@ -16,7 +16,6 @@ import { Transaction } from "@tiptap/pm/state";
 import { useQueryClient } from "@tanstack/react-query";
 import { lyricsCommentKeys } from "@/hooks/use-lyrics-comments";
 import { authClient } from "@/lib/auth/auth-client";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTrack } from "@/hooks/use-tracks";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
@@ -35,10 +34,10 @@ import { FloatingCommentButton } from "@/components/features/lyric-comments/floa
 import { CommentHoverPreview } from "@/components/features/lyric-comments/comment-hover-preview";
 import { nanoid } from "nanoid";
 import { useTheme } from "next-themes";
+import { BackButton } from "@/components/common/back-button";
 
 export default function Lyrics() {
   const params = useParams();
-  const router = useRouter();
   const [commentIdParam, setCommentIdParam] = useQueryState("c");
   const trackId = params.trackId as string;
   const projectId = params.id as string;
@@ -183,7 +182,11 @@ export default function Lyrics() {
   useEffect(() => {
     if (!editor) return;
 
-    const handleTransaction = ({ transaction }: { transaction: Transaction }) => {
+    const handleTransaction = ({
+      transaction,
+    }: {
+      transaction: Transaction;
+    }) => {
       // ONLY check for reconcillation if the document actually changed.
       // Selection changes (which happen on every click/drag) should not trigger this.
       if (!transaction.docChanged) return;
@@ -343,15 +346,10 @@ export default function Lyrics() {
     <div className="flex flex-col container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6 min-h-screen gap-6">
       <div className="flex-1">
         <div className="mb-2">
-          <Button
-            variant="outline"
-            onClick={() =>
-              router.push(`/projects/${projectId}/tracks/${trackId}`)
-            }
-            className="mb-4 text-xs sm:text-sm"
-          >
-            ← Back to Track
-          </Button>
+          <BackButton
+            href={`/projects/${projectId}/tracks/${trackId}`}
+            label="Back to Track"
+          />
           <h1 className="text-2xl sm:text-3xl font-bold mb-4 uppercase tracking-tighter">
             {track?.name}
           </h1>

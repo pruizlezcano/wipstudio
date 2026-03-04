@@ -1,6 +1,4 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 interface BackButtonProps {
@@ -9,15 +7,9 @@ interface BackButtonProps {
 }
 
 export function BackButton({ href, label = "Back" }: BackButtonProps) {
-  const router = useRouter();
-
   return (
-    <Button
-      variant="outline"
-      onClick={() => router.push(href)}
-      className="mb-4"
-    >
-      ← {label}
+    <Button variant="outline" asChild className="mb-4">
+      <Link href={href}>← {label}</Link>
     </Button>
   );
 }
