@@ -12,7 +12,7 @@ Self-hosted alternative to [Highnote](https://highnote.fm), [Boombox](https://bo
 - **Collaboration** - Invite team members via email or shareable links
 - **Notifications** - In-app and email notifications for new tracks, versions, and comments
 - **Authentication** - Email/password auth with optional OIDC/SSO support
-- **S3 Storage** - Store audio files in any S3-compatible storage (AWS S3, MinIO, etc.)
+- **S3 Storage** - Store audio files in any S3-compatible storage (AWS S3, RustFS, etc.)
 
 ## Installation
 
@@ -35,7 +35,7 @@ Self-hosted alternative to [Highnote](https://highnote.fm), [Boombox](https://bo
    docker compose up -d
    ```
 
-   This starts WIPStudio, PostgreSQL, MinIO (S3 storage), and Caddy (reverse proxy).
+   This starts WIPStudio, PostgreSQL, RustFS (S3 storage), and Caddy (reverse proxy).
 
 ## Configuration
 
@@ -51,8 +51,8 @@ All configuration is done via environment variables in `.env`.
 
 | Variable    | Description                        |
 | ----------- | ---------------------------------- |
-| `MINIO_HOST`| MinIO service hostname             |
-| `MINIO_PORT`| MinIO service port                 |
+| `MINIO_HOST`| S3 service hostname                |
+| `MINIO_PORT`| S3 service port                    |
 | `APP_HOST`  | WIPStudio application hostname     |
 | `APP_PORT`  | WIPStudio application port         |
 
