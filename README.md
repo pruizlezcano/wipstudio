@@ -103,15 +103,16 @@ All configuration is done via environment variables in `.env`.
 
 ### OIDC/SSO (Optional)
 
-| Variable               | Description                                       |
-| ---------------------- | ------------------------------------------------- |
-| `OPENID_NAME`          | Display name for the provider                     |
-| `OPENID_ID`            | Provider identifier                               |
-| `OPENID_CLIENT_ID`     | OAuth client ID                                   |
-| `OPENID_CLIENT_SECRET` | OAuth client secret                               |
-| `OPENID_REDIRECT_URI`  | OAuth redirect URI                                |
-| `OPENID_DISCOVERY_URL` | OpenID Connect discovery URL                      |
-| `OPENID_SCOPES`        | OAuth scopes (default: `openid profile email`)    |
+| Variable               | Description                                       | Default |
+| ---------------------- | ------------------------------------------------- | ------- |
+| `OPENID_ENABLED`       | Enable OIDC authentication                        | `false` |
+| `OPENID_NAME`          | Display name for the provider                     |         |
+| `OPENID_ID`            | Provider identifier                               |         |
+| `OPENID_CLIENT_ID`     | OAuth client ID                                   |         |
+| `OPENID_CLIENT_SECRET` | OAuth client secret                               |         |
+| `OPENID_REDIRECT_URI`  | OAuth redirect URI                                |         |
+| `OPENID_DISCOVERY_URL` | OpenID Connect discovery URL                      |         |
+| `OPENID_SCOPES`        | OAuth scopes (default: `openid profile email`)    |         |
 
 
 ## License

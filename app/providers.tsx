@@ -53,7 +53,7 @@ export function Providers({ children }: { children: ReactNode }) {
           emailVerification={env.REQUIRE_EMAIL_VERIFICATION === "true"}
           avatar
           genericOAuth={
-            env.OPENID_NAME && env.OPENID_ID
+            env.OPENID_NAME && env.OPENID_ID && env.OPENID_ENABLED === "true"
               ? {
                   providers: [
                     {
