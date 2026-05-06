@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, useLayoutEffect } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useLayoutEffect,
+} from "react";
 import { Editor } from "@tiptap/react";
 import { Button } from "@/components/ui/button";
 import { MessageSquarePlus, X } from "lucide-react";
@@ -186,6 +192,13 @@ export function FloatingCommentButton({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
+  };
+
   if (!show) return null;
 
   return (
@@ -228,6 +241,7 @@ export function FloatingCommentButton({
               ref={textareaRef}
               value={commentContent}
               onChange={(e) => setCommentContent(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Write your comment..."
               className="w-full p-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary bg-background"
               rows={3}

@@ -162,6 +162,12 @@ export function CommentThread({
               <TextareaAutosize
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    handleEdit(e as unknown as React.FormEvent);
+                  }
+                }}
                 placeholder="Edit your comment..."
                 className="resize-none"
                 minRows={1}
@@ -273,6 +279,12 @@ export function CommentThread({
               <TextareaAutosize
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    handleReply(e as unknown as React.FormEvent);
+                  }
+                }}
                 placeholder="Write a reply..."
                 className="resize-none"
                 minRows={1}

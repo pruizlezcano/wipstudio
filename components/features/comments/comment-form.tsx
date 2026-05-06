@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextareaAutosize } from "@/components/ui/textarea";
 import { useCreateComment } from "@/hooks/use-comments";
+import { useUIStore } from "@/stores/uiStore";
+import { usePlayerStore } from "@/stores/playerStore";
 
 interface CommentFormProps {
   trackId: string;
@@ -13,14 +15,23 @@ interface CommentFormProps {
   onSeek?: (time: number) => void;
 }
 
-export function CommentForm({
+export const CommentForm = ({
   trackId,
   versionId,
-  timestamp,
+  timestamp: initialTimestamp,
   onSeek,
-}: CommentFormProps) {
+}: CommentFormProps) => {
   const [content, setContent] = useState("");
+  const [timestamp, setTimestamp] = useState<number | undefined>(initialTimestamp);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { focusCommentInput, setFocusCommentInput } = useUIStore();
+  const { waveSurfer } = usePlayerStore();
   const createComment = useCreateComment();
+
+  // Sync with prop if it changes (e.g. clicking waveform)
+  useEffect(() => {
+    setTimestamp(initialTimestamp);
+  }, [initialTimestamp]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +46,23 @@ export function CommentForm({
       },
     });
     setContent("");
+  };
+
+  useEffect(() => {
+    if (focusCommentInput && textareaRef.current) {
+      if (waveSurfer) {
+        setTimestamp(waveSurfer.getCurrentTime());
+      }
+      textareaRef.current.focus();
+      setFocusCommentInput(false);
+    }
+  }, [focusCommentInput, setFocusCommentInput, waveSurfer]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -53,11 +81,13 @@ export function CommentForm({
           @ {formatTime(timestamp)}
         </Badge>
       )}
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex gap-3">
         <TextareaAutosize
+          ref={textareaRef}
           className="resize-none flex-1"
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={
             timestamp !== undefined
               ? "Add a comment at this timestamp..."

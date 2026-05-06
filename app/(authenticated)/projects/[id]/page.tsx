@@ -29,6 +29,7 @@ import {
   FullScreenDropzone,
   FullScreenDropzoneRef,
 } from "@/components/common/full-screen-dropzone";
+import { useUIStore } from "@/stores/uiStore";
 
 const SORT_OPTIONS = [
   { value: "lastVersionAt:desc", label: "Recently updated" },
@@ -94,26 +95,26 @@ export default function ProjectDetailPage() {
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isCollaboratorsDialogOpen, setIsCollaboratorsDialogOpen] =
     useState(false);
+  const { isTrackUploadDialogOpen, setTrackUploadDialogOpen } = useUIStore();
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
 
   const handleFileDrop = (file: File) => {
     setDroppedFile(file);
-    setIsUploadDialogOpen(true);
+    setTrackUploadDialogOpen(true);
   };
 
   const handleUploadDialogChange = (open: boolean) => {
-    setIsUploadDialogOpen(open);
+    setTrackUploadDialogOpen(open);
     if (!open) {
       setDroppedFile(null);
     }
   };
 
   const handleUploadClick = () => {
-    dropzoneRef.current?.openFilePicker();
+    setTrackUploadDialogOpen(true);
   };
 
   if (projectLoading) {
@@ -192,7 +193,7 @@ export default function ProjectDetailPage() {
 
         <TrackUploadDialog
           projectId={projectId}
-          open={isUploadDialogOpen}
+          open={isTrackUploadDialogOpen}
           onOpenChange={handleUploadDialogChange}
           preSelectedFile={droppedFile}
         />

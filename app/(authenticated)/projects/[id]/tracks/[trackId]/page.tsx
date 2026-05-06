@@ -54,11 +54,9 @@ import { VersionUploadDialog } from "@/components/features/tracks/version-upload
 import { VersionEditDialog } from "@/components/features/tracks/version-edit-dialog";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ErrorState } from "@/components/common/error-state";
-import {
-  FullScreenDropzone,
-  FullScreenDropzoneRef,
-} from "@/components/common/full-screen-dropzone";
+import { FullScreenDropzone, FullScreenDropzoneRef } from "@/components/common/full-screen-dropzone";
 import { BackButton } from "@/components/common/back-button";
+import { useUIStore } from "@/stores/uiStore";
 
 export default function TrackDetailPage() {
   const params = useParams();
@@ -266,15 +264,20 @@ export default function TrackDetailPage() {
       return () => clearTimeout(timer);
     }
   }, [
-    commentIdParam,
-    selectedVersion,
-    comments,
     scrollToComment,
     setCommentIdParam,
+    commentIdParam,
+    selectedVersion,
+    comments.length,
   ]);
 
+  const {
+    triggerPlayback,
+    setTriggerPlayback,
+    isVersionUploadDialogOpen,
+    setVersionUploadDialogOpen,
+  } = useUIStore();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [editingVersion, setEditingVersion] = useState<{
     versionId: string;
     notes: string;
@@ -283,22 +286,37 @@ export default function TrackDetailPage() {
   const [commentTimestamp, setCommentTimestamp] = useState<number | undefined>(
     0
   );
+
+  // Handle shortcut triggers
+  useEffect(() => {
+    if (triggerPlayback && defaultVersion && track && project) {
+      loadVersion(track, defaultVersion, project.name, true);
+      setTriggerPlayback(false);
+    }
+  }, [
+    triggerPlayback,
+    defaultVersion,
+    track,
+    project,
+    loadVersion,
+    setTriggerPlayback,
+  ]);
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
 
   const handleFileDrop = (file: File) => {
     setDroppedFile(file);
-    setIsUploadDialogOpen(true);
+    setVersionUploadDialogOpen(true);
   };
 
   const handleUploadDialogChange = (open: boolean) => {
-    setIsUploadDialogOpen(open);
+    setVersionUploadDialogOpen(open);
     if (!open) {
       setDroppedFile(null);
     }
   };
 
   const handleUploadClick = () => {
-    dropzoneRef.current?.openFilePicker();
+    setVersionUploadDialogOpen(true);
   };
 
   const handleDeleteTrack = async () => {
@@ -719,7 +737,7 @@ export default function TrackDetailPage() {
         />
 
         <VersionUploadDialog
-          open={isUploadDialogOpen}
+          open={isVersionUploadDialogOpen}
           onOpenChange={handleUploadDialogChange}
           trackId={trackId}
           projectId={projectId}

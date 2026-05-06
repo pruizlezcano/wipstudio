@@ -24,6 +24,7 @@ import { ProjectEmptyState } from "@/components/features/projects/project-empty-
 import { ProjectCreateDialog } from "@/components/features/projects/project-create-dialog";
 import { ProjectEditDialog } from "@/components/features/projects/project-edit-dialog";
 import { ProjectDeleteDialog } from "@/components/features/projects/project-delete-dialog";
+import { useUIStore } from "@/stores/uiStore";
 
 const SORT_OPTIONS = [
   { value: "lastVersionAt:desc", label: "Recently updated" },
@@ -57,8 +58,7 @@ export default function ProjectsPage() {
   });
 
   const projects = projectsData?.pages.flatMap((page) => page.data) ?? [];
-
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const { isProjectCreateDialogOpen, setProjectCreateDialogOpen } = useUIStore();
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
@@ -121,7 +121,7 @@ export default function ProjectsPage() {
               </SelectContent>
             </Select>
             <Button
-              onClick={() => setIsCreateDialogOpen(true)}
+              onClick={() => setProjectCreateDialogOpen(true)}
               className="w-full sm:w-auto"
             >
               <Plus className="h-4 w-4" />
@@ -130,9 +130,8 @@ export default function ProjectsPage() {
           </div>
         }
       />
-
       {!projects || projects.length === 0 ? (
-        <ProjectEmptyState onCreate={() => setIsCreateDialogOpen(true)} />
+        <ProjectEmptyState onCreate={() => setProjectCreateDialogOpen(true)} />
       ) : (
         <>
           <ProjectList
@@ -147,8 +146,8 @@ export default function ProjectsPage() {
       )}
 
       <ProjectCreateDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
+        open={isProjectCreateDialogOpen}
+        onOpenChange={setProjectCreateDialogOpen}
       />
 
       <ProjectEditDialog
