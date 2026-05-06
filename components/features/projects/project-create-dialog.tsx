@@ -34,6 +34,7 @@ export function ProjectCreateDialog({
     e.preventDefault();
     createProject.mutate(formData, {
       onSuccess: (project) => {
+        onOpenChange(false);
         // Navigate to the newly created project
         router.push(`/projects/${project.id}`);
       },

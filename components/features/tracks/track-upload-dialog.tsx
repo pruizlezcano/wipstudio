@@ -91,6 +91,7 @@ export function TrackUploadDialog({
           setUploadProgress(Math.round((loaded / total) * 100));
         },
       });
+      onOpenChange(false);
       // Navigate to the newly created track
       router.push(`/projects/${projectId}/tracks/${createdTrack.id}`);
     } finally {
