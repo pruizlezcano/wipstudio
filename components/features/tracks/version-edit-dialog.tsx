@@ -30,9 +30,9 @@ export function VersionEditDialog({
   const [notes, setNotes] = useState(currentNotes || "");
   const updateVersion = useUpdateVersion();
 
-  // Update notes when dialog opens with new version
+  // Update notes when dialog opens or when currentNotes changes
   useEffect(() => {
-    if (open && currentNotes !== null) {
+    if (open) {
       setNotes(currentNotes || "");
     }
   }, [open, currentNotes]);

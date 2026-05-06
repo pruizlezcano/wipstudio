@@ -54,7 +54,10 @@ import { VersionUploadDialog } from "@/components/features/tracks/version-upload
 import { VersionEditDialog } from "@/components/features/tracks/version-edit-dialog";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ErrorState } from "@/components/common/error-state";
-import { FullScreenDropzone, FullScreenDropzoneRef } from "@/components/common/full-screen-dropzone";
+import {
+  FullScreenDropzone,
+  FullScreenDropzoneRef,
+} from "@/components/common/full-screen-dropzone";
 import { BackButton } from "@/components/common/back-button";
 import { useUIStore } from "@/stores/uiStore";
 
@@ -334,6 +337,13 @@ export default function TrackDetailPage() {
       notes: currentNotes || "",
     });
     setIsEditVersionDialogOpen(true);
+  };
+
+  const handleVersionEditDialogChange = (open: boolean) => {
+    setIsEditVersionDialogOpen(open);
+    if (!open) {
+      setEditingVersion(null);
+    }
   };
 
   const handleDeleteVersion = async (versionId: string) => {
@@ -746,7 +756,7 @@ export default function TrackDetailPage() {
 
         <VersionEditDialog
           open={isEditVersionDialogOpen}
-          onOpenChange={setIsEditVersionDialogOpen}
+          onOpenChange={handleVersionEditDialogChange}
           trackId={trackId}
           versionId={editingVersion?.versionId || null}
           currentNotes={editingVersion?.notes || null}
