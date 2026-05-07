@@ -60,7 +60,15 @@ export async function POST(
         .where(eq(user.id, session.user.id))
         .limit(1);
 
-      if (currentUser.length === 0 || currentUser[0].email !== inv.email) {
+      if (currentUser.length === 0) {
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 }
+        );
+      }
+
+      const allowedEmails = inv.email.split(",").map(e => e.trim().toLowerCase());
+      if (!allowedEmails.includes(currentUser[0].email.toLowerCase())) {
         return NextResponse.json(
           { error: "This invitation is for a different email address" },
           { status: 403 }

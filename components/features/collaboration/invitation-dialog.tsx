@@ -18,6 +18,7 @@ import {
 } from "@/hooks/use-invitations";
 import { InvitationListItem } from "./invitation-list-item";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { XIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -49,6 +50,7 @@ export function InvitationDialog({
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [emails, setEmails] = useState<string[]>([]);
+  const [restrictToEmails, setRestrictToEmails] = useState(false);
   const [inviteMaxUses, setInviteMaxUses] = useState("");
   const [inviteExpiration, setInviteExpiration] = useState("");
   const [invitationToDelete, setInvitationToDelete] = useState<string | null>(
@@ -96,6 +98,7 @@ export function InvitationDialog({
         emails: finalEmails.length > 0 ? finalEmails : undefined,
         email:
           finalEmails.length === 0 && inviteEmail ? inviteEmail : undefined,
+        restrictToEmails,
         maxUses: inviteMaxUses ? parseInt(inviteMaxUses) : undefined,
         expiresAt: inviteExpiration ? new Date(inviteExpiration) : undefined,
       },
@@ -116,6 +119,7 @@ export function InvitationDialog({
 
     setInviteEmail("");
     setEmails([]);
+    setRestrictToEmails(false);
     setInviteMaxUses("");
     setInviteExpiration("");
   };
@@ -183,9 +187,35 @@ export function InvitationDialog({
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Press Enter, comma, or space to add an email.
+                {emails.length > 0
+                  ? "Press Enter, comma, or space to add another email."
+                  : "Press Enter, comma, or space to add an email."}
               </p>
             </div>
+
+            {emails.length > 0 && (
+              <div className="flex space-x-2 py-1">
+                <Checkbox
+                  id="restrictToEmails"
+                  checked={restrictToEmails}
+                  onCheckedChange={(checked) =>
+                    setRestrictToEmails(checked as boolean)
+                  }
+                />
+                <div className="grid leading-none">
+                  <Label
+                    htmlFor="restrictToEmails"
+                    className="text-xs sm:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Restrict to these emails
+                  </Label>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    Only the specified email addresses will be able to accept
+                    this invitation.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>

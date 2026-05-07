@@ -107,6 +107,12 @@ export async function POST(
     const appUrl = getAppConfig().url;
 
     // Create the invitation
+    // If restricted, we can only support this if we have a way to check the email on acceptance.
+    // The current schema has a single 'email' field.
+    // If we want to restrict to MULTIPLE emails, we either need a new table or 
+    // we use the single invitation and the acceptance logic handles it.
+    // Given the user wants to "restrict to those emails", and we are using a single invitation:
+    
     const [newInvitation] = await db
       .insert(projectInvitation)
       .values({
@@ -114,7 +120,11 @@ export async function POST(
         projectId: id,
         token: crypto.randomUUID(),
         createdById: session.user.id,
-        email: null, // Generic invitation
+        // If restricted to multiple emails, we store them as a comma-separated string
+        // or just the first one if it's only one.
+        email: validatedData.restrictToEmails && emailsToInvite.size > 0
+          ? Array.from(emailsToInvite).join(",")
+          : null,
         maxUses: validatedData.maxUses || null,
         currentUses: 0,
         expiresAt: validatedData.expiresAt

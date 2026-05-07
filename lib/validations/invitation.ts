@@ -3,6 +3,7 @@ import { z } from "zod";
 export const createInvitationSchema = z.object({
   email: z.string().optional(),
   emails: z.array(z.email({ message: "Invalid email" })).optional(),
+  restrictToEmails: z.boolean().optional(),
   maxUses: z
     .number()
     .int()
