@@ -17,6 +17,8 @@ import {
   useDeleteInvitation,
 } from "@/hooks/use-invitations";
 import { InvitationListItem } from "./invitation-list-item";
+import { Badge } from "@/components/ui/badge";
+import { XIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -46,18 +48,54 @@ export function InvitationDialog({
   const deleteInvitation = useDeleteInvitation();
 
   const [inviteEmail, setInviteEmail] = useState("");
+  const [emails, setEmails] = useState<string[]>([]);
   const [inviteMaxUses, setInviteMaxUses] = useState("");
   const [inviteExpiration, setInviteExpiration] = useState("");
   const [invitationToDelete, setInvitationToDelete] = useState<string | null>(
     null
   );
 
+  const addEmail = (email: string) => {
+    const trimmed = email.trim();
+    if (!trimmed) return;
+
+    // Basic email validation
+    if (!trimmed.includes("@")) return;
+
+    if (!emails.includes(trimmed)) {
+      setEmails([...emails, trimmed]);
+    }
+    setInviteEmail("");
+  };
+
+  const removeEmail = (emailToRemove: string) => {
+    setEmails(emails.filter((e) => e !== emailToRemove));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === "," || e.key === " ") {
+      e.preventDefault();
+      addEmail(inviteEmail);
+    } else if (e.key === "Backspace" && !inviteEmail && emails.length > 0) {
+      removeEmail(emails[emails.length - 1]);
+    }
+  };
+
   const handleCreateInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Add current input if it's a valid email
+    let finalEmails = [...emails];
+    if (inviteEmail.trim() && inviteEmail.includes("@")) {
+      finalEmails.push(inviteEmail.trim());
+    }
+
     const invitation = await createInvitation.mutateAsync({
       projectId,
       data: {
-        email: inviteEmail || undefined,
+        emails: finalEmails.length > 0 ? finalEmails : undefined,
+        email:
+          finalEmails.length === 0 && inviteEmail ? inviteEmail : undefined,
         maxUses: inviteMaxUses ? parseInt(inviteMaxUses) : undefined,
         expiresAt: inviteExpiration ? new Date(inviteExpiration) : undefined,
       },
@@ -65,9 +103,19 @@ export function InvitationDialog({
 
     const inviteUrl = `${window.location.origin}/invitations/${invitation.token}`;
     await navigator.clipboard.writeText(inviteUrl);
-    toast.success("Invitation created and link copied to clipboard!");
+
+    if (finalEmails.length <= 1) {
+      toast.success(
+        finalEmails.length === 1
+          ? "Invitation sent and link copied!"
+          : "Invitation created and link copied!"
+      );
+    } else {
+      toast.success(`${finalEmails.length} invitations sent and link copied!`);
+    }
 
     setInviteEmail("");
+    setEmails([]);
     setInviteMaxUses("");
     setInviteExpiration("");
   };
@@ -99,20 +147,43 @@ export function InvitationDialog({
           </DialogHeader>
 
           <form onSubmit={handleCreateInvitation} className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="inviteEmail" className="text-xs sm:text-sm">
-                Email (Optional)
+                Collaborators
               </Label>
-              <Input
-                id="inviteEmail"
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="Leave empty for anyone with the link"
-                className="text-xs sm:text-sm"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                If specified, only this email can accept the invitation
+              <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                {emails.map((email) => (
+                  <Badge
+                    key={email}
+                    className="flex items-center gap-1 py-0 px-1"
+                  >
+                    {email}
+                    <button
+                      type="button"
+                      onClick={() => removeEmail(email)}
+                      className="p-0.5 cursor-pointer"
+                    >
+                      <XIcon className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <input
+                  id="inviteEmail"
+                  type="text"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onBlur={() => addEmail(inviteEmail)}
+                  placeholder={
+                    emails.length === 0
+                      ? "email1@example.com, email2@example.com..."
+                      : ""
+                  }
+                  className="flex-1 min-w-30 bg-transparent border-none outline-none text-xs sm:text-sm"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Press Enter, comma, or space to add an email.
               </p>
             </div>
 

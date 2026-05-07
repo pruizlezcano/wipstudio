@@ -83,6 +83,16 @@ export async function POST(
     const body = await request.json();
     const validatedData = createInvitationSchema.parse(body);
 
+    // Collect all emails to invite
+    const emailsToInvite = new Set<string>();
+    if (validatedData.email)
+      emailsToInvite.add(validatedData.email.toLowerCase().trim());
+    if (validatedData.emails) {
+      validatedData.emails.forEach((e) =>
+        emailsToInvite.add(e.toLowerCase().trim())
+      );
+    }
+
     // Get project details for notification
     const projectRecord = await db
       .select()
@@ -94,15 +104,17 @@ export async function POST(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    const appUrl = getAppConfig().url;
+
     // Create the invitation
-    const newInvitation = await db
+    const [newInvitation] = await db
       .insert(projectInvitation)
       .values({
         id: crypto.randomUUID(),
         projectId: id,
         token: crypto.randomUUID(),
         createdById: session.user.id,
-        email: validatedData.email || null,
+        email: null, // Generic invitation
         maxUses: validatedData.maxUses || null,
         currentUses: 0,
         expiresAt: validatedData.expiresAt
@@ -111,29 +123,30 @@ export async function POST(
       })
       .returning();
 
-    // Send notification email (if email is specified)
-    if (validatedData.email) {
-      const appUrl = getAppConfig().url;
-      const invitationUrl = `${appUrl}/invitations/${newInvitation[0].token}`;
+    // Send notification emails to all specified addresses using the same invitation link
+    if (emailsToInvite.size > 0) {
+      const invitationUrl = `${appUrl}/invitations/${newInvitation.token}`;
 
-      await createNotification({
-        type: "invitation",
-        recipientUserIds: [], // No in-app notification for non-users
-        recipientEmails: [validatedData.email],
-        title: `You've been invited to ${projectRecord[0].name}`,
-        message: `${session.user.name} has invited you to join the project ${projectRecord[0].name}.`,
-        metadata: {
-          projectId: id,
-          projectName: projectRecord[0].name,
-          invitationToken: newInvitation[0].token,
-          actorId: session.user.id,
-          actorName: session.user.name,
-          url: invitationUrl,
-        },
-      });
+      for (const email of Array.from(emailsToInvite)) {
+        await createNotification({
+          type: "invitation",
+          recipientUserIds: [], // No in-app notification for non-users
+          recipientEmails: [email],
+          title: `You've been invited to ${projectRecord[0].name}`,
+          message: `${session.user.name} has invited you to join the project ${projectRecord[0].name}.`,
+          metadata: {
+            projectId: id,
+            projectName: projectRecord[0].name,
+            invitationToken: newInvitation.token,
+            actorId: session.user.id,
+            actorName: session.user.name,
+            url: invitationUrl,
+          },
+        });
+      }
     }
 
-    return NextResponse.json(newInvitation[0], { status: 201 });
+    return NextResponse.json(newInvitation, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
