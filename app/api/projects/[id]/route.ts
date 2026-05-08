@@ -69,6 +69,7 @@ export async function GET(
       },
       collaborators,
       lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
+      isOwner: projectData.ownerId === session.user.id,
     });
   } catch (error) {
     console.error("Error fetching project:", error);
@@ -152,6 +153,7 @@ export async function PATCH(
       },
       collaborators,
       lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
+      isOwner: projectData.ownerId === session.user.id,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

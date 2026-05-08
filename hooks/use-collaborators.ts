@@ -45,3 +45,31 @@ export function useRemoveCollaborator() {
     },
   });
 }
+
+// Leave project
+async function leaveProject(projectId: string): Promise<void> {
+  const response = await fetch(`/api/projects/${projectId}/leave`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new ApiError(error.error || "Failed to leave project", response.status);
+  }
+}
+
+export function useLeaveProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: leaveProject,
+    onSuccess: () => {
+      // Invalidate project list since the user is no longer a member
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
+      toast.success("You have left the project");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}

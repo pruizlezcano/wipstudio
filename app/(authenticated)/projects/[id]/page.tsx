@@ -1,8 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -16,7 +26,7 @@ import {
   type TrackSortBy,
   type SortOrder,
 } from "@/hooks/use-tracks";
-import { useCollaborators } from "@/hooks/use-collaborators";
+import { useCollaborators, useLeaveProject } from "@/hooks/use-collaborators";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ErrorState } from "@/components/common/error-state";
 import { ProjectHeader } from "@/components/features/projects/project-header";
@@ -43,6 +53,7 @@ const TRACKS_PER_PAGE = 20;
 
 export default function ProjectDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params.id as string;
   const dropzoneRef = useRef<FullScreenDropzoneRef>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -67,6 +78,7 @@ export default function ProjectDetailPage() {
     limit: TRACKS_PER_PAGE,
   });
   const { data: collaborators } = useCollaborators(projectId);
+  const leaveProjectMutation = useLeaveProject();
 
   // Flatten all pages into a single array of tracks
   const tracks = tracksData?.pages.flatMap((page) => page.data) ?? [];
@@ -98,6 +110,7 @@ export default function ProjectDetailPage() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isCollaboratorsDialogOpen, setIsCollaboratorsDialogOpen] =
     useState(false);
+  const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const { isTrackUploadDialogOpen, setTrackUploadDialogOpen } = useUIStore();
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
 
@@ -115,6 +128,15 @@ export default function ProjectDetailPage() {
 
   const handleUploadClick = () => {
     setTrackUploadDialogOpen(true);
+  };
+
+  const handleLeaveProject = async () => {
+    try {
+      await leaveProjectMutation.mutateAsync(projectId);
+      router.push("/projects");
+    } catch (error) {
+      // Error handled by mutation toast
+    }
   };
 
   if (projectLoading) {
@@ -145,8 +167,10 @@ export default function ProjectDetailPage() {
         <ProjectHeader
           project={project}
           collaboratorsCount={collaborators?.length || 0}
+          isOwner={project.isOwner}
           onInvite={() => setIsInviteDialogOpen(true)}
           onShowCollaborators={() => setIsCollaboratorsDialogOpen(true)}
+          onLeaveProject={() => setIsLeaveDialogOpen(true)}
         />
 
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
@@ -209,6 +233,34 @@ export default function ProjectDetailPage() {
           open={isCollaboratorsDialogOpen}
           onOpenChange={setIsCollaboratorsDialogOpen}
         />
+
+        <AlertDialog open={isLeaveDialogOpen} onOpenChange={setIsLeaveDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action will remove you as a collaborator from the project
+                &quot;{project.name}&quot;. You will lose access to all tracks and
+                versions unless you are invited back.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={leaveProjectMutation.isPending}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleLeaveProject();
+                }}
+                disabled={leaveProjectMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {leaveProjectMutation.isPending ? "Leaving..." : "Leave Project"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </FullScreenDropzone>
   );
