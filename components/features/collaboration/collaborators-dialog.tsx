@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useProject } from "@/hooks/use-projects";
 import {
   useCollaborators,
   useRemoveCollaborator,
@@ -35,6 +36,7 @@ export function CollaboratorsDialog({
   open,
   onOpenChange,
 }: CollaboratorsDialogProps) {
+  const { data: project } = useProject(projectId);
   const { data: collaborators } = useCollaborators(projectId);
   const removeCollaborator = useRemoveCollaborator();
   const [collaboratorToRemove, setCollaboratorToRemove] = useState<
@@ -55,7 +57,7 @@ export function CollaboratorsDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Collaborators</DialogTitle>
+            <DialogTitle>Project Members</DialogTitle>
             <DialogDescription>Manage project collaborators</DialogDescription>
           </DialogHeader>
 
@@ -65,6 +67,7 @@ export function CollaboratorsDialog({
                 <CollaboratorItem
                   key={collab.userId}
                   collaborator={collab}
+                  isCurrentUserOwner={!!project?.isOwner}
                   onRemove={setCollaboratorToRemove}
                 />
               ))}

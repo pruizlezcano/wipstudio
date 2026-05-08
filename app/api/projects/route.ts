@@ -130,10 +130,23 @@ export async function GET(request: NextRequest) {
             .where(eq(projectCollaborator.projectId, p.id)),
         ]);
 
+        const allMembers = [
+          {
+            ...p.owner,
+            isOwner: true,
+          },
+          ...collaborators.map((c) => ({
+            ...c,
+            isOwner: false,
+          })),
+        ];
+
+        const { owner: _, ...projectWithoutOwner } = p;
+
         return {
-          ...p,
+          ...projectWithoutOwner,
           lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
-          collaborators,
+          collaborators: allMembers,
         };
       })
     );
@@ -216,18 +229,20 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    const { ownerId, ...projectData } = newProject[0];
+    const { ownerId: _, ...projectDataWithoutOwnerId } = newProject[0];
 
     return NextResponse.json(
       {
-        ...projectData,
+        ...projectDataWithoutOwnerId,
         lastVersionAt: null,
-        owner: {
-          userId: session.user.id,
-          name: session.user.name,
-          image: session.user.image,
-        },
-        collaborators: [],
+        collaborators: [
+          {
+            userId: session.user.id,
+            name: session.user.name,
+            image: session.user.image,
+            isOwner: true,
+          },
+        ],
       },
       { status: 201 }
     );

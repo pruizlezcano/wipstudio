@@ -50,6 +50,11 @@ export default function Lyrics() {
   const queryClient = useQueryClient();
   const { resolvedTheme } = useTheme();
 
+  const projectOwnerId = useMemo(
+    () => project?.collaborators?.find((c) => c.isOwner)?.userId,
+    [project?.collaborators]
+  );
+
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [hoveredCommentId, setHoveredCommentId] = useState<string | null>(null);
   const [hoveredElement, setHoveredElement] = useState<HTMLElement | null>(
@@ -368,7 +373,7 @@ export default function Lyrics() {
           <div className="w-full lg:w-100 shrink-0">
             <LyricsCommentsSidebar
               trackId={trackId}
-              projectOwnerId={project?.owner.userId}
+              projectOwnerId={projectOwnerId}
               activeCommentId={activeCommentId}
               editor={editor}
               deleteComment={deleteComment}

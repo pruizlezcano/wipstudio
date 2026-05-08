@@ -58,16 +58,24 @@ export async function GET(
     ]);
 
     const ownerInfo = ownerResult[0];
-    const { ownerId, ...rest } = projectData;
+    const { ownerId: _, ...rest } = projectData;
 
-    return NextResponse.json({
-      ...rest,
-      owner: {
+    const allMembers = [
+      {
         userId: projectData.ownerId,
         name: ownerInfo?.name || "Unknown",
         image: ownerInfo?.image || null,
+        isOwner: true,
       },
-      collaborators,
+      ...collaborators.map((c) => ({
+        ...c,
+        isOwner: false,
+      })),
+    ];
+
+    return NextResponse.json({
+      ...rest,
+      collaborators: allMembers,
       lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
       isOwner: projectData.ownerId === session.user.id,
     });
@@ -142,16 +150,24 @@ export async function PATCH(
     ]);
 
     const ownerInfo = ownerResult[0];
-    const { ownerId, ...rest } = projectData;
+    const { ownerId: _, ...rest } = projectData;
 
-    return NextResponse.json({
-      ...rest,
-      owner: {
+    const allMembers = [
+      {
         userId: projectData.ownerId,
         name: ownerInfo?.name || "Unknown",
         image: ownerInfo?.image || null,
+        isOwner: true,
       },
-      collaborators,
+      ...collaborators.map((c) => ({
+        ...c,
+        isOwner: false,
+      })),
+    ];
+
+    return NextResponse.json({
+      ...rest,
+      collaborators: allMembers,
       lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
       isOwner: projectData.ownerId === session.user.id,
     });

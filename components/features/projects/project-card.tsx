@@ -18,7 +18,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
-  const allParticipants = [project.owner, ...(project.collaborators || [])];
+  const allParticipants = project.collaborators || [];
 
   return (
     <Link

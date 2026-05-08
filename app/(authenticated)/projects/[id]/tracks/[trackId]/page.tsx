@@ -70,6 +70,11 @@ export default function TrackDetailPage() {
   const dropzoneRef = useRef<FullScreenDropzoneRef>(null);
 
   const { data: project } = useProject(projectId);
+
+  const projectOwnerId = useMemo(
+    () => project?.collaborators?.find((c) => c.isOwner)?.userId,
+    [project?.collaborators]
+  );
   const {
     data: track,
     isLoading: trackLoading,
@@ -716,7 +721,7 @@ export default function TrackDetailPage() {
                         comment={comment}
                         trackId={trackId}
                         versionId={selectedVersion!.id}
-                        projectOwnerId={project?.owner.userId}
+                        projectOwnerId={projectOwnerId}
                         onSeek={handleSeekToTime}
                       />
                     ))}

@@ -8,8 +8,8 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   lastVersionAt: string | null;
-  owner: Collaborator;
-  collaborators?: Collaborator[];
+  collaborators: Collaborator[];
+  isOwner?: boolean;
 }
 
 export interface PaginatedProjectsResponse {
