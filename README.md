@@ -51,8 +51,8 @@ All configuration is done via environment variables in `.env`.
 
 | Variable    | Description                        |
 | ----------- | ---------------------------------- |
-| `MINIO_HOST`| S3 service hostname                |
-| `MINIO_PORT`| S3 service port                    |
+| `S3_HOST`| S3 service hostname                |
+| `S3_PORT`| S3 service port                    |
 | `APP_HOST`  | WIPStudio application hostname     |
 | `APP_PORT`  | WIPStudio application port         |
 

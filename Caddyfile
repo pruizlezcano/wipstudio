@@ -1,5 +1,5 @@
 :80 {
-	reverse_proxy  /{$S3_BUCKET}/* {$MINIO_HOST:minio}:{$MINIO_PORT:9000}
+	reverse_proxy  /{$S3_BUCKET}/* {$S3_HOST:minio}:{$S3_PORT:9000}
 
 	reverse_proxy /ws {$WEBSOCKET_HOST:websocket}:{$WEBSOCKET_PORT:3001}
 
