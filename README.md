@@ -1,5 +1,10 @@
 # WIPStudio
 
+> [!WARNING]
+> This project is currently under active development.
+> Expect breaking changes, unstable APIs, and missing functionality until the first stable release.
+> Contributions and feedback are welcome!
+
 A self-hosted collaborative platform for music producers to share, review, and gather feedback on audio tracks. Built for teams and artists who need a centralized place to manage work-in-progress recordings with version control and time-stamped comments.
 
 Self-hosted alternative to [Highnote](https://highnote.fm), [Boombox](https://boombox.io).
