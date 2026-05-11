@@ -25,9 +25,7 @@ services:
         condition: service_healthy
 
   websocket:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/pruizlezcano/wipstudio:latest
     container_name: wipstudio-websocket
     restart: unless-stopped
     command: ["bun", "run", "websocket"]
