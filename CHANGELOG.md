@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.7.0](https://github.com/pruizlezcano/wipstudio/compare/v0.6.0...v0.7.0) (2026-05-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* `MINIO_HOST` and `MINIO_PORT` environment variables
+have been removed. Use `S3_HOST` and `S3_PORT` instead.
+
+
+### Features
+
+* add keyboard shortcuts and centralized state management ([4bafd15](https://github.com/pruizlezcano/wipstudio/commit/4bafd157023e14ca219234ee1439f277bca71a23))
+* **auth:** add `OPENID_ENABLED` environment variable ([6e07a1c](https://github.com/pruizlezcano/wipstudio/commit/6e07a1c9399f4f4098628ac7abd6bd6fb2631f72)), closes [#8](https://github.com/pruizlezcano/wipstudio/issues/8)
+* **invitations:** support multiple email recipients ([78d6b84](https://github.com/pruizlezcano/wipstudio/commit/78d6b84bc525117ebf6a0f76c2d6e632e4c00fe9))
+* **invitations:** support restricting invite to email ([f137995](https://github.com/pruizlezcano/wipstudio/commit/f1379958c525630f6b1a4d6eefca72a9459a592d))
+* **projects:** allow collaborators to leave projects ([22d3a30](https://github.com/pruizlezcano/wipstudio/commit/22d3a30e06e661009096b8919e2c28480d634151))
+* **projects:** unify owner and collaborators in member list ([3e88ea2](https://github.com/pruizlezcano/wipstudio/commit/3e88ea2bfa9eb10b57b04b296b72eb14f5d5ab05))
+
+
+### Bug Fixes
+
+* close project and track dialogs on success ([0ed2efc](https://github.com/pruizlezcano/wipstudio/commit/0ed2efc097f68cfc6b1a1c7bce34ce3b9e48a8c6))
+* **docker:** update postgres volume mount path ([3ff6afe](https://github.com/pruizlezcano/wipstudio/commit/3ff6afeddaaf3b87047b36991f19564dabddcb52))
+* **tracks:** isolate version notes in edit dialog ([6ded2bf](https://github.com/pruizlezcano/wipstudio/commit/6ded2bf3166139338fc8e75b11d9e7ed6de8da68)), closes [#3](https://github.com/pruizlezcano/wipstudio/issues/3)
+
 ## [0.6.0](https://github.com/pruizlezcano/wipstudio/compare/v0.5.0...v0.6.0) (2026-03-03)
 
 
