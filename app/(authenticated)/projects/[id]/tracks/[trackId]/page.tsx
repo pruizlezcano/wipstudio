@@ -60,6 +60,8 @@ import {
 } from "@/components/common/full-screen-dropzone";
 import { BackButton } from "@/components/common/back-button";
 import { useUIStore } from "@/stores/uiStore";
+import type { TrackVersion } from "@/types";
+import WaveSurfer from "wavesurfer.js";
 
 export default function TrackDetailPage() {
   const params = useParams();
@@ -89,8 +91,13 @@ export default function TrackDetailPage() {
   const deleteVersion = useDeleteVersion();
   const setMasterVersion = useSetMasterVersion();
   const {
+    track: playerTrack,
     waveSurfer: playerWaveSurfer,
     version: playerVersion,
+    currentTime: playerCurrentTime,
+    isPlaying: playerIsPlaying,
+    usesExternalWaveSurfer,
+    activateExternalWaveSurfer,
     loadVersion,
     setIsPlaying,
     clearPlayer,
@@ -108,12 +115,18 @@ export default function TrackDetailPage() {
   // Use URL query param for comment ID to enable direct linking to comments
   const [commentIdParam, setCommentIdParam] = useQueryState("c");
 
+  const playingTrackVersion =
+    playerTrack?.id === trackId
+      ? versions?.find((version) => version.id === playerVersion?.id)
+      : undefined;
+
   // Get the currently selected version object based on URL param
-  // If no param, default to master version
+  // If no param, prefer the currently playing version for this track, then fall back to master
   const selectedVersion =
     versionNumberParam !== null
       ? versions?.find((v) => v.versionNumber === versionNumberParam)
-      : defaultVersion;
+      : playingTrackVersion || defaultVersion;
+  const waveformInstancesRef = useRef<Record<string, WaveSurfer>>({});
 
   // Track the previous master version ID to detect new uploads
   const previousMasterIdRef = useRef<string | null>(null);
@@ -295,13 +308,160 @@ export default function TrackDetailPage() {
     0
   );
 
+  const activateVersionWaveSurfer = useCallback(
+    async (
+      version: TrackVersion,
+      targetWaveSurfer: WaveSurfer,
+      startTime: number,
+      autoPlay: boolean
+    ) => {
+      if (!track || !project) return;
+
+      const safeStartTime = Math.min(startTime, targetWaveSurfer.getDuration());
+      const previousWaveSurfer =
+        playerWaveSurfer && playerWaveSurfer !== targetWaveSurfer
+          ? playerWaveSurfer
+          : null;
+
+      targetWaveSurfer.setTime(safeStartTime);
+      activateExternalWaveSurfer(
+        track,
+        version,
+        project.name,
+        targetWaveSurfer,
+        safeStartTime
+      );
+
+      if (autoPlay) {
+        try {
+          targetWaveSurfer.setMuted(true);
+          targetWaveSurfer.setVolume(0);
+          await targetWaveSurfer.play();
+          Object.entries(waveformInstancesRef.current).forEach(
+            ([id, waveSurfer]) => {
+              const isActive = id === version.id;
+              waveSurfer.setMuted(!isActive);
+              waveSurfer.setVolume(isActive ? 1 : 0);
+            }
+          );
+          previousWaveSurfer?.pause();
+          setIsPlaying(true);
+        } catch (error) {
+          console.error("Failed to switch playback between versions:", error);
+          Object.entries(waveformInstancesRef.current).forEach(
+            ([id, waveSurfer]) => {
+              const isActive = id === version.id;
+              waveSurfer.setMuted(!isActive);
+              waveSurfer.setVolume(isActive ? 1 : 0);
+            }
+          );
+          previousWaveSurfer?.pause();
+          setIsPlaying(false);
+        }
+      } else {
+        previousWaveSurfer?.pause();
+        Object.entries(waveformInstancesRef.current).forEach(
+          ([id, waveSurfer]) => {
+            const isActive = id === version.id;
+            waveSurfer.setMuted(!isActive);
+            waveSurfer.setVolume(isActive ? 1 : 0);
+          }
+        );
+        targetWaveSurfer.pause();
+        setIsPlaying(false);
+      }
+    },
+    [
+      activateExternalWaveSurfer,
+      playerWaveSurfer,
+      project,
+      setIsPlaying,
+      track,
+    ]
+  );
+
+  const handoffPlaybackToInternal = useCallback(() => {
+    const state = usePlayerStore.getState();
+    const activeExternalWaveSurfer =
+      state.usesExternalWaveSurfer &&
+      state.track?.id === trackId &&
+      state.waveSurfer
+        ? state.waveSurfer
+        : null;
+
+    Object.values(waveformInstancesRef.current).forEach((waveSurfer) => {
+      if (waveSurfer === activeExternalWaveSurfer) return;
+      waveSurfer.setMuted(true);
+      waveSurfer.setVolume(0);
+    });
+
+    if (
+      !track ||
+      !project ||
+      !activeExternalWaveSurfer ||
+      !state.version
+    ) {
+      return;
+    }
+
+    const currentTime =
+      activeExternalWaveSurfer.getCurrentTime() ?? state.currentTime;
+
+    state.handoffToInternalPlayer(
+      track,
+      state.version,
+      project.name,
+      state.isPlaying,
+      currentTime
+    );
+  }, [project, track, trackId]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      handoffPlaybackToInternal();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      handoffPlaybackToInternal();
+    };
+  }, [handoffPlaybackToInternal]);
+
+  const registerWaveformInstance = useCallback(
+    (versionId: string, waveSurfer: WaveSurfer) => {
+      waveformInstancesRef.current[versionId] = waveSurfer;
+
+      if (usesExternalWaveSurfer && playerVersion?.id === versionId) {
+        waveSurfer.setMuted(false);
+        waveSurfer.setVolume(1);
+      } else {
+        waveSurfer.setMuted(true);
+        waveSurfer.setVolume(0);
+      }
+    },
+    [
+      playerVersion?.id,
+      usesExternalWaveSurfer,
+    ]
+  );
+
   // Handle shortcut triggers
   useEffect(() => {
     if (triggerPlayback && defaultVersion && track && project) {
-      loadVersion(track, defaultVersion, project.name, true);
+      const targetWaveSurfer = waveformInstancesRef.current[defaultVersion.id];
+
+      if (targetWaveSurfer) {
+        activateVersionWaveSurfer(defaultVersion, targetWaveSurfer, 0, true);
+      } else {
+        loadVersion(track, defaultVersion, project.name, true);
+      }
+
       setTriggerPlayback(false);
     }
   }, [
+    activateVersionWaveSurfer,
     triggerPlayback,
     defaultVersion,
     track,
@@ -374,7 +534,38 @@ export default function TrackDetailPage() {
     await setMasterVersion.mutateAsync({ trackId, versionId });
   };
 
-  const handleSelectVersion = (versionNumber: number) => {
+  const handleSelectVersion = async (versionNumber: number) => {
+    const nextVersion = versions?.find((v) => v.versionNumber === versionNumber);
+
+    if (
+      nextVersion &&
+      track &&
+      project &&
+      playerTrack?.id === track.id &&
+      playerVersion?.id !== nextVersion.id
+    ) {
+      const currentPlaybackTime =
+        playerWaveSurfer?.getCurrentTime() ?? playerCurrentTime;
+      const targetWaveSurfer = waveformInstancesRef.current[nextVersion.id];
+
+      if (targetWaveSurfer) {
+        void activateVersionWaveSurfer(
+          nextVersion,
+          targetWaveSurfer,
+          currentPlaybackTime,
+          playerIsPlaying
+        );
+      } else {
+        loadVersion(
+          track,
+          nextVersion,
+          project.name,
+          playerIsPlaying,
+          currentPlaybackTime
+        );
+      }
+    }
+
     setVersionNumberParam(versionNumber);
     setCommentTimestamp(0);
   };
@@ -390,7 +581,18 @@ export default function TrackDetailPage() {
       // If no player or wrong version loaded, load the correct version first
       if (!playerWaveSurfer || playerVersion?.id !== selectedVersion?.id) {
         if (selectedVersion && track && project) {
-          loadVersion(track, selectedVersion, project.name, true, time);
+          const targetWaveSurfer = waveformInstancesRef.current[selectedVersion.id];
+
+          if (targetWaveSurfer) {
+            void activateVersionWaveSurfer(
+              selectedVersion,
+              targetWaveSurfer,
+              time,
+              true
+            );
+          } else {
+            loadVersion(track, selectedVersion, project.name, true, time);
+          }
         }
       } else {
         // Player is already loaded with the correct version
@@ -405,6 +607,7 @@ export default function TrackDetailPage() {
       selectedVersion,
       track,
       project,
+      activateVersionWaveSurfer,
       loadVersion,
       setIsPlaying,
     ]
@@ -458,7 +661,11 @@ export default function TrackDetailPage() {
     >
       <div className="container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6 min-h-screen">
         <div className="mb-6">
-          <BackButton href={`/projects/${projectId}`} label="Back to Project" />
+          <BackButton
+            href={`/projects/${projectId}`}
+            label="Back to Project"
+            onClick={handoffPlaybackToInternal}
+          />
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-3 sm:gap-4">
             <div className="min-w-0">
@@ -644,15 +851,42 @@ export default function TrackDetailPage() {
                 )}
               </CardHeader>
               <CardContent>
-                {selectedVersion && project && (
-                  <Waveform
-                    track={track}
-                    version={selectedVersion}
-                    projectName={project.name}
-                    comments={comments}
-                    onTimeClick={handleWaveformClick}
-                    onCommentClick={handleCommentClick}
-                  />
+                {versions && project && (
+                  <div className="space-y-0">
+                    {versions.map((version) => (
+                      <div
+                        key={version.id}
+                        className={
+                          version.id === selectedVersion?.id ? "block" : "hidden"
+                        }
+                      >
+                        <Waveform
+                          track={track}
+                          version={version}
+                          projectName={project.name}
+                          comments={
+                            version.id === selectedVersion?.id ? comments : []
+                          }
+                          onTimeClick={handleWaveformClick}
+                          onCommentClick={handleCommentClick}
+                          onWaveSurferReady={registerWaveformInstance}
+                          onActivateVersion={(
+                            targetVersion,
+                            targetWaveSurfer,
+                            startTime,
+                            autoPlay
+                          ) => {
+                            void activateVersionWaveSurfer(
+                              targetVersion,
+                              targetWaveSurfer,
+                              startTime,
+                              autoPlay
+                            );
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>

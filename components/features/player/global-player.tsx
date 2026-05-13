@@ -9,6 +9,7 @@ import Link from "next/link";
 import { formatTime } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { useRef, useEffect } from "react";
+import WaveSurfer from "wavesurfer.js";
 
 export const GlobalPlayer = () => {
   const {
@@ -16,6 +17,7 @@ export const GlobalPlayer = () => {
     track,
     version,
     projectName,
+    usesExternalWaveSurfer,
     duration,
     currentTime,
     url,
@@ -31,11 +33,14 @@ export const GlobalPlayer = () => {
     setShouldAutoPlay,
     peaksCache,
     setPeaks,
+    guardSingleActiveAudio,
   } = usePlayerStore();
 
   // Track which version has been autoplayed to prevent double-play
   const autoPlayedVersionRef = useRef<string | null>(null);
   const autoPlayRequestedRef = useRef<boolean>(false);
+  const standbyWaveSurferRef = useRef<WaveSurfer | null>(null);
+  const standbyVersionIdRef = useRef<string | null>(null);
 
   // Reset tracking when version changes
   useEffect(() => {
@@ -44,6 +49,123 @@ export const GlobalPlayer = () => {
       autoPlayRequestedRef.current = false;
     }
   }, [version]);
+
+  useEffect(() => {
+    if (!version) {
+      standbyWaveSurferRef.current = null;
+      standbyVersionIdRef.current = null;
+      return;
+    }
+
+    if (standbyVersionIdRef.current !== version.id) {
+      standbyWaveSurferRef.current = null;
+      standbyVersionIdRef.current = version.id;
+    }
+  }, [version]);
+
+  useEffect(() => {
+    if (!waveSurfer) return;
+
+    const handleReady = () => setDuration(waveSurfer.getDuration());
+    const handleTimeUpdate = () =>
+      setCurrentTime(waveSurfer.getCurrentTime() || 0);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    waveSurfer.on("ready", handleReady);
+    waveSurfer.on("timeupdate", handleTimeUpdate);
+    waveSurfer.on("play", handlePlay);
+    waveSurfer.on("pause", handlePause);
+
+    handleReady();
+    handleTimeUpdate();
+
+    return () => {
+      waveSurfer.un("ready", handleReady);
+      waveSurfer.un("timeupdate", handleTimeUpdate);
+      waveSurfer.un("play", handlePlay);
+      waveSurfer.un("pause", handlePause);
+    };
+  }, [waveSurfer, setCurrentTime, setDuration, setIsPlaying]);
+
+  useEffect(() => {
+    if (!waveSurfer || usesExternalWaveSurfer) return;
+
+    const handlePlay = () => {
+      guardSingleActiveAudio(waveSurfer);
+    };
+
+    waveSurfer.on("play", handlePlay);
+
+    return () => {
+      waveSurfer.un("play", handlePlay);
+    };
+  }, [guardSingleActiveAudio, usesExternalWaveSurfer, waveSurfer]);
+
+  useEffect(() => {
+    const standbyWaveSurfer = standbyWaveSurferRef.current;
+
+    if (
+      !usesExternalWaveSurfer ||
+      !standbyWaveSurfer ||
+      standbyVersionIdRef.current !== version?.id
+    ) {
+      return;
+    }
+
+    standbyWaveSurfer.setMuted(true);
+    standbyWaveSurfer.setVolume(0);
+
+    const standbyTime = standbyWaveSurfer.getCurrentTime();
+    if (Math.abs(standbyTime - currentTime) > 0.1) {
+      standbyWaveSurfer.setTime(currentTime);
+    }
+
+    if (standbyWaveSurfer.isPlaying()) {
+      standbyWaveSurfer.pause();
+    }
+  }, [currentTime, usesExternalWaveSurfer, version?.id]);
+
+  useEffect(() => {
+    const standbyWaveSurfer = standbyWaveSurferRef.current;
+
+    if (
+      usesExternalWaveSurfer ||
+      waveSurfer ||
+      !standbyWaveSurfer ||
+      standbyVersionIdRef.current !== version?.id
+    ) {
+      return;
+    }
+
+    setWaveSurfer(standbyWaveSurfer);
+    setIsLoading(false);
+    setDuration(standbyWaveSurfer.getDuration());
+    standbyWaveSurfer.setTime(currentTime);
+
+    if (shouldAutoPlay || autoPlayRequestedRef.current) {
+      if (!autoPlayRequestedRef.current) {
+        autoPlayRequestedRef.current = true;
+        setShouldAutoPlay(false);
+      }
+
+      guardSingleActiveAudio(standbyWaveSurfer);
+      standbyWaveSurfer.play().catch((error) => {
+        console.error("Failed to autoplay:", error);
+      });
+    }
+  }, [
+    currentTime,
+    guardSingleActiveAudio,
+    setDuration,
+    setIsLoading,
+    setShouldAutoPlay,
+    setWaveSurfer,
+    shouldAutoPlay,
+    usesExternalWaveSurfer,
+    version?.id,
+    waveSurfer,
+  ]);
 
   // Update Media Session API metadata when track/version changes
   useEffect(() => {
@@ -169,12 +291,13 @@ export const GlobalPlayer = () => {
       <WavesurferPlayer
         key={version.id}
         height={0}
-        url={url ?? ""}
+        url={url ?? version.audioUrl}
         peaks={peaksCache[version.id]}
         onReady={(ws) => {
-          setWaveSurfer(ws);
-          setIsLoading(false);
-          setDuration(ws.getDuration());
+          standbyWaveSurferRef.current = ws;
+          standbyVersionIdRef.current = version.id;
+          ws.setMuted(true);
+          ws.setVolume(0);
           ws.setTime(currentTime);
 
           // Cache peaks if not already present
@@ -189,16 +312,23 @@ export const GlobalPlayer = () => {
             }
           }
 
-          // If autoplay was requested for this version, play it (even on second onReady)
-          if (shouldAutoPlay || autoPlayRequestedRef.current) {
-            if (!autoPlayRequestedRef.current) {
-              autoPlayRequestedRef.current = true;
-              setShouldAutoPlay(false);
-            }
+          if (!usesExternalWaveSurfer) {
+            setWaveSurfer(ws);
+            setIsLoading(false);
+            setDuration(ws.getDuration());
 
-            ws.play().catch((error) => {
-              console.error("Failed to autoplay:", error);
-            });
+            // If autoplay was requested for this version, play it (even on second onReady)
+            if (shouldAutoPlay || autoPlayRequestedRef.current) {
+              if (!autoPlayRequestedRef.current) {
+                autoPlayRequestedRef.current = true;
+                setShouldAutoPlay(false);
+              }
+
+              guardSingleActiveAudio(ws);
+              ws.play().catch((error) => {
+                console.error("Failed to autoplay:", error);
+              });
+            }
           }
         }}
         onPlay={() => setIsPlaying(true)}

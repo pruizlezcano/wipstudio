@@ -23,6 +23,13 @@ interface WaveformProps {
   comments?: Comment[];
   onTimeClick?: (time: number) => void;
   onCommentClick?: (commentId: string) => void;
+  onWaveSurferReady?: (versionId: string, waveSurfer: WaveSurfer) => void;
+  onActivateVersion?: (
+    version: TrackVersion,
+    waveSurfer: WaveSurfer,
+    startTime: number,
+    autoPlay: boolean
+  ) => void;
 }
 
 const WaveformTimer = memo(({ waveSurfer }: { waveSurfer: WaveSurfer }) => {
@@ -70,6 +77,8 @@ export const Waveform = memo(
     comments,
     onTimeClick,
     onCommentClick,
+    onWaveSurferReady,
+    onActivateVersion,
   }: WaveformProps) {
     const {
       waveSurfer: playerWaveSurfer,
@@ -77,6 +86,10 @@ export const Waveform = memo(
       setIsPlaying: setPlayerIsPlaying,
       isPlaying: playerIsPlaying,
       isLoading: playerIsLoading,
+      usesExternalWaveSurfer,
+      registerExternalWaveSurfer,
+      unregisterExternalWaveSurfer,
+      guardSingleActiveAudio,
       loadVersion,
       peaksCache,
       setPeaks,
@@ -85,63 +98,78 @@ export const Waveform = memo(
     const [isLoading, setIsLoading] = useState(true);
     const { resolvedTheme } = useTheme();
 
+    useEffect(() => {
+      if (!waveSurfer) return;
+
+      registerExternalWaveSurfer(waveSurfer);
+
+      return () => {
+        unregisterExternalWaveSurfer(waveSurfer);
+      };
+    }, [registerExternalWaveSurfer, unregisterExternalWaveSurfer, waveSurfer]);
+
     // Derived playing state for this specific version
     const isPlaying = playerIsPlaying && playerVersion?.id === version.id;
 
     // Sync global player with local player
     useEffect(() => {
-      if (playerWaveSurfer && waveSurfer && playerVersion?.id === version.id) {
-        const cleanupEvents = () => {
-          playerWaveSurfer.un("play", () => {});
-          playerWaveSurfer.un("pause", () => {});
-          playerWaveSurfer.un("timeupdate", () => {});
-          waveSurfer.un("click", () => {});
-        };
-
-        cleanupEvents();
-
-        // Global player handlers
-        const handleGlobalPlay = () => {
-          waveSurfer.play();
-        };
-
-        const handleGlobalPause = () => {
-          waveSurfer.pause();
-        };
-
-        const handleGlobalTimeUpdate = () => {
-          const globalTime = playerWaveSurfer.getCurrentTime();
-          const localTime = waveSurfer.getCurrentTime();
-          // Only sync if they drift apart by more than 0.1s (handles seeks and drift)
-          if (Math.abs(globalTime - localTime) > 0.1) {
-            waveSurfer.setTime(globalTime);
-          }
-        };
-
-        // Local player handlers
-        const handleLocalClick = (time: number) => {
-          const absoluteTime = time * waveSurfer.getDuration();
-          playerWaveSurfer.setTime(absoluteTime);
-          onTimeClick?.(absoluteTime);
-        };
-
-        // Listen to global player events
-        playerWaveSurfer.on("play", handleGlobalPlay);
-        playerWaveSurfer.on("pause", handleGlobalPause);
-        playerWaveSurfer.on("timeupdate", handleGlobalTimeUpdate);
-
-        // Listen to local player events
-        waveSurfer.on("click", handleLocalClick);
-
-        // Initial sync
-        const currentGlobalTime = playerWaveSurfer.getCurrentTime();
-        waveSurfer.setTime(currentGlobalTime);
-        if (playerIsPlaying) {
-          waveSurfer.play();
-        }
-
-        return cleanupEvents;
+      if (
+        !playerWaveSurfer ||
+        !waveSurfer ||
+        playerWaveSurfer === waveSurfer ||
+        playerVersion?.id !== version.id
+      ) {
+        return;
       }
+
+      const handleGlobalPlay = () => {
+        if (usesExternalWaveSurfer) {
+          guardSingleActiveAudio(waveSurfer);
+          void waveSurfer.play();
+        } else {
+          waveSurfer.pause();
+        }
+      };
+
+      const handleGlobalPause = () => {
+        waveSurfer.pause();
+      };
+
+      const handleGlobalTimeUpdate = () => {
+        const globalTime = playerWaveSurfer.getCurrentTime();
+        const localTime = waveSurfer.getCurrentTime();
+        // Only sync if they drift apart by more than 0.1s (handles seeks and drift)
+        if (Math.abs(globalTime - localTime) > 0.1) {
+          waveSurfer.setTime(globalTime);
+        }
+      };
+
+      const handleLocalClick = (time: number) => {
+        const absoluteTime = time * waveSurfer.getDuration();
+        playerWaveSurfer.setTime(absoluteTime);
+        onTimeClick?.(absoluteTime);
+      };
+
+      playerWaveSurfer.on("play", handleGlobalPlay);
+      playerWaveSurfer.on("pause", handleGlobalPause);
+      playerWaveSurfer.on("timeupdate", handleGlobalTimeUpdate);
+      waveSurfer.on("click", handleLocalClick);
+
+      const currentGlobalTime = playerWaveSurfer.getCurrentTime();
+      waveSurfer.setTime(currentGlobalTime);
+      if (playerIsPlaying && usesExternalWaveSurfer) {
+        guardSingleActiveAudio(waveSurfer);
+        void waveSurfer.play();
+      } else {
+        waveSurfer.pause();
+      }
+
+      return () => {
+        playerWaveSurfer.un("play", handleGlobalPlay);
+        playerWaveSurfer.un("pause", handleGlobalPause);
+        playerWaveSurfer.un("timeupdate", handleGlobalTimeUpdate);
+        waveSurfer.un("click", handleLocalClick);
+      };
     }, [
       onTimeClick,
       playerVersion?.id,
@@ -149,13 +177,19 @@ export const Waveform = memo(
       waveSurfer,
       version.id,
       playerIsPlaying,
+      usesExternalWaveSurfer,
+      guardSingleActiveAudio,
     ]);
 
     const handlePlayPause = () => {
       // If no player loaded yet, or different version, load it
       if (!playerWaveSurfer || playerVersion?.id !== version.id) {
         const startTime = waveSurfer?.getCurrentTime() || 0;
-        loadVersion(track, version, projectName, true, startTime);
+        if (waveSurfer && onActivateVersion) {
+          onActivateVersion(version, waveSurfer, startTime, true);
+        } else {
+          loadVersion(track, version, projectName, true, startTime);
+        }
       } else {
         // Same version already loaded, just toggle play/pause
         if (playerIsPlaying) {
@@ -216,6 +250,7 @@ export const Waveform = memo(
             </div>
           )}
           <WavesurferPlayer
+            backend="WebAudio"
             height={isLoading ? 0 : 120}
             waveColor={
               resolvedTheme === "dark" ? "hsl(0 0% 35%)" : "hsl(0 0% 65%)"
@@ -229,9 +264,11 @@ export const Waveform = memo(
             url={version.audioUrl}
             peaks={version ? peaksCache[version.id] : undefined}
             onReady={(ws) => {
+              ws.setMuted(true);
               ws.setVolume(0);
               setWaveSurfer(ws);
               setIsLoading(false);
+              onWaveSurferReady?.(version.id, ws);
 
               if (playerVersion?.id === version.id) {
                 ws.setTime(usePlayerStore.getState().currentTime);
@@ -266,7 +303,11 @@ export const Waveform = memo(
             onPlay={() => {
               if (playerVersion?.id !== version.id) {
                 const startTime = waveSurfer?.getCurrentTime() || 0;
-                loadVersion(track, version, projectName, true, startTime);
+                if (waveSurfer && onActivateVersion) {
+                  onActivateVersion(version, waveSurfer, startTime, true);
+                } else {
+                  loadVersion(track, version, projectName, true, startTime);
+                }
               }
             }}
           />

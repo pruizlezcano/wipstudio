@@ -43,27 +43,26 @@ export function TrackListItem({
       uploadedBy: track.defaultVersion.uploadedBy,
     };
 
-    // Check if this version is currently loaded and ready
-    const isThisVersionLoaded =
-      playerWaveSurfer && playerVersion?.id === version.id;
+    const isThisTrackLoaded =
+      playerWaveSurfer && playerVersion?.trackId === track.id;
 
-    if (isThisVersionLoaded) {
-      // Same version already loaded and ready, just toggle play/pause
+    if (isThisTrackLoaded) {
+      // Track loaded and ready, just toggle play/pause
       if (playerIsPlaying) {
         playerWaveSurfer.pause();
       } else {
         playerWaveSurfer.play();
       }
     } else {
-      // Different version or no player loaded yet, load it with autoplay
+      // Different track or no player loaded yet, load it with autoplay
       loadVersion(track, version, projectName, true, 0);
     }
   };
 
   const isThisTrackPlaying =
-    playerVersion?.id === track.defaultVersion?.id && playerIsPlaying;
+    playerVersion?.trackId === track.id && playerIsPlaying;
   const isThisTrackLoading =
-    playerVersion?.id === track.defaultVersion?.id && playerIsLoading;
+    playerVersion?.trackId === track.id && playerIsLoading;
 
   return (
     <Link
