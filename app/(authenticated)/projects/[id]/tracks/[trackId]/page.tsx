@@ -127,6 +127,7 @@ export default function TrackDetailPage() {
       ? versions?.find((v) => v.versionNumber === versionNumberParam)
       : playingTrackVersion || defaultVersion;
   const waveformInstancesRef = useRef<Record<string, WaveSurfer>>({});
+  const [loadedWaveformIds, setLoadedWaveformIds] = useState<string[]>([]);
 
   // Track the previous master version ID to detect new uploads
   const previousMasterIdRef = useRef<string | null>(null);
@@ -432,6 +433,9 @@ export default function TrackDetailPage() {
   const registerWaveformInstance = useCallback(
     (versionId: string, waveSurfer: WaveSurfer) => {
       waveformInstancesRef.current[versionId] = waveSurfer;
+      setLoadedWaveformIds((current) =>
+        current.includes(versionId) ? current : [...current, versionId]
+      );
 
       if (usesExternalWaveSurfer && playerVersion?.id === versionId) {
         waveSurfer.setMuted(false);
@@ -446,6 +450,19 @@ export default function TrackDetailPage() {
       usesExternalWaveSurfer,
     ]
   );
+
+  useEffect(() => {
+    if (!versions) return;
+
+    setLoadedWaveformIds((current) =>
+      current.filter((versionId) => versions.some((v) => v.id === versionId))
+    );
+  }, [versions]);
+
+  const areAllWaveformsLoaded =
+    !!versions &&
+    versions.length > 0 &&
+    versions.every((version) => loadedWaveformIds.includes(version.id));
 
   // Handle shortcut triggers
   useEffect(() => {
@@ -535,6 +552,8 @@ export default function TrackDetailPage() {
   };
 
   const handleSelectVersion = async (versionNumber: number) => {
+    if (!areAllWaveformsLoaded) return;
+
     const nextVersion = versions?.find((v) => v.versionNumber === versionNumber);
 
     if (
@@ -730,6 +749,7 @@ export default function TrackDetailPage() {
                 <SelectTrigger
                   className="border-foreground w-full sm:w-auto"
                   size="sm"
+                  disabled={!areAllWaveformsLoaded}
                 >
                   <SelectValue placeholder="Select version" />
                 </SelectTrigger>
