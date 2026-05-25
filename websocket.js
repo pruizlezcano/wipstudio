@@ -2,12 +2,7 @@ import { Server } from "@hocuspocus/server";
 import { Database } from "@hocuspocus/extension-database";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import {
-  track,
-  session,
-  project,
-  projectCollaborator,
-} from "./lib/db/schema.js";
+import { track, session, project, projectMember } from "./lib/db/schema.js";
 import { eq, and } from "drizzle-orm";
 import "dotenv/config";
 
@@ -144,11 +139,11 @@ const server = new Server({
 
       const collaboratorResult = await db
         .select()
-        .from(projectCollaborator)
+        .from(projectMember)
         .where(
           and(
-            eq(projectCollaborator.projectId, projectId),
-            eq(projectCollaborator.userId, userSession.userId)
+            eq(projectMember.projectId, projectId),
+            eq(projectMember.userId, userSession.userId)
           )
         )
         .limit(1);

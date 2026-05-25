@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { projectCollaborator } from "@/lib/db/schema";
+import { projectMember } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { checkProjectAccess } from "@/lib/access-control";
 
-// DELETE /api/projects/[id]/collaborators/[userId] - Remove a collaborator
+// DELETE /api/projects/[id]/members/[userId] - Remove a member
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; userId: string }> }
@@ -26,34 +26,31 @@ export async function DELETE(
 
     if (!isOwner) {
       return NextResponse.json(
-        { error: "Project not found or access denied. Only owners can remove collaborators." },
+        {
+          error:
+            "Project not found or access denied. Only owners can remove members.",
+        },
         { status: 404 }
       );
     }
 
-    // Delete the collaborator
+    // Delete the membership
     const deleted = await db
-      .delete(projectCollaborator)
+      .delete(projectMember)
       .where(
-        and(
-          eq(projectCollaborator.projectId, id),
-          eq(projectCollaborator.userId, userId)
-        )
+        and(eq(projectMember.projectId, id), eq(projectMember.userId, userId))
       )
       .returning();
 
     if (deleted.length === 0) {
-      return NextResponse.json(
-        { error: "Collaborator not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Collaborator removed successfully" });
+    return NextResponse.json({ message: "Member removed successfully" });
   } catch (error) {
-    console.error("Error removing collaborator:", error);
+    console.error("Error removing member:", error);
     return NextResponse.json(
-      { error: "Failed to remove collaborator" },
+      { error: "Failed to remove member" },
       { status: 500 }
     );
   }

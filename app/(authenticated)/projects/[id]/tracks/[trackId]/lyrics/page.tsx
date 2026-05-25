@@ -51,8 +51,8 @@ export default function Lyrics() {
   const { resolvedTheme } = useTheme();
 
   const projectOwnerId = useMemo(
-    () => project?.collaborators?.find((c) => c.isOwner)?.userId,
-    [project?.collaborators]
+    () => project?.members?.find((m) => m.isOwner)?.userId,
+    [project?.members]
   );
 
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);

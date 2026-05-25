@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { projectCollaborator } from "@/lib/db/schema";
+import { projectMember } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { checkProjectAccess } from "@/lib/access-control";
 
@@ -34,30 +34,35 @@ export async function POST(
 
     if (isOwner) {
       return NextResponse.json(
-        { error: "Owners cannot leave their own project. You must delete the project or transfer ownership." },
+        {
+          error:
+            "Owners cannot leave their own project. You must delete the project or transfer ownership.",
+        },
         { status: 400 }
       );
     }
 
-    // Delete the collaborator record for the current user
+    // Delete the membership record for the current user
     const deleted = await db
-      .delete(projectCollaborator)
+      .delete(projectMember)
       .where(
         and(
-          eq(projectCollaborator.projectId, projectId),
-          eq(projectCollaborator.userId, userId)
+          eq(projectMember.projectId, projectId),
+          eq(projectMember.userId, userId)
         )
       )
       .returning();
 
     if (deleted.length === 0) {
       return NextResponse.json(
-        { error: "You are not a collaborator on this project" },
+        { error: "You are not a member of this project" },
         { status: 400 }
       );
     }
 
-    return NextResponse.json({ message: "You have left the project successfully" });
+    return NextResponse.json({
+      message: "You have left the project successfully",
+    });
   } catch (error) {
     console.error("Error leaving project:", error);
     return NextResponse.json(

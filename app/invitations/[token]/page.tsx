@@ -186,14 +186,14 @@ export default function InvitationAcceptPage() {
         <CardHeader>
           <CardTitle>Project Invitation</CardTitle>
           <CardDescription>
-            You have been invited to collaborate on a project
+            You have been invited to join a project
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="border-l-4 border-primary pl-4 py-2">
             <h3 className="font-semibold text-lg">{invitation.projectName}</h3>
             <p className="text-sm text-muted-foreground">
-              You will join as a collaborator
+              You will join as a member
             </p>
           </div>
 

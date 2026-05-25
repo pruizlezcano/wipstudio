@@ -1,214 +1,227 @@
-import { pgTable, text, timestamp, boolean, integer, real, AnyPgColumn, pgEnum } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  real,
+  AnyPgColumn,
+  pgEnum,
+} from "drizzle-orm/pg-core";
 
 export const notificationTypeEnum = pgEnum("notification_type", [
-    "invitation",
-    "new_track",
-    "new_version",
-    "new_comment",
-    "comment_reply",
-    "new_lyrics_comment",
-    "lyrics_comment_reply",
+  "invitation",
+  "new_track",
+  "new_version",
+  "new_comment",
+  "comment_reply",
+  "new_lyrics_comment",
+  "lyrics_comment_reply",
 ]);
 
 export const user = pgTable("user", {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    email: text("email").notNull().unique(),
-    emailVerified: boolean("email_verified").default(false).notNull(),
-    image: text("image"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .defaultNow()
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  image: text("image"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 export const session = pgTable("session", {
-    id: text("id").primaryKey(),
-    expiresAt: timestamp("expires_at").notNull(),
-    token: text("token").notNull().unique(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
-    ipAddress: text("ip_address"),
-    userAgent: text("user_agent"),
-    userId: text("user_id")
-        .notNull()
-        .references(() => user.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expires_at").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
 });
 
 export const account = pgTable("account", {
-    id: text("id").primaryKey(),
-    accountId: text("account_id").notNull(),
-    providerId: text("provider_id").notNull(),
-    userId: text("user_id")
-        .notNull()
-        .references(() => user.id, { onDelete: "cascade" }),
-    accessToken: text("access_token"),
-    refreshToken: text("refresh_token"),
-    idToken: text("id_token"),
-    accessTokenExpiresAt: timestamp("access_token_expires_at"),
-    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
-    scope: text("scope"),
-    password: text("password"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+  id: text("id").primaryKey(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 export const verification = pgTable("verification", {
-    id: text("id").primaryKey(),
-    identifier: text("identifier").notNull(),
-    value: text("value").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .defaultNow()
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 export const project = pgTable("project", {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    description: text("description"),
-    ownerId: text("owner_id")
-        .notNull()
-        .references(() => user.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .defaultNow()
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 export const track = pgTable("track", {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    projectId: text("project_id")
-        .notNull()
-        .references(() => project.id, { onDelete: "cascade" }),
-    createdById: text("created_by_id")
-        .references(() => user.id, { onDelete: "set null" }),
-    lyrics: text("lyrics"), // Y.js document as base64-encoded binary
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .defaultNow()
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => project.id, { onDelete: "cascade" }),
+  createdById: text("created_by_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  lyrics: text("lyrics"), // Y.js document as base64-encoded binary
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 export const trackVersion = pgTable("track_version", {
-    id: text("id").primaryKey(),
-    trackId: text("track_id")
-        .notNull()
-        .references(() => track.id, { onDelete: "cascade" }),
-    versionNumber: integer("version_number").notNull(),
-    audioUrl: text("audio_url").notNull(), // S3 object key
-    notes: text("notes"),
-    isMaster: boolean("is_master").default(false).notNull(),
-    uploadedById: text("uploaded_by_id")
-        .references(() => user.id, { onDelete: "set null" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .defaultNow()
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+  id: text("id").primaryKey(),
+  trackId: text("track_id")
+    .notNull()
+    .references(() => track.id, { onDelete: "cascade" }),
+  versionNumber: integer("version_number").notNull(),
+  audioUrl: text("audio_url").notNull(), // S3 object key
+  notes: text("notes"),
+  isMaster: boolean("is_master").default(false).notNull(),
+  uploadedById: text("uploaded_by_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 export const comment = pgTable("comment", {
-    id: text("id").primaryKey(),
-    versionId: text("version_id")
-        .notNull()
-        .references(() => trackVersion.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-        .references(() => user.id, { onDelete: "set null" }),
-    content: text("content").notNull(),
-    timestamp: real("timestamp"), // Audio timestamp in seconds. null == reply
-    parentId: text("parent_id")
-        .references((): AnyPgColumn => comment.id, { onDelete: "cascade" }), // For threaded replies
-    resolvedAt: timestamp("resolved_at"), // When comment was resolved
-    resolvedById: text("resolved_by_id")
-        .references(() => user.id, { onDelete: "set null" }), // Who resolved the comment
-    editedAt: timestamp("edited_at"), // When comment content was last edited
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .defaultNow()
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+  id: text("id").primaryKey(),
+  versionId: text("version_id")
+    .notNull()
+    .references(() => trackVersion.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  content: text("content").notNull(),
+  timestamp: real("timestamp"), // Audio timestamp in seconds. null == reply
+  parentId: text("parent_id").references((): AnyPgColumn => comment.id, {
+    onDelete: "cascade",
+  }), // For threaded replies
+  resolvedAt: timestamp("resolved_at"), // When comment was resolved
+  resolvedById: text("resolved_by_id").references(() => user.id, {
+    onDelete: "set null",
+  }), // Who resolved the comment
+  editedAt: timestamp("edited_at"), // When comment content was last edited
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
-export const projectCollaborator = pgTable("project_collaborator", {
-    id: text("id").primaryKey(),
-    projectId: text("project_id")
-        .notNull()
-        .references(() => project.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-        .notNull()
-        .references(() => user.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .defaultNow()
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+export const projectMember = pgTable("project_member", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => project.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 export const projectInvitation = pgTable("project_invitation", {
-    id: text("id").primaryKey(),
-    projectId: text("project_id")
-        .notNull()
-        .references(() => project.id, { onDelete: "cascade" }),
-    token: text("token").notNull().unique(),
-    createdById: text("created_by_id")
-        .notNull()
-        .references(() => user.id, { onDelete: "cascade" }),
-    email: text("email"), // Optional: invite specific email
-    maxUses: integer("max_uses"), // null = unlimited
-    currentUses: integer("current_uses").notNull().default(0),
-    expiresAt: timestamp("expires_at"), // null = never expires
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .defaultNow()
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+  id: text("id").primaryKey(),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => project.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  createdById: text("created_by_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  email: text("email"), // Optional: invite specific email
+  maxUses: integer("max_uses"), // null = unlimited
+  currentUses: integer("current_uses").notNull().default(0),
+  expiresAt: timestamp("expires_at"), // null = never expires
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 export const lyricsComment = pgTable("lyrics_comment", {
-    id: text("id").primaryKey(),
-    trackId: text("track_id")
-        .notNull()
-        .references(() => track.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-        .references(() => user.id, { onDelete: "set null" }),
-    content: text("content").notNull(),
-    parentId: text("parent_id")
-        .references((): AnyPgColumn => lyricsComment.id, { onDelete: "cascade" }), // For threaded replies
-    // Position fields for the comment range in the document (only for top-level comments)
-    rangeFrom: integer("range_from"), // Start position of the commented text
-    rangeTo: integer("range_to"), // End position of the commented text
-    rangeText: text("range_text"), // The actual text that was commented (for recovery if positions change)
-    resolvedAt: timestamp("resolved_at"), // When comment was resolved
-    resolvedById: text("resolved_by_id")
-        .references(() => user.id, { onDelete: "set null" }), // Who resolved the comment
-    editedAt: timestamp("edited_at"), // When comment content was last edited
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-        .defaultNow()
-        .$onUpdate(() => /* @__PURE__ */ new Date())
-        .notNull(),
+  id: text("id").primaryKey(),
+  trackId: text("track_id")
+    .notNull()
+    .references(() => track.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  content: text("content").notNull(),
+  parentId: text("parent_id").references((): AnyPgColumn => lyricsComment.id, {
+    onDelete: "cascade",
+  }), // For threaded replies
+  // Position fields for the comment range in the document (only for top-level comments)
+  rangeFrom: integer("range_from"), // Start position of the commented text
+  rangeTo: integer("range_to"), // End position of the commented text
+  rangeText: text("range_text"), // The actual text that was commented (for recovery if positions change)
+  resolvedAt: timestamp("resolved_at"), // When comment was resolved
+  resolvedById: text("resolved_by_id").references(() => user.id, {
+    onDelete: "set null",
+  }), // Who resolved the comment
+  editedAt: timestamp("edited_at"), // When comment content was last edited
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 export const notification = pgTable("notification", {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
-        .notNull()
-        .references(() => user.id, { onDelete: "cascade" }),
-    type: notificationTypeEnum("type").notNull(),
-    title: text("title").notNull(),
-    message: text("message").notNull(),
-    metadata: text("metadata"), // JSON string with additional data (projectId, trackId, etc.)
-    readAt: timestamp("read_at"), // null = unread
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  type: notificationTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  metadata: text("metadata"), // JSON string with additional data (projectId, trackId, etc.)
+  readAt: timestamp("read_at"), // null = unread
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });

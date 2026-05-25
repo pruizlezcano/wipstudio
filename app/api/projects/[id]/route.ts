@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { project, track, trackVersion, user, projectCollaborator } from "@/lib/db/schema";
+import {
+  project,
+  track,
+  trackVersion,
+  user,
+  projectMember,
+} from "@/lib/db/schema";
 import { eq, sql, max } from "drizzle-orm";
 import { updateProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
@@ -25,14 +31,20 @@ export async function GET(
 
     const { id } = await params;
 
-    const { hasAccess, project: projectData } = await checkProjectAccess(id, session.user.id);
+    const { hasAccess, project: projectData } = await checkProjectAccess(
+      id,
+      session.user.id
+    );
 
     if (!hasAccess || !projectData) {
-      return NextResponse.json({ error: "Project not found or access denied." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Project not found or access denied." },
+        { status: 404 }
+      );
     }
 
-    // Fetch details (owner, collaborators, lastVersionAt)
-    const [ownerResult, collaborators, lastVersionResult] = await Promise.all([
+    // Fetch details (owner, members, lastVersionAt)
+    const [ownerResult, members, lastVersionResult] = await Promise.all([
       db
         .select({
           name: user.name,
@@ -47,9 +59,9 @@ export async function GET(
           name: user.name,
           image: user.image,
         })
-        .from(projectCollaborator)
-        .innerJoin(user, eq(projectCollaborator.userId, user.id))
-        .where(eq(projectCollaborator.projectId, id)),
+        .from(projectMember)
+        .innerJoin(user, eq(projectMember.userId, user.id))
+        .where(eq(projectMember.projectId, id)),
       db
         .select({ lastVersionAt: max(trackVersion.createdAt) })
         .from(track)
@@ -67,15 +79,15 @@ export async function GET(
         image: ownerInfo?.image || null,
         isOwner: true,
       },
-      ...collaborators.map((c) => ({
-        ...c,
+      ...members.map((m) => ({
+        ...m,
         isOwner: false,
       })),
     ];
 
     return NextResponse.json({
       ...rest,
-      collaborators: allMembers,
+      members: allMembers,
       lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
       isOwner: projectData.ownerId === session.user.id,
     });
@@ -109,7 +121,12 @@ export async function PATCH(
     const access = await checkProjectAccess(id, session.user.id);
 
     if (!access.hasAccess) {
-      return NextResponse.json({ error: "Project not found or access denied. Only owners can update." }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Project not found or access denied. Only owners can update.",
+        },
+        { status: 404 }
+      );
     }
 
     const updatedProject = await db
@@ -123,8 +140,8 @@ export async function PATCH(
 
     const projectData = updatedProject[0];
 
-    // Fetch details (owner, collaborators, lastVersionAt)
-    const [ownerResult, collaborators, lastVersionResult] = await Promise.all([
+    // Fetch details (owner, members, lastVersionAt)
+    const [ownerResult, members, lastVersionResult] = await Promise.all([
       db
         .select({
           name: user.name,
@@ -139,9 +156,9 @@ export async function PATCH(
           name: user.name,
           image: user.image,
         })
-        .from(projectCollaborator)
-        .innerJoin(user, eq(projectCollaborator.userId, user.id))
-        .where(eq(projectCollaborator.projectId, id)),
+        .from(projectMember)
+        .innerJoin(user, eq(projectMember.userId, user.id))
+        .where(eq(projectMember.projectId, id)),
       db
         .select({ lastVersionAt: max(trackVersion.createdAt) })
         .from(track)
@@ -159,15 +176,15 @@ export async function PATCH(
         image: ownerInfo?.image || null,
         isOwner: true,
       },
-      ...collaborators.map((c) => ({
-        ...c,
+      ...members.map((m) => ({
+        ...m,
         isOwner: false,
       })),
     ];
 
     return NextResponse.json({
       ...rest,
-      collaborators: allMembers,
+      members: allMembers,
       lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
       isOwner: projectData.ownerId === session.user.id,
     });
@@ -206,14 +223,16 @@ export async function DELETE(
     const { isOwner } = await checkProjectAccess(id, session.user.id);
 
     if (!isOwner) {
-      return NextResponse.json({ error: "Project not found or access denied. Only owners can delete." }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Project not found or access denied. Only owners can delete.",
+        },
+        { status: 404 }
+      );
     }
 
     // Fetch all tracks for this project
-    const tracks = await db
-      .select()
-      .from(track)
-      .where(eq(track.projectId, id));
+    const tracks = await db.select().from(track).where(eq(track.projectId, id));
 
     // For each track, fetch and delete all version files from S3
     const allVersionDeletePromises = tracks.flatMap((t) =>

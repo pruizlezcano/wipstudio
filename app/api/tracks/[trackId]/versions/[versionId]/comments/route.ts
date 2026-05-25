@@ -8,7 +8,7 @@ import {
   track,
   project,
   user,
-  projectCollaborator,
+  projectMember,
 } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { createCommentSchema } from "@/lib/validations/comment";
@@ -76,7 +76,7 @@ export async function GET(
       return NextResponse.json({ error: "Version not found" }, { status: 404 });
     }
 
-    // Check if user has access to the project (owner or collaborator)
+    // Check if user has access to the project (owner or member)
     const { hasAccess } = await checkProjectAccess(
       versionRecord[0].project.id,
       session.user.id
@@ -197,7 +197,7 @@ export async function POST(
       return NextResponse.json({ error: "Version not found" }, { status: 404 });
     }
 
-    // Check if user has access to the project (owner or collaborator)
+    // Check if user has access to the project (owner or member)
     const { hasAccess } = await checkProjectAccess(
       versionRecord[0].project.id,
       session.user.id
@@ -302,13 +302,13 @@ export async function POST(
         });
       }
     } else {
-      // This is a new comment - notify all collaborators
-      const collaborators = await db
-        .select({ userId: projectCollaborator.userId })
-        .from(projectCollaborator)
-        .where(eq(projectCollaborator.projectId, versionRecord[0].project.id));
+      // This is a new comment - notify all members
+      const members = await db
+        .select({ userId: projectMember.userId })
+        .from(projectMember)
+        .where(eq(projectMember.projectId, versionRecord[0].project.id));
 
-      const recipientIds = collaborators
+      const recipientIds = members
         .map((c) => c.userId)
         .filter((userId) => userId !== session.user.id);
 

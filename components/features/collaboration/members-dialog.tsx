@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,36 +19,36 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useProject } from "@/hooks/use-projects";
 import {
-  useCollaborators,
-  useRemoveCollaborator,
-} from "@/hooks/use-collaborators";
-import { CollaboratorItem } from "./collaborator-item";
+  useMembers,
+  useRemoveMember,
+} from "@/hooks/use-members";
+import { MemberItem } from "./member-item";
 
-interface CollaboratorsDialogProps {
+interface MembersDialogProps {
   projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CollaboratorsDialog({
+export function MembersDialog({
   projectId,
   open,
   onOpenChange,
-}: CollaboratorsDialogProps) {
+}: MembersDialogProps) {
   const { data: project } = useProject(projectId);
-  const { data: collaborators } = useCollaborators(projectId);
-  const removeCollaborator = useRemoveCollaborator();
-  const [collaboratorToRemove, setCollaboratorToRemove] = useState<
+  const { data: members } = useMembers(projectId);
+  const removeMember = useRemoveMember();
+  const [memberToRemove, setMemberToRemove] = useState<
     string | null
   >(null);
 
-  const handleRemoveCollaborator = async () => {
-    if (!collaboratorToRemove) return;
-    await removeCollaborator.mutateAsync({
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return;
+    await removeMember.mutateAsync({
       projectId,
-      userId: collaboratorToRemove,
+      userId: memberToRemove,
     });
-    setCollaboratorToRemove(null);
+    setMemberToRemove(null);
   };
 
   return (
@@ -58,45 +57,43 @@ export function CollaboratorsDialog({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Project Members</DialogTitle>
-            <DialogDescription>Manage project collaborators</DialogDescription>
           </DialogHeader>
 
-          {collaborators && collaborators.length > 0 ? (
+          {members && members.length > 0 ? (
             <div className="space-y-2">
-              {collaborators.map((collab) => (
-                <CollaboratorItem
-                  key={collab.userId}
-                  collaborator={collab}
+              {members.map((member) => (
+                <MemberItem
+                  key={member.userId}
+                  member={member}
                   isCurrentUserOwner={!!project?.isOwner}
-                  onRemove={setCollaboratorToRemove}
+                  onRemove={setMemberToRemove}
                 />
               ))}
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-4">
-              No collaborators yet. Create an invitation to add collaborators.
+              No members yet. Create an invitation to add members.
             </p>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Remove Collaborator Confirmation */}
+      {/* Remove Member Confirmation */}
       <AlertDialog
-        open={!!collaboratorToRemove}
-        onOpenChange={() => setCollaboratorToRemove(null)}
+        open={!!memberToRemove}
+        onOpenChange={() => setMemberToRemove(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Collaborator</AlertDialogTitle>
+            <AlertDialogTitle>Remove Member</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove this collaborator from the
-              project?
+              Are you sure you want to remove this member from the project?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleRemoveCollaborator}
+              onClick={handleRemoveMember}
               className="bg-destructive text-white border-destructive hover:bg-white hover:text-destructive hover:border-destructive"
             >
               Remove

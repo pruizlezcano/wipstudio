@@ -2,43 +2,41 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api-error";
 import { useProject, projectKeys } from "./use-projects";
-// Remove collaborator
-async function removeCollaborator({
+
+// Remove member
+async function removeMember({
   projectId,
   userId,
 }: {
   projectId: string;
   userId: string;
 }): Promise<void> {
-  const response = await fetch(
-    `/api/projects/${projectId}/collaborators/${userId}`,
-    {
-      method: "DELETE",
-    }
-  );
+  const response = await fetch(`/api/projects/${projectId}/members/${userId}`, {
+    method: "DELETE",
+  });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to remove collaborator", response.status);
+    throw new ApiError(error.error || "Failed to remove member", response.status);
   }
 }
 
 // Hooks
-export function useCollaborators(projectId: string) {
+export function useMembers(projectId: string) {
   const { data: project, isLoading, error } = useProject(projectId);
-  return { data: project?.collaborators, isLoading, error };
+  return { data: project?.members, isLoading, error };
 }
 
-export function useRemoveCollaborator() {
+export function useRemoveMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: removeCollaborator,
-    onSuccess: (_, { projectId, userId }) => {
+    mutationFn: removeMember,
+    onSuccess: (_, { projectId }) => {
       // Invalidate project list and detail queries
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
-      toast.success("Collaborator removed successfully");
+      toast.success("Member removed successfully");
     },
     onError: (error: Error) => {
       toast.error(error.message);

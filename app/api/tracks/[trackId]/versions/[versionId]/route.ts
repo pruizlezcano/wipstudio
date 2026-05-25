@@ -40,7 +40,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Track not found" }, { status: 404 });
     }
 
-    // Check if user has access to project (owner or collaborator)
+    // Check if user has access to project (owner or member)
     const { hasAccess } = await checkProjectAccess(
       trackRecord[0].project.id,
       session.user.id

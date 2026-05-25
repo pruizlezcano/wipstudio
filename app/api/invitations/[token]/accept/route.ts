@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
-import { projectInvitation, projectCollaborator, user } from "@/lib/db/schema";
+import { projectInvitation, projectMember, user } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
 // POST /api/invitations/[token]/accept - Accept an invitation
@@ -61,13 +61,12 @@ export async function POST(
         .limit(1);
 
       if (currentUser.length === 0) {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      const allowedEmails = inv.email.split(",").map(e => e.trim().toLowerCase());
+      const allowedEmails = inv.email
+        .split(",")
+        .map((e) => e.trim().toLowerCase());
       if (!allowedEmails.includes(currentUser[0].email.toLowerCase())) {
         return NextResponse.json(
           { error: "This invitation is for a different email address" },
@@ -76,28 +75,28 @@ export async function POST(
       }
     }
 
-    // Check if user is already a collaborator
-    const existingCollaborator = await db
+    // Check if user is already a member
+    const existingMember = await db
       .select()
-      .from(projectCollaborator)
+      .from(projectMember)
       .where(
         and(
-          eq(projectCollaborator.projectId, inv.projectId),
-          eq(projectCollaborator.userId, session.user.id)
+          eq(projectMember.projectId, inv.projectId),
+          eq(projectMember.userId, session.user.id)
         )
       )
       .limit(1);
 
-    if (existingCollaborator.length > 0) {
+    if (existingMember.length > 0) {
       return NextResponse.json(
-        { error: "You are already a collaborator on this project" },
+        { error: "You are already a member of this project" },
         { status: 400 }
       );
     }
 
-    // Create collaborator
-    const newCollaborator = await db
-      .insert(projectCollaborator)
+    // Create membership
+    const newMember = await db
+      .insert(projectMember)
       .values({
         id: crypto.randomUUID(),
         projectId: inv.projectId,
@@ -116,7 +115,7 @@ export async function POST(
 
     return NextResponse.json({
       message: "Successfully joined project",
-      collaborator: newCollaborator[0],
+      member: newMember[0],
       projectId: inv.projectId,
     });
   } catch (error) {

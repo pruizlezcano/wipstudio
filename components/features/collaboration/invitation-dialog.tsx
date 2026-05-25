@@ -146,7 +146,7 @@ export function InvitationDialog({
           <DialogHeader>
             <DialogTitle>Invite Collaborators</DialogTitle>
             <DialogDescription className="text-xs">
-              Create an invitation link to share with collaborators
+              Create an invitation link to share with members
             </DialogDescription>
           </DialogHeader>
 

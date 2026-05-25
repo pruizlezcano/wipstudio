@@ -1,5 +1,5 @@
 import { PaginationInfo } from "./pagination";
-import { Collaborator } from "./collaborator";
+import { Member } from "./member";
 
 export interface Project {
   id: string;
@@ -8,7 +8,7 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   lastVersionAt: string | null;
-  collaborators: Collaborator[];
+  members: Member[];
   isOwner?: boolean;
 }
 

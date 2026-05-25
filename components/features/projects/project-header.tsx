@@ -8,19 +8,19 @@ interface ProjectHeaderProps {
     name: string;
     description?: string | null;
   };
-  collaboratorsCount: number;
+  membersCount: number;
   isOwner?: boolean;
   onInvite: () => void;
-  onShowCollaborators: () => void;
+  onShowMembers: () => void;
   onLeaveProject?: () => void;
 }
 
 export function ProjectHeader({
   project,
-  collaboratorsCount,
+  membersCount,
   isOwner,
   onInvite,
-  onShowCollaborators,
+  onShowMembers,
   onLeaveProject,
 }: ProjectHeaderProps) {
   return (
@@ -40,10 +40,10 @@ export function ProjectHeader({
         <div className="flex gap-2 shrink-0">
           <Button
             variant="outline"
-            onClick={onShowCollaborators}
+            onClick={onShowMembers}
             className="text-xs sm:text-sm"
           >
-            Collaborators ({collaboratorsCount})
+            Members ({membersCount})
           </Button>
           {!isOwner && onLeaveProject && (
             <Button

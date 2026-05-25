@@ -6,7 +6,7 @@ import {
   track,
   trackVersion,
   project,
-  projectCollaborator,
+  projectMember,
   user,
 } from "@/lib/db/schema";
 import { eq, count, inArray } from "drizzle-orm";
@@ -56,7 +56,7 @@ export async function GET(
     );
     const offset = (page - 1) * limit;
 
-    // Check if user has access to project (owner or collaborator)
+    // Check if user has access to project (owner or member)
     const { hasAccess } = await checkProjectAccess(projectId, session.user.id);
 
     if (!hasAccess) {
@@ -276,7 +276,7 @@ export async function POST(
 
     const { id: projectId } = await params;
 
-    // Check if user has access to project (owner or collaborator)
+    // Check if user has access to project (owner or member)
     const { hasAccess } = await checkProjectAccess(projectId, session.user.id);
 
     if (!hasAccess) {
@@ -362,13 +362,13 @@ export async function POST(
       .where(eq(project.id, projectId))
       .limit(1);
 
-    // Get all collaborators (except the creator) to notify
-    const collaborators = await db
-      .select({ userId: projectCollaborator.userId })
-      .from(projectCollaborator)
-      .where(eq(projectCollaborator.projectId, projectId));
+    // Get all members (except the creator) to notify
+    const members = await db
+      .select({ userId: projectMember.userId })
+      .from(projectMember)
+      .where(eq(projectMember.projectId, projectId));
 
-    const recipientIds = collaborators
+    const recipientIds = members
       .map((c) => c.userId)
       .filter((userId) => userId !== session.user.id);
 

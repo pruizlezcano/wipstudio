@@ -6,7 +6,7 @@ import {
   trackVersion,
   track,
   project,
-  projectCollaborator,
+  projectMember,
   user,
 } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -57,7 +57,7 @@ export async function GET(
       return NextResponse.json({ error: "Track not found" }, { status: 404 });
     }
 
-    // Check if user has access to project (owner or collaborator)
+    // Check if user has access to project (owner or member)
     const { hasAccess } = await checkProjectAccess(
       trackRecord[0].project.id,
       session.user.id
@@ -149,7 +149,7 @@ export async function POST(
       return NextResponse.json({ error: "Track not found" }, { status: 404 });
     }
 
-    // Check if user has access to project (owner or collaborator)
+    // Check if user has access to project (owner or member)
     const { hasAccess } = await checkProjectAccess(
       trackRecord[0].project.id,
       session.user.id
@@ -237,13 +237,13 @@ export async function POST(
       })
       .returning();
 
-    // Get all collaborators (except the uploader) to notify
-    const collaborators = await db
-      .select({ userId: projectCollaborator.userId })
-      .from(projectCollaborator)
-      .where(eq(projectCollaborator.projectId, trackRecord[0].project.id));
+    // Get all members (except the uploader) to notify
+    const members = await db
+      .select({ userId: projectMember.userId })
+      .from(projectMember)
+      .where(eq(projectMember.projectId, trackRecord[0].project.id));
 
-    const recipientIds = collaborators
+    const recipientIds = members
       .map((c) => c.userId)
       .filter((userId) => userId !== session.user.id);
 

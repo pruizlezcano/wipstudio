@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db/db";
 import {
   project,
-  projectCollaborator,
+  projectMember,
   user,
   track,
   trackVersion,
@@ -58,11 +58,11 @@ export async function GET(request: NextRequest) {
       .where(eq(project.ownerId, session.user.id));
     const ownedCount = ownedCountResult[0]?.count || 0;
 
-    // Get total count of collaborated projects
+    // Get total count of joined projects
     const collaboratedCountResult = await db
       .select({ count: count() })
-      .from(projectCollaborator)
-      .where(eq(projectCollaborator.userId, session.user.id));
+      .from(projectMember)
+      .where(eq(projectMember.userId, session.user.id));
     const collaboratedCount = collaboratedCountResult[0]?.count || 0;
 
     const total = ownedCount + collaboratedCount;
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       .where(eq(project.ownerId, session.user.id))
       .orderBy(orderByClause);
 
-    // Get collaborated projects
+    // Get joined projects
     const collaboratedProjects = await db
       .select({
         id: project.id,
@@ -100,20 +100,20 @@ export async function GET(request: NextRequest) {
           image: user.image,
         },
       })
-      .from(projectCollaborator)
-      .innerJoin(project, eq(projectCollaborator.projectId, project.id))
+      .from(projectMember)
+      .innerJoin(project, eq(projectMember.projectId, project.id))
       .leftJoin(user, eq(project.ownerId, user.id))
-      .where(eq(projectCollaborator.userId, session.user.id))
+      .where(eq(projectMember.userId, session.user.id))
       .orderBy(orderByClause);
 
     // Combine and sort in memory, then paginate
     const allProjects = [...ownedProjects, ...collaboratedProjects];
 
-    // Fetch lastVersionAt and collaborators for all projects before sorting
+    // Fetch lastVersionAt and members for all projects before sorting
     const projectsWithDetails = await Promise.all(
       allProjects.map(async (p) => {
         // Get the latest version date across all tracks in the project
-        const [lastVersionResult, collaborators] = await Promise.all([
+        const [lastVersionResult, members] = await Promise.all([
           db
             .select({ lastVersionAt: max(trackVersion.createdAt) })
             .from(track)
@@ -125,9 +125,9 @@ export async function GET(request: NextRequest) {
               name: user.name,
               image: user.image,
             })
-            .from(projectCollaborator)
-            .innerJoin(user, eq(projectCollaborator.userId, user.id))
-            .where(eq(projectCollaborator.projectId, p.id)),
+            .from(projectMember)
+            .innerJoin(user, eq(projectMember.userId, user.id))
+            .where(eq(projectMember.projectId, p.id)),
         ]);
 
         const allMembers = [
@@ -135,8 +135,8 @@ export async function GET(request: NextRequest) {
             ...p.owner,
             isOwner: true,
           },
-          ...collaborators.map((c) => ({
-            ...c,
+          ...members.map((m) => ({
+            ...m,
             isOwner: false,
           })),
         ];
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
         return {
           ...projectWithoutOwner,
           lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
-          collaborators: allMembers,
+          members: allMembers,
         };
       })
     );
@@ -182,10 +182,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Apply pagination
-    const paginatedProjects = projectsWithDetails.slice(
-      offset,
-      offset + limit
-    );
+    const paginatedProjects = projectsWithDetails.slice(offset, offset + limit);
 
     return NextResponse.json({
       data: paginatedProjects,
@@ -235,7 +232,7 @@ export async function POST(request: NextRequest) {
       {
         ...projectDataWithoutOwnerId,
         lastVersionAt: null,
-        collaborators: [
+        members: [
           {
             userId: session.user.id,
             name: session.user.name,

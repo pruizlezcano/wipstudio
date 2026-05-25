@@ -26,7 +26,7 @@ import {
   type TrackSortBy,
   type SortOrder,
 } from "@/hooks/use-tracks";
-import { useCollaborators, useLeaveProject } from "@/hooks/use-collaborators";
+import { useMembers, useLeaveProject } from "@/hooks/use-members";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ErrorState } from "@/components/common/error-state";
 import { ProjectHeader } from "@/components/features/projects/project-header";
@@ -34,7 +34,7 @@ import { TrackList } from "@/components/features/tracks/track-list";
 import { TrackUploadDialog } from "@/components/features/tracks/track-upload-dialog";
 import { TrackEmptyState } from "@/components/features/tracks/track-empty-state";
 import { InvitationDialog } from "@/components/features/collaboration/invitation-dialog";
-import { CollaboratorsDialog } from "@/components/features/collaboration/collaborators-dialog";
+import { MembersDialog } from "@/components/features/collaboration/members-dialog";
 import {
   FullScreenDropzone,
   FullScreenDropzoneRef,
@@ -77,7 +77,7 @@ export default function ProjectDetailPage() {
     sortOrder,
     limit: TRACKS_PER_PAGE,
   });
-  const { data: collaborators } = useCollaborators(projectId);
+  const { data: members } = useMembers(projectId);
   const leaveProjectMutation = useLeaveProject();
 
   // Flatten all pages into a single array of tracks
@@ -108,7 +108,7 @@ export default function ProjectDetailPage() {
   }, [handleObserver]);
 
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-  const [isCollaboratorsDialogOpen, setIsCollaboratorsDialogOpen] =
+  const [isMembersDialogOpen, setIsMembersDialogOpen] =
     useState(false);
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const { isTrackUploadDialogOpen, setTrackUploadDialogOpen } = useUIStore();
@@ -166,10 +166,10 @@ export default function ProjectDetailPage() {
       <div className="container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6 min-h-screen">
         <ProjectHeader
           project={project}
-          collaboratorsCount={collaborators?.length || 0}
+          membersCount={members?.length || 0}
           isOwner={project.isOwner}
           onInvite={() => setIsInviteDialogOpen(true)}
-          onShowCollaborators={() => setIsCollaboratorsDialogOpen(true)}
+          onShowMembers={() => setIsMembersDialogOpen(true)}
           onLeaveProject={() => setIsLeaveDialogOpen(true)}
         />
 
@@ -228,20 +228,23 @@ export default function ProjectDetailPage() {
           onOpenChange={setIsInviteDialogOpen}
         />
 
-        <CollaboratorsDialog
+        <MembersDialog
           projectId={projectId}
-          open={isCollaboratorsDialogOpen}
-          onOpenChange={setIsCollaboratorsDialogOpen}
+          open={isMembersDialogOpen}
+          onOpenChange={setIsMembersDialogOpen}
         />
 
-        <AlertDialog open={isLeaveDialogOpen} onOpenChange={setIsLeaveDialogOpen}>
+        <AlertDialog
+          open={isLeaveDialogOpen}
+          onOpenChange={setIsLeaveDialogOpen}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This action will remove you as a collaborator from the project
-                &quot;{project.name}&quot;. You will lose access to all tracks and
-                versions unless you are invited back.
+                This action will remove you as a member from the project
+                &quot;{project.name}&quot;. You will lose access to all tracks
+                and versions unless you are invited back.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -256,7 +259,9 @@ export default function ProjectDetailPage() {
                 disabled={leaveProjectMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {leaveProjectMutation.isPending ? "Leaving..." : "Leave Project"}
+                {leaveProjectMutation.isPending
+                  ? "Leaving..."
+                  : "Leave Project"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

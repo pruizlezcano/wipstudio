@@ -36,6 +36,13 @@
       "when": 1772464649209,
       "tag": "20260302151729_lyric-comments-notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779695276682,
+      "tag": "20260525074756_project-member-rename",
+      "breakpoints": true
     }
   ]
 }
