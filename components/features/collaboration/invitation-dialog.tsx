@@ -87,7 +87,7 @@ export function InvitationDialog({
     e.preventDefault();
 
     // Add current input if it's a valid email
-    let finalEmails = [...emails];
+    const finalEmails = [...emails];
     if (inviteEmail.trim() && inviteEmail.includes("@")) {
       finalEmails.push(inviteEmail.trim());
     }

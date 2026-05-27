@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -17,12 +18,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { useProject } from "@/hooks/use-projects";
 import {
   useMembers,
   useRemoveMember,
 } from "@/hooks/use-members";
 import { MemberItem } from "./member-item";
+import { InvitationDialog } from "./invitation-dialog";
 
 interface MembersDialogProps {
   projectId: string;
@@ -38,6 +41,7 @@ export function MembersDialog({
   const { data: project } = useProject(projectId);
   const { data: members } = useMembers(projectId);
   const removeMember = useRemoveMember();
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<
     string | null
   >(null);
@@ -57,7 +61,18 @@ export function MembersDialog({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Project Members</DialogTitle>
+            <DialogDescription>
+              View project members and manage access.
+            </DialogDescription>
           </DialogHeader>
+
+          {project?.isOwner && (
+            <div className="flex justify-end">
+              <Button onClick={() => setIsInviteDialogOpen(true)}>
+                Invite Members
+              </Button>
+            </div>
+          )}
 
           {members && members.length > 0 ? (
             <div className="space-y-2">
@@ -77,6 +92,12 @@ export function MembersDialog({
           )}
         </DialogContent>
       </Dialog>
+
+      <InvitationDialog
+        projectId={projectId}
+        open={isInviteDialogOpen}
+        onOpenChange={setIsInviteDialogOpen}
+      />
 
       {/* Remove Member Confirmation */}
       <AlertDialog

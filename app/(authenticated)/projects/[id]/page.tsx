@@ -32,11 +32,9 @@ import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ErrorState } from "@/components/common/error-state";
 import { ProjectHeader } from "@/components/features/projects/project-header";
 import { ProjectEditDialog } from "@/components/features/projects/project-edit-dialog";
-import { ProjectDeleteDialog } from "@/components/features/projects/project-delete-dialog";
 import { TrackList } from "@/components/features/tracks/track-list";
 import { TrackUploadDialog } from "@/components/features/tracks/track-upload-dialog";
 import { TrackEmptyState } from "@/components/features/tracks/track-empty-state";
-import { InvitationDialog } from "@/components/features/collaboration/invitation-dialog";
 import { MembersDialog } from "@/components/features/collaboration/members-dialog";
 import {
   FullScreenDropzone,
@@ -110,12 +108,10 @@ export default function ProjectDetailPage() {
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isMembersDialogOpen, setIsMembersDialogOpen] =
     useState(false);
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { isTrackUploadDialogOpen, setTrackUploadDialogOpen } = useUIStore();
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
 
@@ -174,11 +170,9 @@ export default function ProjectDetailPage() {
           project={project}
           membersCount={members?.length || 0}
           isOwner={project.isOwner}
-          onInvite={() => setIsInviteDialogOpen(true)}
           onShowMembers={() => setIsMembersDialogOpen(true)}
           onLeaveProject={() => setIsLeaveDialogOpen(true)}
           onEditProject={() => setIsEditDialogOpen(true)}
-          onDeleteProject={() => setIsDeleteDialogOpen(true)}
         />
 
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
@@ -230,22 +224,10 @@ export default function ProjectDetailPage() {
           preSelectedFile={droppedFile}
         />
 
-        <InvitationDialog
-          projectId={projectId}
-          open={isInviteDialogOpen}
-          onOpenChange={setIsInviteDialogOpen}
-        />
-
         <ProjectEditDialog
           project={project}
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
-        />
-
-        <ProjectDeleteDialog
-          project={project}
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
           onDeleted={() => router.push("/projects")}
         />
 

@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { createProjectTint } from "@/lib/project-artwork";
 
 interface ProjectHeaderProps {
   project: {
@@ -13,22 +12,18 @@ interface ProjectHeaderProps {
   };
   membersCount: number;
   isOwner?: boolean;
-  onInvite: () => void;
   onShowMembers: () => void;
   onLeaveProject?: () => void;
   onEditProject?: () => void;
-  onDeleteProject?: () => void;
 }
 
 export function ProjectHeader({
   project,
   membersCount,
   isOwner,
-  onInvite,
   onShowMembers,
   onLeaveProject,
   onEditProject,
-  onDeleteProject,
 }: ProjectHeaderProps) {
   return (
     <div className="overflow-hidden">
@@ -69,15 +64,6 @@ export function ProjectHeader({
               Edit
             </Button>
           )}
-          {isOwner && onDeleteProject && (
-            <Button
-              variant="outline"
-              onClick={onDeleteProject}
-              className="text-xs sm:text-sm text-destructive hover:text-destructive"
-            >
-              Delete
-            </Button>
-          )}
           {!isOwner && onLeaveProject && (
             <Button
               variant="outline"
@@ -85,11 +71,6 @@ export function ProjectHeader({
               className="text-xs sm:text-sm text-destructive hover:text-destructive"
             >
               Leave Project
-            </Button>
-          )}
-          {isOwner && (
-            <Button onClick={onInvite} className="text-xs sm:text-sm">
-              Invite
             </Button>
           )}
         </div>

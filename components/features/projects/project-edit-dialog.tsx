@@ -19,21 +19,25 @@ import type { Project } from "@/types";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ProjectArtworkField } from "@/components/features/projects/project-artwork-field";
 import { prepareProjectArtwork } from "@/lib/project-artwork";
+import { ProjectDeleteDialog } from "./project-delete-dialog";
 
 interface ProjectEditDialogProps {
   project: Project | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDeleted?: () => void;
 }
 
 interface ProjectEditDialogFormProps {
   project: Project;
   onOpenChange: (open: boolean) => void;
+  onDeleteProject: () => void;
 }
 
 function ProjectEditDialogForm({
   project,
   onOpenChange,
+  onDeleteProject,
 }: ProjectEditDialogFormProps) {
   const updateProject = useUpdateProject();
   const [formData, setFormData] = useState({
@@ -89,9 +93,7 @@ function ProjectEditDialogForm({
           <Input
             id="edit-name"
             value={formData.name}
-            onChange={(e) =>
-              setFormData({ ...formData, name: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="MY AWESOME TRACK"
             required
           />
@@ -126,6 +128,15 @@ function ProjectEditDialogForm({
       <DialogFooter>
         <Button
           type="button"
+          variant="destructive"
+          onClick={onDeleteProject}
+          disabled={updateProject.isPending}
+          className="mr-auto"
+        >
+          Delete Project
+        </Button>
+        <Button
+          type="button"
           variant="outline"
           onClick={() => onOpenChange(false)}
           disabled={updateProject.isPending}
@@ -151,18 +162,31 @@ export function ProjectEditDialog({
   project,
   open,
   onOpenChange,
+  onDeleted,
 }: ProjectEditDialogProps) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        {project ? (
-          <ProjectEditDialogForm
-            key={project.id}
-            project={project}
-            onOpenChange={onOpenChange}
-          />
-        ) : null}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          {project ? (
+            <ProjectEditDialogForm
+              key={project.id}
+              project={project}
+              onOpenChange={onOpenChange}
+              onDeleteProject={() => setIsDeleteDialogOpen(true)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <ProjectDeleteDialog
+        project={project}
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onDeleted={onDeleted}
+      />
+    </>
   );
 }
