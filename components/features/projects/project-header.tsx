@@ -1,18 +1,23 @@
 "use client";
 
-import { BackButton } from "@/components/common/back-button";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { createProjectTint } from "@/lib/project-artwork";
 
 interface ProjectHeaderProps {
   project: {
     name: string;
     description?: string | null;
+    artwork?: string | null;
+    artworkDominantColor?: string | null;
   };
   membersCount: number;
   isOwner?: boolean;
   onInvite: () => void;
   onShowMembers: () => void;
   onLeaveProject?: () => void;
+  onEditProject?: () => void;
+  onDeleteProject?: () => void;
 }
 
 export function ProjectHeader({
@@ -22,20 +27,30 @@ export function ProjectHeader({
   onInvite,
   onShowMembers,
   onLeaveProject,
+  onEditProject,
+  onDeleteProject,
 }: ProjectHeaderProps) {
   return (
-    <div className="mb-6">
-      <BackButton href="/projects" label="Back to Projects" />
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-            {project.name}
-          </h1>
-          {project.description && (
-            <p className="text-sm sm:text-base text-muted-foreground">
-              {project.description}
-            </p>
-          )}
+    <div className="overflow-hidden">
+      <div className="flex flex-col gap-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:py-6">
+        <div className="flex items-start gap-4">
+          <Image
+            src={project.artwork || ""}
+            alt={`${project.name} artwork`}
+            width={320}
+            height={320}
+            className="shrink-0 border border-border object-cover size-44"
+          />
+          <div>
+            <h1 className="mb-2 text-2xl font-bold sm:text-3xl">
+              {project.name}
+            </h1>
+            {project.description && (
+              <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
+                {project.description}
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button
@@ -45,6 +60,24 @@ export function ProjectHeader({
           >
             Members ({membersCount})
           </Button>
+          {isOwner && onEditProject && (
+            <Button
+              variant="outline"
+              onClick={onEditProject}
+              className="text-xs sm:text-sm"
+            >
+              Edit
+            </Button>
+          )}
+          {isOwner && onDeleteProject && (
+            <Button
+              variant="outline"
+              onClick={onDeleteProject}
+              className="text-xs sm:text-sm text-destructive hover:text-destructive"
+            >
+              Delete
+            </Button>
+          )}
           {!isOwner && onLeaveProject && (
             <Button
               variant="outline"

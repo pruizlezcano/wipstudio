@@ -9,9 +9,27 @@ import {
   track,
   trackVersion,
 } from "@/lib/db/schema";
-import { eq, sql, asc, desc, count, max } from "drizzle-orm";
+import { eq, asc, desc, count, max } from "drizzle-orm";
 import { createProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
+import {
+  generateAvatarAccentColor,
+  generateAvatarBase64,
+} from "@/lib/avatar-generator";
+
+function withProjectFallbackArtwork<T extends {
+  id: string;
+  artwork: string | null;
+  artworkDominantColor: string | null;
+}>(projectRecord: T) {
+  return {
+    ...projectRecord,
+    artwork: projectRecord.artwork ?? generateAvatarBase64(projectRecord.id, 320),
+    artworkDominantColor:
+      projectRecord.artworkDominantColor ??
+      generateAvatarAccentColor(projectRecord.id),
+  };
+}
 
 // GET /api/projects - List all projects for authenticated user (owned + collaborated)
 export async function GET(request: NextRequest) {
@@ -73,6 +91,8 @@ export async function GET(request: NextRequest) {
         id: project.id,
         name: project.name,
         description: project.description,
+        artwork: project.artwork,
+        artworkDominantColor: project.artworkDominantColor,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
         owner: {
@@ -92,6 +112,8 @@ export async function GET(request: NextRequest) {
         id: project.id,
         name: project.name,
         description: project.description,
+        artwork: project.artwork,
+        artworkDominantColor: project.artworkDominantColor,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
         owner: {
@@ -141,10 +163,11 @@ export async function GET(request: NextRequest) {
           })),
         ];
 
-        const { owner: _, ...projectWithoutOwner } = p;
+        const projectWithoutOwner = { ...p };
+        delete projectWithoutOwner.owner;
 
         return {
-          ...projectWithoutOwner,
+          ...withProjectFallbackArtwork(projectWithoutOwner),
           lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
           members: allMembers,
         };
@@ -222,15 +245,18 @@ export async function POST(request: NextRequest) {
         id: crypto.randomUUID(),
         name: validatedData.name,
         description: validatedData.description || null,
+        artwork: validatedData.artwork || null,
+        artworkDominantColor: validatedData.artworkDominantColor || null,
         ownerId: session.user.id,
       })
       .returning();
 
-    const { ownerId: _, ...projectDataWithoutOwnerId } = newProject[0];
+    const projectDataWithoutOwnerId = { ...newProject[0] };
+    delete projectDataWithoutOwnerId.ownerId;
 
     return NextResponse.json(
       {
-        ...projectDataWithoutOwnerId,
+        ...withProjectFallbackArtwork(projectDataWithoutOwnerId),
         lastVersionAt: null,
         members: [
           {

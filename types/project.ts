@@ -5,6 +5,8 @@ export interface Project {
   id: string;
   name: string;
   description: string | null;
+  artwork: string;
+  artworkDominantColor: string | null;
   createdAt: string;
   updatedAt: string;
   lastVersionAt: string | null;

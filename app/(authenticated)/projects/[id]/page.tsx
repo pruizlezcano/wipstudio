@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/common/back-button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,8 @@ import { useMembers, useLeaveProject } from "@/hooks/use-members";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ErrorState } from "@/components/common/error-state";
 import { ProjectHeader } from "@/components/features/projects/project-header";
+import { ProjectEditDialog } from "@/components/features/projects/project-edit-dialog";
+import { ProjectDeleteDialog } from "@/components/features/projects/project-delete-dialog";
 import { TrackList } from "@/components/features/tracks/track-list";
 import { TrackUploadDialog } from "@/components/features/tracks/track-upload-dialog";
 import { TrackEmptyState } from "@/components/features/tracks/track-empty-state";
@@ -111,6 +114,8 @@ export default function ProjectDetailPage() {
   const [isMembersDialogOpen, setIsMembersDialogOpen] =
     useState(false);
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { isTrackUploadDialogOpen, setTrackUploadDialogOpen } = useUIStore();
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
 
@@ -134,7 +139,7 @@ export default function ProjectDetailPage() {
     try {
       await leaveProjectMutation.mutateAsync(projectId);
       router.push("/projects");
-    } catch (error) {
+    } catch {
       // Error handled by mutation toast
     }
   };
@@ -164,6 +169,7 @@ export default function ProjectDetailPage() {
       message="Drop audio file to create a new track"
     >
       <div className="container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6 min-h-screen">
+        <BackButton href="/projects" label="Back to Projects" />
         <ProjectHeader
           project={project}
           membersCount={members?.length || 0}
@@ -171,6 +177,8 @@ export default function ProjectDetailPage() {
           onInvite={() => setIsInviteDialogOpen(true)}
           onShowMembers={() => setIsMembersDialogOpen(true)}
           onLeaveProject={() => setIsLeaveDialogOpen(true)}
+          onEditProject={() => setIsEditDialogOpen(true)}
+          onDeleteProject={() => setIsDeleteDialogOpen(true)}
         />
 
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
@@ -226,6 +234,19 @@ export default function ProjectDetailPage() {
           projectId={projectId}
           open={isInviteDialogOpen}
           onOpenChange={setIsInviteDialogOpen}
+        />
+
+        <ProjectEditDialog
+          project={project}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        />
+
+        <ProjectDeleteDialog
+          project={project}
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onDeleted={() => router.push("/projects")}
         />
 
         <MembersDialog

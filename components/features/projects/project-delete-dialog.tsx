@@ -18,12 +18,14 @@ interface ProjectDeleteDialogProps {
   project: Project | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDeleted?: () => void;
 }
 
 export function ProjectDeleteDialog({
   project,
   open,
   onOpenChange,
+  onDeleted,
 }: ProjectDeleteDialogProps) {
   const deleteProject = useDeleteProject();
 
@@ -33,6 +35,7 @@ export function ProjectDeleteDialog({
     deleteProject.mutate(project.id, {
       onSuccess: () => {
         onOpenChange(false);
+        onDeleted?.();
       },
     });
   };

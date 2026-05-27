@@ -83,6 +83,8 @@ export const project = pgTable("project", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  artwork: text("artwork"),
+  artworkDominantColor: text("artwork_dominant_color"),
   ownerId: text("owner_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),

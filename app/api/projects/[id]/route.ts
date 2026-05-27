@@ -9,11 +9,29 @@ import {
   user,
   projectMember,
 } from "@/lib/db/schema";
-import { eq, sql, max } from "drizzle-orm";
+import { eq, max } from "drizzle-orm";
 import { updateProjectSchema } from "@/lib/validations/project";
 import { z } from "zod";
 import { deleteS3File } from "@/lib/storage/s3";
 import { checkProjectAccess } from "@/lib/access-control";
+import {
+  generateAvatarAccentColor,
+  generateAvatarBase64,
+} from "@/lib/avatar-generator";
+
+function withProjectFallbackArtwork<T extends {
+  id: string;
+  artwork: string | null;
+  artworkDominantColor: string | null;
+}>(projectRecord: T) {
+  return {
+    ...projectRecord,
+    artwork: projectRecord.artwork ?? generateAvatarBase64(projectRecord.id, 320),
+    artworkDominantColor:
+      projectRecord.artworkDominantColor ??
+      generateAvatarAccentColor(projectRecord.id),
+  };
+}
 
 // GET /api/projects/[id] - Get single project
 export async function GET(
@@ -70,7 +88,8 @@ export async function GET(
     ]);
 
     const ownerInfo = ownerResult[0];
-    const { ownerId: _, ...rest } = projectData;
+    const rest = { ...projectData };
+    delete rest.ownerId;
 
     const allMembers = [
       {
@@ -86,7 +105,7 @@ export async function GET(
     ];
 
     return NextResponse.json({
-      ...rest,
+      ...withProjectFallbackArtwork(rest),
       members: allMembers,
       lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
       isOwner: projectData.ownerId === session.user.id,
@@ -120,7 +139,7 @@ export async function PATCH(
 
     const access = await checkProjectAccess(id, session.user.id);
 
-    if (!access.hasAccess) {
+    if (!access.isOwner) {
       return NextResponse.json(
         {
           error: "Project not found or access denied. Only owners can update.",
@@ -167,7 +186,8 @@ export async function PATCH(
     ]);
 
     const ownerInfo = ownerResult[0];
-    const { ownerId: _, ...rest } = projectData;
+    const rest = { ...projectData };
+    delete rest.ownerId;
 
     const allMembers = [
       {
@@ -183,7 +203,7 @@ export async function PATCH(
     ];
 
     return NextResponse.json({
-      ...rest,
+      ...withProjectFallbackArtwork(rest),
       members: allMembers,
       lastVersionAt: lastVersionResult[0]?.lastVersionAt || null,
       isOwner: projectData.ownerId === session.user.id,

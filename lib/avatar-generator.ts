@@ -28,9 +28,9 @@ const getRandomColor = (
   return colors[number % range];
 };
 
-// Generate unique color palette per user
-function generateUserPalette(userId: string): string[] {
-  const hash = hashCode(userId);
+// Generate unique color palette per seed
+export function generateAvatarPalette(seed: string): string[] {
+  const hash = hashCode(seed);
   const palettes = [
     ["#4a3333", "#e1473f", "#9a9088", "#80b0ab", "#dbd1b3"],
     ["#f6b149", "#f8572d", "#df2a33", "#a22543", "#6b312d"],
@@ -122,6 +122,10 @@ export function generateAvatarBase64(
  * @returns An SVG string
  */
 export function generateAvatarSVG(userId: string, size: number = 120): string {
-  const colors = generateUserPalette(userId);
+  const colors = generateAvatarPalette(userId);
   return generateMarbleSVG(userId, colors, size, true);
+}
+
+export function generateAvatarAccentColor(seed: string): string {
+  return generateAvatarPalette(seed)[0];
 }

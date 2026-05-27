@@ -15,15 +15,12 @@ import {
   type ProjectSortBy,
   type SortOrder,
 } from "@/hooks/use-projects";
-import type { Project } from "@/types";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { ProjectList } from "@/components/features/projects/project-list";
 import { ProjectEmptyState } from "@/components/features/projects/project-empty-state";
 import { ProjectCreateDialog } from "@/components/features/projects/project-create-dialog";
-import { ProjectEditDialog } from "@/components/features/projects/project-edit-dialog";
-import { ProjectDeleteDialog } from "@/components/features/projects/project-delete-dialog";
 import { useUIStore } from "@/stores/uiStore";
 
 const SORT_OPTIONS = [
@@ -59,8 +56,6 @@ export default function ProjectsPage() {
 
   const projects = projectsData?.pages.flatMap((page) => page.data) ?? [];
   const { isProjectCreateDialogOpen, setProjectCreateDialogOpen } = useUIStore();
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -136,8 +131,6 @@ export default function ProjectsPage() {
         <>
           <ProjectList
             projects={projects}
-            onEdit={setEditingProject}
-            onDelete={setDeletingProject}
           />
           <div ref={loadMoreRef} className="flex justify-center py-4">
             {isFetchingNextPage && <LoadingSpinner />}
@@ -148,18 +141,6 @@ export default function ProjectsPage() {
       <ProjectCreateDialog
         open={isProjectCreateDialogOpen}
         onOpenChange={setProjectCreateDialogOpen}
-      />
-
-      <ProjectEditDialog
-        project={editingProject}
-        open={!!editingProject}
-        onOpenChange={(open) => !open && setEditingProject(null)}
-      />
-
-      <ProjectDeleteDialog
-        project={deletingProject}
-        open={!!deletingProject}
-        onOpenChange={(open) => !open && setDeletingProject(null)}
       />
     </div>
   );

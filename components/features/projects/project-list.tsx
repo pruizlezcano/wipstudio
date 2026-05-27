@@ -3,20 +3,13 @@ import type { Project } from "@/types";
 
 interface ProjectListProps {
   projects: Project[];
-  onEdit: (project: Project) => void;
-  onDelete: (project: Project) => void;
 }
 
-export function ProjectList({ projects, onEdit, onDelete }: ProjectListProps) {
+export function ProjectList({ projects }: ProjectListProps) {
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       {projects.map((project) => (
-        <ProjectCard
-          key={project.id}
-          project={project}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+        <ProjectCard key={project.id} project={project} />
       ))}
     </div>
   );
