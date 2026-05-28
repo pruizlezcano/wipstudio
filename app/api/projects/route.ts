@@ -17,14 +17,17 @@ import {
   generateAvatarBase64,
 } from "@/lib/avatar-generator";
 
-function withProjectFallbackArtwork<T extends {
-  id: string;
-  artwork: string | null;
-  artworkDominantColor: string | null;
-}>(projectRecord: T) {
+function withProjectFallbackArtwork<
+  T extends {
+    id: string;
+    artwork: string | null;
+    artworkDominantColor: string | null;
+  },
+>(projectRecord: T) {
   return {
     ...projectRecord,
-    artwork: projectRecord.artwork ?? generateAvatarBase64(projectRecord.id, 320),
+    artwork:
+      projectRecord.artwork ?? generateAvatarBase64(projectRecord.id, 320),
     artworkDominantColor:
       projectRecord.artworkDominantColor ??
       generateAvatarAccentColor(projectRecord.id),
@@ -163,8 +166,7 @@ export async function GET(request: NextRequest) {
           })),
         ];
 
-        const projectWithoutOwner = { ...p };
-        delete projectWithoutOwner.owner;
+        const { owner: _owner, ...projectWithoutOwner } = p;
 
         return {
           ...withProjectFallbackArtwork(projectWithoutOwner),
@@ -251,8 +253,7 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    const projectDataWithoutOwnerId = { ...newProject[0] };
-    delete projectDataWithoutOwnerId.ownerId;
+    const { ownerId: _ownerId, ...projectDataWithoutOwnerId } = newProject[0];
 
     return NextResponse.json(
       {

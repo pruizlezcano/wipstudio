@@ -88,8 +88,7 @@ export async function GET(
     ]);
 
     const ownerInfo = ownerResult[0];
-    const rest = { ...projectData };
-    delete rest.ownerId;
+    const { ownerId: _ownerId, ...rest } = projectData;
 
     const allMembers = [
       {
@@ -186,8 +185,7 @@ export async function PATCH(
     ]);
 
     const ownerInfo = ownerResult[0];
-    const rest = { ...projectData };
-    delete rest.ownerId;
+    const { ownerId: _ownerId, ...rest } = projectData;
 
     const allMembers = [
       {
