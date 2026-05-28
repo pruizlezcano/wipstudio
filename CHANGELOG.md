@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.8.0](https://github.com/pruizlezcano/wipstudio/compare/v0.7.0...v0.8.0) (2026-05-28)
+
+
+### Features
+
+* add project artwork and simplify project visuals ([8059314](https://github.com/pruizlezcano/wipstudio/commit/80593147713cd3e324708516a8735983f544d9a6)), closes [#7](https://github.com/pruizlezcano/wipstudio/issues/7)
+* **player:** reuse waveform instances for seamless version switching ([09e8805](https://github.com/pruizlezcano/wipstudio/commit/09e8805e7f81c73c220fbd024b2d65f44fef03f6)), closes [#2](https://github.com/pruizlezcano/wipstudio/issues/2) [#11](https://github.com/pruizlezcano/wipstudio/issues/11) [#12](https://github.com/pruizlezcano/wipstudio/issues/12)
+
+
+### Bug Fixes
+
+* **api:** remove owner fields via destructuring in project routes ([ee3ad17](https://github.com/pruizlezcano/wipstudio/commit/ee3ad17e599af4a358a53728b93bd2e2a1fc9e52))
+* **track:** disable version selection until waveforms load ([5002509](https://github.com/pruizlezcano/wipstudio/commit/5002509e3e7dd57ac7645ed146747f8e6556c70c))
+
 ## [0.7.0](https://github.com/pruizlezcano/wipstudio/compare/v0.6.0...v0.7.0) (2026-05-11)
 
 
