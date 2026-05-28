@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { MAX_STORED_ARTWORK_LENGTH } from "@/lib/project-artwork";
 
 const dominantColorSchema = z
   .string()
   .regex(/^#[0-9A-Fa-f]{6}$/, "Dominant color must be a valid hex color");
+
+const MAX_ARTWORK_LENGTH = 1_900_000;
 
 export const createProjectSchema = z.object({
   name: z
@@ -17,7 +18,7 @@ export const createProjectSchema = z.object({
   artwork: z
     .string()
     .startsWith("data:image/", "Artwork must be an image data URL")
-    .max(MAX_STORED_ARTWORK_LENGTH, "Artwork is too large")
+    .max(MAX_ARTWORK_LENGTH, "Artwork is too large")
     .nullable()
     .optional(),
   artworkDominantColor: dominantColorSchema.nullable().optional(),
@@ -36,7 +37,7 @@ export const updateProjectSchema = z.object({
   artwork: z
     .string()
     .startsWith("data:image/", "Artwork must be an image data URL")
-    .max(MAX_STORED_ARTWORK_LENGTH, "Artwork is too large")
+    .max(MAX_ARTWORK_LENGTH, "Artwork is too large")
     .nullable()
     .optional(),
   artworkDominantColor: dominantColorSchema.nullable().optional(),
