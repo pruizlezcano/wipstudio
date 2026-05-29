@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { authClient } from "@/lib/auth/auth-client";
+import { ApiError } from "@/lib/api-error";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -51,7 +52,11 @@ export default function InvitationAcceptPage() {
         const response = await fetch(`/api/invitations/${token}`);
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch invitation");
+          throw ApiError.fromResponse(
+            errorData,
+            "Failed to fetch invitation",
+            response.status
+          );
         }
         const data = await response.json();
         setInvitation(data);
@@ -82,7 +87,11 @@ export default function InvitationAcceptPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to accept invitation");
+        throw ApiError.fromResponse(
+          errorData,
+          "Failed to accept invitation",
+          response.status
+        );
       }
 
       const data = await response.json();

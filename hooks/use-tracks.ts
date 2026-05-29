@@ -94,7 +94,11 @@ async function createTrack({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to create track", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to create track",
+      response.status
+    );
   }
 
   return response.json();
@@ -116,7 +120,11 @@ async function updateTrack({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to update track", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to update track",
+      response.status
+    );
   }
 
   return response.json();
@@ -130,7 +138,11 @@ async function deleteTrack(id: string): Promise<void> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to delete track", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to delete track",
+      response.status
+    );
   }
 }
 
@@ -146,7 +158,11 @@ async function getPresignedUrl(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to get upload URL", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to get upload URL",
+      response.status
+    );
   }
 
   return response.json();
@@ -201,7 +217,11 @@ async function initiateMultipartUpload(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to initiate multipart upload", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to initiate multipart upload",
+      response.status
+    );
   }
 
   return response.json();
@@ -222,7 +242,11 @@ async function getChunkUrls(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to get chunk URLs", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to get chunk URLs",
+      response.status
+    );
   }
 
   return response.json();
@@ -280,7 +304,11 @@ async function completeMultipartUpload(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to complete multipart upload", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to complete multipart upload",
+      response.status
+    );
   }
 }
 
@@ -529,7 +557,11 @@ async function createVersion({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to create version", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to create version",
+      response.status
+    );
   }
 
   return response.json();
@@ -553,7 +585,11 @@ async function updateVersion({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to update version", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to update version",
+      response.status
+    );
   }
 
   return response.json();
@@ -573,7 +609,11 @@ async function deleteVersion({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to delete version", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to delete version",
+      response.status
+    );
   }
 }
 
@@ -706,7 +746,11 @@ async function setMasterVersion({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to set master version", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to set master version",
+      response.status
+    );
   }
 
   return response.json();

@@ -17,7 +17,11 @@ async function removeMember({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to remove member", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to remove member",
+      response.status
+    );
   }
 }
 
@@ -35,7 +39,9 @@ export function useRemoveMember() {
     onSuccess: (_, { projectId }) => {
       // Invalidate project list and detail queries
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.detail(projectId),
+      });
       toast.success("Member removed successfully");
     },
     onError: (error: Error) => {
@@ -52,7 +58,11 @@ async function leaveProject(projectId: string): Promise<void> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to leave project", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to leave project",
+      response.status
+    );
   }
 }
 

@@ -37,7 +37,11 @@ async function createInvitation({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to create invitation", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to create invitation",
+      response.status
+    );
   }
 
   return response.json();
@@ -60,7 +64,11 @@ async function deleteInvitation({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to delete invitation", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to delete invitation",
+      response.status
+    );
   }
 }
 
@@ -72,7 +80,11 @@ async function acceptInvitation(token: string): Promise<{ projectId: string }> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to accept invitation", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to accept invitation",
+      response.status
+    );
   }
 
   return response.json();

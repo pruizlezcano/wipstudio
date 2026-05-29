@@ -43,8 +43,9 @@ async function createLyricsComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(
-      error.error || "Failed to create lyrics comment",
+    throw ApiError.fromResponse(
+      error,
+      "Failed to create lyrics comment",
       response.status
     );
   }
@@ -73,8 +74,9 @@ async function updateLyricsComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(
-      error.error || "Failed to update lyrics comment",
+    throw ApiError.fromResponse(
+      error,
+      "Failed to update lyrics comment",
       response.status
     );
   }
@@ -99,8 +101,9 @@ async function deleteLyricsComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(
-      error.error || "Failed to delete lyrics comment",
+    throw ApiError.fromResponse(
+      error,
+      "Failed to delete lyrics comment",
       response.status
     );
   }
@@ -123,8 +126,9 @@ async function resolveLyricsComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(
-      error.error || "Failed to resolve lyrics comment",
+    throw ApiError.fromResponse(
+      error,
+      "Failed to resolve lyrics comment",
       response.status
     );
   }
@@ -149,8 +153,9 @@ async function unresolveLyricsComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(
-      error.error || "Failed to unresolve lyrics comment",
+    throw ApiError.fromResponse(
+      error,
+      "Failed to unresolve lyrics comment",
       response.status
     );
   }

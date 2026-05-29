@@ -23,7 +23,11 @@ export const projectKeys = {
 };
 
 // Sort options type
-export type ProjectSortBy = "name" | "createdAt" | "updatedAt" | "lastVersionAt";
+export type ProjectSortBy =
+  | "name"
+  | "createdAt"
+  | "updatedAt"
+  | "lastVersionAt";
 export type SortOrder = "asc" | "desc";
 
 export interface ProjectSortOptions {
@@ -75,7 +79,11 @@ async function createProject(data: CreateProjectInput): Promise<Project> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to create project", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to create project",
+      response.status
+    );
   }
 
   return response.json();
@@ -97,7 +105,11 @@ async function updateProject({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to update project", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to update project",
+      response.status
+    );
   }
 
   return response.json();
@@ -111,7 +123,11 @@ async function deleteProject(id: string): Promise<void> {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to delete project", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to delete project",
+      response.status
+    );
   }
 }
 

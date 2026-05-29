@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/lib/api-error";
-import type { Notification, UseNotificationsOptions } from "@/types/notification";
+import type {
+  Notification,
+  UseNotificationsOptions,
+} from "@/types/notification";
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
   const queryClient = useQueryClient();
@@ -16,7 +19,8 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       });
 
       const res = await fetch(`/api/notifications?${params}`);
-      if (!res.ok) throw new ApiError("Failed to fetch notifications", res.status);
+      if (!res.ok)
+        throw new ApiError("Failed to fetch notifications", res.status);
       return res.json();
     },
     refetchInterval: 10000,
@@ -29,7 +33,8 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       const res = await fetch(`/api/notifications/${id}`, {
         method: "PATCH",
       });
-      if (!res.ok) throw new ApiError("Failed to mark notification as read", res.status);
+      if (!res.ok)
+        throw new ApiError("Failed to mark notification as read", res.status);
       return res.json();
     },
     onSuccess: () => {
@@ -42,7 +47,11 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       const res = await fetch("/api/notifications", {
         method: "PATCH",
       });
-      if (!res.ok) throw new ApiError("Failed to mark all notifications as read", res.status);
+      if (!res.ok)
+        throw new ApiError(
+          "Failed to mark all notifications as read",
+          res.status
+        );
       return res.json();
     },
     onSuccess: () => {
@@ -55,7 +64,8 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       const res = await fetch(`/api/notifications/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new ApiError("Failed to delete notification", res.status);
+      if (!res.ok)
+        throw new ApiError("Failed to delete notification", res.status);
       return res.json();
     },
     onSuccess: () => {

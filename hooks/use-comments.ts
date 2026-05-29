@@ -49,7 +49,11 @@ async function createComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to create comment", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to create comment",
+      response.status
+    );
   }
 
   return response.json();
@@ -78,7 +82,11 @@ async function updateComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to update comment", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to update comment",
+      response.status
+    );
   }
 
   return response.json();
@@ -103,7 +111,11 @@ async function deleteComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to delete comment", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to delete comment",
+      response.status
+    );
   }
 }
 
@@ -126,7 +138,11 @@ async function resolveComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to resolve comment", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to resolve comment",
+      response.status
+    );
   }
 
   return response.json();
@@ -151,7 +167,11 @@ async function unresolveComment({
 
   if (!response.ok) {
     const error = await response.json();
-    throw new ApiError(error.error || "Failed to unresolve comment", response.status);
+    throw ApiError.fromResponse(
+      error,
+      "Failed to unresolve comment",
+      response.status
+    );
   }
 
   return response.json();
