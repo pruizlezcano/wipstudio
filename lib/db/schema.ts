@@ -119,6 +119,8 @@ export const trackVersion = pgTable("track_version", {
     .references(() => track.id, { onDelete: "cascade" }),
   versionNumber: integer("version_number").notNull(),
   audioUrl: text("audio_url").notNull(), // S3 object key
+  waveformPeaks: text("waveform_peaks"),
+  audioDuration: real("audio_duration"),
   notes: text("notes"),
   isMaster: boolean("is_master").default(false).notNull(),
   uploadedById: text("uploaded_by_id").references(() => user.id, {

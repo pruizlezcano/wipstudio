@@ -292,7 +292,8 @@ export const GlobalPlayer = () => {
         key={version.id}
         height={0}
         url={url ?? version.audioUrl}
-        peaks={peaksCache[version.id]}
+        duration={version.duration}
+        peaks={peaksCache[version.id] ?? version.peaks}
         onReady={(ws) => {
           standbyWaveSurferRef.current = ws;
           standbyVersionIdRef.current = version.id;
@@ -301,7 +302,9 @@ export const GlobalPlayer = () => {
           ws.setTime(currentTime);
 
           // Cache peaks if not already present
-          if (!peaksCache[version.id]) {
+          if (version.peaks && !peaksCache[version.id]) {
+            setPeaks(version.id, version.peaks);
+          } else if (!peaksCache[version.id]) {
             try {
               const peaks = ws.exportPeaks();
               if (peaks && peaks.length > 0) {

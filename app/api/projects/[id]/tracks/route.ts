@@ -26,6 +26,11 @@ import {
   getValidationErrorMessage,
 } from "@/lib/file-validator";
 import type { Track } from "@/types/track";
+import {
+  extractWaveformCacheFromS3Object,
+  parseWaveformPeaks,
+  serializeWaveformPeaks,
+} from "@/lib/waveform-peaks";
 
 // GET /api/projects/[id]/tracks - List all tracks for a project
 export async function GET(
@@ -87,6 +92,8 @@ export async function GET(
       id: string;
       versionNumber: number;
       audioUrl: string;
+      waveformPeaks: string | null;
+      waveformDuration: number | null;
       isMaster: boolean;
       createdAt: Date;
       uploaderId: string | null;
@@ -101,6 +108,8 @@ export async function GET(
           id: trackVersion.id,
           versionNumber: trackVersion.versionNumber,
           audioUrl: trackVersion.audioUrl,
+          waveformPeaks: trackVersion.waveformPeaks,
+          waveformDuration: trackVersion.audioDuration,
           isMaster: trackVersion.isMaster,
           createdAt: trackVersion.createdAt,
           uploaderId: user.id,
@@ -119,6 +128,8 @@ export async function GET(
         id: string;
         versionNumber: number;
         audioUrl: string;
+        waveformPeaks: string | null;
+        waveformDuration: number | null;
         isMaster: boolean;
         createdAt: Date;
         uploaderId: string | null;
@@ -166,6 +177,8 @@ export async function GET(
               id: defaultVersion.id,
               versionNumber: defaultVersion.versionNumber,
               audioUrl: defaultVersion.audioUrl,
+              peaks: parseWaveformPeaks(defaultVersion.waveformPeaks),
+              duration: defaultVersion.waveformDuration ?? undefined,
               isMaster: defaultVersion.isMaster,
               uploadedBy: defaultVersion.uploaderId
                 ? {
@@ -291,6 +304,7 @@ export async function POST(
       ...body,
       projectId,
     });
+    let detectedAudioFormat: string | undefined;
 
     // SECURITY: Validate actual file content by checking magic bytes
     // This prevents malicious users from uploading non-audio files
@@ -298,6 +312,7 @@ export async function POST(
     try {
       const fileHeader = await getFileHeader(validatedData.audioUrl, 50);
       const validation = validateAudioFile(fileHeader);
+      detectedAudioFormat = validation.format;
 
       if (!validation.isValid) {
         // Delete the invalid file from S3
@@ -333,6 +348,21 @@ export async function POST(
       );
     }
 
+    let waveformPeaks = validatedData.waveformPeaks;
+    let audioDuration: number | undefined;
+    if (!waveformPeaks?.length) {
+      try {
+        const waveformCache = await extractWaveformCacheFromS3Object(
+          validatedData.audioUrl,
+          detectedAudioFormat
+        );
+        waveformPeaks = waveformCache?.peaks;
+        audioDuration = waveformCache?.duration;
+      } catch (error) {
+        console.error("Failed to extract waveform peaks for new track:", error);
+      }
+    }
+
     // Create track (metadata only)
     const newTrack = await db
       .insert(track)
@@ -350,6 +380,8 @@ export async function POST(
       trackId: newTrack[0].id,
       versionNumber: 1,
       audioUrl: validatedData.audioUrl,
+      waveformPeaks: serializeWaveformPeaks(waveformPeaks),
+      audioDuration,
       notes: validatedData.notes,
       isMaster: true,
       uploadedById: session.user.id,

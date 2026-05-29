@@ -37,6 +37,8 @@ export function TrackListItem({
       trackId: track.id,
       versionNumber: track.defaultVersion.versionNumber,
       audioUrl: track.defaultVersion.audioUrl,
+      peaks: track.defaultVersion.peaks,
+      duration: track.defaultVersion.duration,
       isMaster: track.defaultVersion.isMaster,
       notes: null,
       createdAt: track.createdAt,

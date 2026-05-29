@@ -101,6 +101,7 @@ export default function TrackDetailPage() {
     loadVersion,
     setIsPlaying,
     clearPlayer,
+    setPeaks,
   } = usePlayerStore();
 
   // Find master version
@@ -372,13 +373,7 @@ export default function TrackDetailPage() {
         setIsPlaying(false);
       }
     },
-    [
-      activateExternalWaveSurfer,
-      playerWaveSurfer,
-      project,
-      setIsPlaying,
-      track,
-    ]
+    [activateExternalWaveSurfer, playerWaveSurfer, project, setIsPlaying, track]
   );
 
   const handoffPlaybackToInternal = useCallback(() => {
@@ -396,12 +391,7 @@ export default function TrackDetailPage() {
       waveSurfer.setVolume(0);
     });
 
-    if (
-      !track ||
-      !project ||
-      !activeExternalWaveSurfer ||
-      !state.version
-    ) {
+    if (!track || !project || !activeExternalWaveSurfer || !state.version) {
       return;
     }
 
@@ -445,10 +435,7 @@ export default function TrackDetailPage() {
         waveSurfer.setVolume(0);
       }
     },
-    [
-      playerVersion?.id,
-      usesExternalWaveSurfer,
-    ]
+    [playerVersion?.id, usesExternalWaveSurfer]
   );
 
   useEffect(() => {
@@ -458,6 +445,16 @@ export default function TrackDetailPage() {
       current.filter((versionId) => versions.some((v) => v.id === versionId))
     );
   }, [versions]);
+
+  useEffect(() => {
+    if (!versions) return;
+
+    versions.forEach((version) => {
+      if (version.peaks?.length) {
+        setPeaks(version.id, version.peaks);
+      }
+    });
+  }, [setPeaks, versions]);
 
   const areAllWaveformsLoaded =
     !!versions &&
@@ -554,7 +551,9 @@ export default function TrackDetailPage() {
   const handleSelectVersion = async (versionNumber: number) => {
     if (!areAllWaveformsLoaded) return;
 
-    const nextVersion = versions?.find((v) => v.versionNumber === versionNumber);
+    const nextVersion = versions?.find(
+      (v) => v.versionNumber === versionNumber
+    );
 
     if (
       nextVersion &&
@@ -600,7 +599,8 @@ export default function TrackDetailPage() {
       // If no player or wrong version loaded, load the correct version first
       if (!playerWaveSurfer || playerVersion?.id !== selectedVersion?.id) {
         if (selectedVersion && track && project) {
-          const targetWaveSurfer = waveformInstancesRef.current[selectedVersion.id];
+          const targetWaveSurfer =
+            waveformInstancesRef.current[selectedVersion.id];
 
           if (targetWaveSurfer) {
             void activateVersionWaveSurfer(
@@ -877,7 +877,9 @@ export default function TrackDetailPage() {
                       <div
                         key={version.id}
                         className={
-                          version.id === selectedVersion?.id ? "block" : "hidden"
+                          version.id === selectedVersion?.id
+                            ? "block"
+                            : "hidden"
                         }
                       >
                         <Waveform

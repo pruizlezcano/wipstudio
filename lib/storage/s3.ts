@@ -180,6 +180,28 @@ export async function getFileHeader(
   return Buffer.concat(chunks);
 }
 
+// Download a complete file from S3
+export async function getS3FileBuffer(objectKey: string): Promise<Buffer> {
+  const config = getS3Config();
+  const command = new GetObjectCommand({
+    Bucket: config.bucket,
+    Key: objectKey,
+  });
+
+  const response = await s3Client.send(command);
+
+  if (!response.Body) {
+    throw new Error("No data received from S3");
+  }
+
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of response.Body as any) {
+    chunks.push(chunk);
+  }
+
+  return Buffer.concat(chunks);
+}
+
 // ===== MULTIPART UPLOAD FUNCTIONS =====
 
 // Initiate a multipart upload

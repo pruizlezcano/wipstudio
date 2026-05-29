@@ -25,6 +25,11 @@ import {
   validateAudioFile,
   getValidationErrorMessage,
 } from "@/lib/file-validator";
+import {
+  extractWaveformCacheFromS3Object,
+  parseWaveformPeaks,
+  serializeWaveformPeaks,
+} from "@/lib/waveform-peaks";
 
 // GET /api/tracks/[trackId]/versions - Get all versions for a track
 export async function GET(
@@ -84,7 +89,7 @@ export async function GET(
     // Generate presigned URLs for each version with friendly filenames for download
     const versionsWithUrls = await Promise.all(
       versions.map(async (versionRecord) => {
-        const version = versionRecord.version;
+        const { waveformPeaks, ...version } = versionRecord.version;
         const extension = version.audioUrl.split(".").pop() || "mp3";
         const safeTrackName = trackRecord[0].track.name;
         const filename = `${safeTrackName}-v${version.versionNumber}.${extension}`;
@@ -97,6 +102,8 @@ export async function GET(
         return {
           ...version,
           audioUrl,
+          peaks: parseWaveformPeaks(waveformPeaks),
+          duration: version.audioDuration ?? undefined,
           uploadedBy: versionRecord.uploader
             ? {
                 userId: versionRecord.uploader.id,
@@ -164,6 +171,7 @@ export async function POST(
 
     const body = await request.json();
     const validatedData = createTrackVersionSchema.parse(body);
+    let detectedAudioFormat: string | undefined;
 
     // SECURITY: Validate actual file content by checking magic bytes
     // This prevents malicious users from uploading non-audio files
@@ -171,6 +179,7 @@ export async function POST(
     try {
       const fileHeader = await getFileHeader(validatedData.audioUrl, 50);
       const validation = validateAudioFile(fileHeader);
+      detectedAudioFormat = validation.format;
 
       if (!validation.isValid) {
         // Delete the invalid file from S3
@@ -206,6 +215,21 @@ export async function POST(
       );
     }
 
+    let waveformPeaks = validatedData.waveformPeaks;
+    let audioDuration: number | undefined;
+    if (!waveformPeaks?.length) {
+      try {
+        const waveformCache = await extractWaveformCacheFromS3Object(
+          validatedData.audioUrl,
+          detectedAudioFormat
+        );
+        waveformPeaks = waveformCache?.peaks;
+        audioDuration = waveformCache?.duration;
+      } catch (error) {
+        console.error("Failed to extract waveform peaks for version:", error);
+      }
+    }
+
     // Get the latest version number
     const latestVersion = await db
       .select()
@@ -231,6 +255,8 @@ export async function POST(
         trackId,
         versionNumber: nextVersionNumber,
         audioUrl: validatedData.audioUrl,
+        waveformPeaks: serializeWaveformPeaks(waveformPeaks),
+        audioDuration,
         notes: validatedData.notes,
         isMaster: true,
         uploadedById: session.user.id,

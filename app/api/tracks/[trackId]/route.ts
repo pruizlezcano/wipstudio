@@ -8,6 +8,7 @@ import { updateTrackSchema } from "@/lib/validations/track";
 import { z } from "zod";
 import { deleteS3File } from "@/lib/storage/s3";
 import { checkProjectAccess } from "@/lib/access-control";
+import { parseWaveformPeaks } from "@/lib/waveform-peaks";
 
 // GET /api/tracks/[trackId] - Get track by ID
 export async function GET(
@@ -75,6 +76,8 @@ export async function GET(
         id: trackVersion.id,
         versionNumber: trackVersion.versionNumber,
         audioUrl: trackVersion.audioUrl,
+        waveformPeaks: trackVersion.waveformPeaks,
+        waveformDuration: trackVersion.audioDuration,
         isMaster: trackVersion.isMaster,
         uploaderId: user.id,
         uploaderName: user.name,
@@ -97,6 +100,8 @@ export async function GET(
             id: defaultVersion.id,
             versionNumber: defaultVersion.versionNumber,
             audioUrl: defaultVersion.audioUrl,
+            peaks: parseWaveformPeaks(defaultVersion.waveformPeaks),
+            duration: defaultVersion.waveformDuration ?? undefined,
             isMaster: defaultVersion.isMaster,
             uploadedBy: defaultVersion.uploaderId
               ? {
@@ -193,6 +198,8 @@ export async function PATCH(
         id: trackVersion.id,
         versionNumber: trackVersion.versionNumber,
         audioUrl: trackVersion.audioUrl,
+        waveformPeaks: trackVersion.waveformPeaks,
+        waveformDuration: trackVersion.audioDuration,
         isMaster: trackVersion.isMaster,
         uploaderId: user.id,
         uploaderName: user.name,
@@ -215,6 +222,8 @@ export async function PATCH(
             id: defaultVersion.id,
             versionNumber: defaultVersion.versionNumber,
             audioUrl: defaultVersion.audioUrl,
+            peaks: parseWaveformPeaks(defaultVersion.waveformPeaks),
+            duration: defaultVersion.waveformDuration ?? undefined,
             isMaster: defaultVersion.isMaster,
             uploadedBy: defaultVersion.uploaderId
               ? {

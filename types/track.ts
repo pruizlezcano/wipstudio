@@ -13,6 +13,8 @@ export interface Track {
     id: string;
     versionNumber: number;
     audioUrl: string;
+    peaks?: number[][];
+    duration?: number;
     isMaster: boolean;
     uploadedBy?: Member;
   } | null;
@@ -23,6 +25,8 @@ export interface TrackVersion {
   trackId: string;
   versionNumber: number;
   audioUrl: string;
+  peaks?: number[][];
+  duration?: number;
   notes: string | null;
   isMaster: boolean;
   createdAt: string;

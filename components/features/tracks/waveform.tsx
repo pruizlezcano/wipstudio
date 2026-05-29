@@ -262,7 +262,10 @@ export const Waveform = memo(
               resolvedTheme === "dark" ? "hsl(0 0% 85%)" : "hsl(0 0% 25%)"
             }
             url={version.audioUrl}
-            peaks={version ? peaksCache[version.id] : undefined}
+            duration={version.duration}
+            peaks={
+              version ? (peaksCache[version.id] ?? version.peaks) : undefined
+            }
             onReady={(ws) => {
               ws.setMuted(true);
               ws.setVolume(0);
@@ -275,7 +278,9 @@ export const Waveform = memo(
               }
 
               // Cache peaks if not already present
-              if (version && !peaksCache[version.id]) {
+              if (version?.peaks && !peaksCache[version.id]) {
+                setPeaks(version.id, version.peaks);
+              } else if (version && !peaksCache[version.id]) {
                 try {
                   const peaks = ws.exportPeaks();
                   if (peaks && peaks.length > 0) {
