@@ -208,8 +208,8 @@ export const Waveform = memo(
     );
 
     return (
-      <div className="space-y-3">
-        <div className="relative">
+      <div className="space-y-3 min-w-0">
+        <div className="relative overflow-hidden">
           {isLoading && (
             <div className="z-10 flex items-center justify-center h-30">
               <LoadingSpinner size="md" />

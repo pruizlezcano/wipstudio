@@ -81,10 +81,10 @@ export const CommentForm = ({
           @ {formatTime(timestamp)}
         </Badge>
       )}
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <TextareaAutosize
           ref={textareaRef}
-          className="resize-none flex-1"
+          className="min-w-0 flex-1 resize-none"
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}

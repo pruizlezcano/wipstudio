@@ -722,7 +722,7 @@ export default function TrackDetailPage() {
       onFileDrop={handleFileDrop}
       message="Drop audio file to create a new version"
     >
-      <div className="container mx-auto py-6 sm:py-12 max-w-6xl px-4 sm:px-6 min-h-screen">
+      <div className="container mx-auto min-h-screen max-w-6xl overflow-x-hidden px-4 py-6 sm:px-6 sm:py-12">
         <div className="mb-6">
           <BackButton
             href={`/projects/${projectId}`}
@@ -739,7 +739,7 @@ export default function TrackDetailPage() {
                 Created {new Date(track.createdAt).toLocaleDateString()}
               </p>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex flex-wrap gap-2 shrink-0">
               <Button variant="outline" asChild className="text-xs sm:text-sm">
                 <Link href={`/projects/${projectId}/tracks/${trackId}/lyrics`}>
                   Lyrics
@@ -1009,7 +1009,7 @@ export default function TrackDetailPage() {
                       Click on the waveform to add a comment at a specific time
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <Checkbox
                       id="show-resolved"
                       checked={showResolvedComments}
