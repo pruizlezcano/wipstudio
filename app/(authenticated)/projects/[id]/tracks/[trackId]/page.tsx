@@ -957,14 +957,15 @@ export default function TrackDetailPage() {
               </CardHeader>
               <CardContent>
                 {versions && project && (
-                  <div className="space-y-0">
+                  <div className="relative">
                     {versions.map((version) => (
                       <div
                         key={version.id}
+                        aria-hidden={version.id !== selectedVersion?.id}
                         className={
                           version.id === selectedVersion?.id
-                            ? "block"
-                            : "hidden"
+                            ? "relative opacity-100 pointer-events-auto"
+                            : "absolute inset-0 opacity-0 pointer-events-none"
                         }
                       >
                         <Waveform
