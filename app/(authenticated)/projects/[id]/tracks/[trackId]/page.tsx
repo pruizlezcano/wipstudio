@@ -36,6 +36,11 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   useTrack,
   useDeleteTrack,
   useVersions,
@@ -141,6 +146,45 @@ export default function TrackDetailPage() {
   const [commentSortBy, setCommentSortBy] = useState<"createdAt" | "timestamp">(
     "createdAt"
   );
+  const [areVersionNotesExpanded, setAreVersionNotesExpanded] = useState(false);
+  const [doVersionNotesOverflow, setDoVersionNotesOverflow] = useState(false);
+  const versionNotesContainerRef = useRef<HTMLDivElement | null>(null);
+  const versionNotesMeasureRef = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    setAreVersionNotesExpanded(false);
+  }, [selectedVersion?.id]);
+
+  useEffect(() => {
+    const container = versionNotesContainerRef.current;
+    const measure = versionNotesMeasureRef.current;
+
+    if (!container || !measure) {
+      setDoVersionNotesOverflow(false);
+      return;
+    }
+
+    if (areVersionNotesExpanded) {
+      setDoVersionNotesOverflow(true);
+      return;
+    }
+
+    const updateOverflow = () => {
+      setDoVersionNotesOverflow(
+        measure.getBoundingClientRect().width >
+          container.getBoundingClientRect().width + 1
+      );
+    };
+
+    updateOverflow();
+
+    const resizeObserver = new ResizeObserver(updateOverflow);
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [selectedVersion?.id, selectedVersion?.notes, areVersionNotesExpanded]);
 
   // Update URL param when defaultVersion changes (new upload or initial load)
   useEffect(() => {
@@ -854,21 +898,62 @@ export default function TrackDetailPage() {
 
             <Card className="mb-6">
               <CardHeader>
-                <div className="flex items-center gap-2">
+                <div className="flex min-h-6 min-w-0 items-start align-baseline gap-2">
                   <CardTitle>
                     {selectedVersion
                       ? `v${selectedVersion.versionNumber}`
                       : "Select a version"}
                   </CardTitle>
                   {selectedVersion?.isMaster && (
-                    <Badge className="text-xs">MASTER</Badge>
+                    <Badge className="shrink-0 self-start text-xs leading-none">
+                      MASTER
+                    </Badge>
+                  )}
+                  {selectedVersion?.notes && (
+                    <div className="flex min-w-0 flex-1 items-start -mt-0.5">
+                      <div
+                        ref={versionNotesContainerRef}
+                        className="relative min-w-0 flex-1 pt-0.5"
+                      >
+                        <span
+                          ref={versionNotesMeasureRef}
+                          className="pointer-events-none invisible absolute whitespace-nowrap text-sm"
+                          aria-hidden="true"
+                        >
+                          {selectedVersion.notes}
+                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <CardDescription
+                              className={`mt-0 min-w-0 text-sm ${
+                                areVersionNotesExpanded
+                                  ? "wrap-break-word whitespace-normal"
+                                  : "line-clamp-1"
+                              } ${
+                                doVersionNotesOverflow ? "cursor-pointer" : ""
+                              }`}
+                              onClick={() => {
+                                if (doVersionNotesOverflow) {
+                                  setAreVersionNotesExpanded(
+                                    (current) => !current
+                                  );
+                                }
+                              }}
+                            >
+                              {selectedVersion.notes}
+                            </CardDescription>
+                          </TooltipTrigger>
+                          {doVersionNotesOverflow &&
+                            !areVersionNotesExpanded && (
+                              <TooltipContent>
+                                <p>Click to expand</p>
+                              </TooltipContent>
+                            )}
+                        </Tooltip>
+                      </div>
+                    </div>
                   )}
                 </div>
-                {selectedVersion?.notes && (
-                  <CardDescription className="mt-2">
-                    {selectedVersion.notes}
-                  </CardDescription>
-                )}
               </CardHeader>
               <CardContent>
                 {versions && project && (
