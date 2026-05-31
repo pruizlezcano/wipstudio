@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { usePlayerStore } from "@/stores/playerStore";
 import type { Track, TrackVersion } from "@/types";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
+import { DateTime } from "@/components/common/date-time";
 import { pluralize } from "@/lib/utils";
 
 interface TrackListItemProps {
@@ -101,9 +102,7 @@ export function TrackListItem({
       </div>
       <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0 pl-10 sm:pl-0">
         <span className="text-xs font-mono text-muted-foreground">
-          {new Date(
-            track.lastVersionAt ?? track.createdAt
-          ).toLocaleDateString()}
+          <DateTime date={track.lastVersionAt ?? track.createdAt} mode="date" />
         </span>
         <div className="text-xs font-bold uppercase tracking-tight">VIEW →</div>
       </div>

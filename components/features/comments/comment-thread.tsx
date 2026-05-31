@@ -4,7 +4,7 @@ import { useState } from "react";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
 import { authClient } from "@/lib/auth/auth-client";
 import { Badge } from "@/components/ui/badge";
-import { RelativeTime } from "@/components/common/relative-time";
+import { DateTime } from "@/components/common/date-time";
 import { Button } from "@/components/ui/button";
 import { TextareaAutosize } from "@/components/ui/textarea";
 import {
@@ -146,7 +146,7 @@ export function CommentThread({
               )}
             </span>
             <span className="text-xs sm:text-sm">
-              • <RelativeTime date={comment.createdAt} />
+              • <DateTime date={comment.createdAt} mode="relative" />
               {comment.editedAt && (
                 <span className="text-muted-foreground"> (edited)</span>
               )}

@@ -64,6 +64,7 @@ import {
   FullScreenDropzoneRef,
 } from "@/components/common/full-screen-dropzone";
 import { BackButton } from "@/components/common/back-button";
+import { DateTime } from "@/components/common/date-time";
 import { useUIStore } from "@/stores/uiStore";
 import type { TrackVersion } from "@/types";
 import WaveSurfer from "wavesurfer.js";
@@ -736,7 +737,7 @@ export default function TrackDetailPage() {
                 {track.name}
               </h1>
               <p className="text-muted-foreground text-xs font-medium uppercase tracking-tight">
-                Created {new Date(track.createdAt).toLocaleDateString()}
+                Created <DateTime date={track.createdAt} mode="date" />
               </p>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">

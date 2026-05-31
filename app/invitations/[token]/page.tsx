@@ -14,7 +14,7 @@ import {
 import { authClient } from "@/lib/auth/auth-client";
 import { ApiError } from "@/lib/api-error";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { DateTime } from "@/components/common/date-time";
 
 interface InvitationDetails {
   id: string;
@@ -209,10 +209,7 @@ export default function InvitationAcceptPage() {
           <div className="text-xs text-muted-foreground space-y-1">
             {invitation.expiresAt && (
               <p>
-                Expires:{" "}
-                {formatDistanceToNow(new Date(invitation.expiresAt), {
-                  addSuffix: true,
-                })}
+                Expires: <DateTime date={invitation.expiresAt} mode="relative" />
               </p>
             )}
           </div>

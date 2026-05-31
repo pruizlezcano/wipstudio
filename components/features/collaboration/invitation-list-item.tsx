@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
+import { DateTime } from "@/components/common/date-time";
 
 interface InvitationListItemProps {
   invitation: {
@@ -38,10 +38,7 @@ export function InvitationListItem({
           {invitation.expiresAt && (
             <span>
               {" "}
-              • Expires{" "}
-              {formatDistanceToNow(new Date(invitation.expiresAt), {
-                addSuffix: true,
-              })}
+              • Expires <DateTime date={invitation.expiresAt} mode="relative" />
             </span>
           )}
         </div>

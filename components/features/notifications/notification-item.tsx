@@ -11,9 +11,9 @@ import {
   Type,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DateTime } from "@/components/common/date-time";
 import { cn } from "@/lib/utils";
 import type { NotificationMetadata } from "@/lib/notifications/types";
-import { RelativeTime } from "@/components/common/relative-time";
 
 interface Notification {
   id: string;
@@ -111,7 +111,7 @@ export function NotificationItem({
           </p>
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground font-mono">
-              <RelativeTime date={notification.createdAt} />
+              <DateTime date={notification.createdAt} mode="relative" />
             </span>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {isUnread && (

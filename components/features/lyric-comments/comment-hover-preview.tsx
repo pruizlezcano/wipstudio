@@ -4,7 +4,7 @@ import { useLayoutEffect, useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@daveyplate/better-auth-ui";
-import { RelativeTime } from "@/components/common/relative-time";
+import { DateTime } from "@/components/common/date-time";
 import type { LyricsComment } from "@/types/lyrics-comment";
 
 interface CommentHoverPreviewProps {
@@ -118,7 +118,7 @@ export function CommentHoverPreview({
                   {thread.user ? thread.user.name : "Deleted User"}
                 </span>
                 <span className="text-xs">
-                  • <RelativeTime date={thread.createdAt} />
+                  • <DateTime date={thread.createdAt} mode="relative" />
                   {thread.editedAt && (
                     <span className="text-muted-foreground"> (edited)</span>
                   )}
