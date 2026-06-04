@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.9.0](https://github.com/pruizlezcano/wipstudio/compare/v0.8.0...v0.9.0) (2026-06-04)
+
+
+### Features
+
+* add server-side waveform peak and duration caching ([8fea746](https://github.com/pruizlezcano/wipstudio/commit/8fea746f293ef611e92f6b029fc5a81d4d453a51)), closes [#17](https://github.com/pruizlezcano/wipstudio/issues/17)
+
+
+### Bug Fixes
+
+* include zod validation details in error toasts ([51b7c1a](https://github.com/pruizlezcano/wipstudio/commit/51b7c1a280a2b5dc5d9a9682039265b1fd381130))
+* **player:** keep waveform mounted when switching version ([abb6ba9](https://github.com/pruizlezcano/wipstudio/commit/abb6ba9f1b97a8967572643eb3d48e7c98bb1c03))
+* **track:** improve mobile layout ([357e42b](https://github.com/pruizlezcano/wipstudio/commit/357e42b2c5b97880c479ca882f8a426bb78d3e6f))
+* **track:** stabilize version waveform layout ([22433b9](https://github.com/pruizlezcano/wipstudio/commit/22433b92332999b766783bc95bdd1da2375d534c)), closes [#14](https://github.com/pruizlezcano/wipstudio/issues/14)
+* **validation:** update maximum artwork length ([a8d6715](https://github.com/pruizlezcano/wipstudio/commit/a8d67158b948c08b6fd13cf1515f081d6aaeeedd)), closes [#15](https://github.com/pruizlezcano/wipstudio/issues/15)
+
 ## [0.8.0](https://github.com/pruizlezcano/wipstudio/compare/v0.7.0...v0.8.0) (2026-05-28)
 
 
