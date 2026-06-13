@@ -24,6 +24,7 @@ import {
   useUnresolveLyricsComment,
   useUpdateLyricsComment,
 } from "@/hooks/use-lyrics-comments";
+import { MAX_LYRICS_COMMENT_LENGTH } from "@/lib/validations/lyrics-comment";
 import type { LyricsComment } from "@/types/lyrics-comment";
 import type { Editor } from "@tiptap/react";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -164,10 +165,14 @@ export function LyricsCommentThread({
                 }}
                 placeholder="Edit your comment..."
                 className="resize-none"
+                maxLength={MAX_LYRICS_COMMENT_LENGTH}
                 minRows={1}
                 maxRows={10}
                 autoFocus
               />
+              <p className="text-right text-xs text-muted-foreground">
+                {editContent.length}/{MAX_LYRICS_COMMENT_LENGTH}
+              </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   type="submit"
@@ -281,9 +286,13 @@ export function LyricsCommentThread({
                 }}
                 placeholder="Write a reply..."
                 className="resize-none"
+                maxLength={MAX_LYRICS_COMMENT_LENGTH}
                 minRows={1}
                 maxRows={10}
               />
+              <p className="text-right text-xs text-muted-foreground">
+                {replyContent.length}/{MAX_LYRICS_COMMENT_LENGTH}
+              </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   type="submit"

@@ -19,6 +19,10 @@ import type { Project } from "@/types";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ProjectArtworkField } from "@/components/features/projects/project-artwork-field";
 import { prepareProjectArtwork } from "@/lib/project-artwork";
+import {
+  MAX_PROJECT_DESCRIPTION_LENGTH,
+  MAX_PROJECT_NAME_LENGTH,
+} from "@/lib/validations/project";
 import { ProjectDeleteDialog } from "./project-delete-dialog";
 
 interface ProjectEditDialogProps {
@@ -95,8 +99,12 @@ function ProjectEditDialogForm({
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="MY AWESOME TRACK"
+            maxLength={MAX_PROJECT_NAME_LENGTH}
             required
           />
+          <p className="text-right text-xs text-muted-foreground">
+            {formData.name.length}/{MAX_PROJECT_NAME_LENGTH}
+          </p>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="edit-description">Description</Label>
@@ -111,9 +119,13 @@ function ProjectEditDialogForm({
               })
             }
             placeholder="Describe your project..."
+            maxLength={MAX_PROJECT_DESCRIPTION_LENGTH}
             minRows={1}
             maxRows={8}
           />
+          <p className="text-right text-xs text-muted-foreground">
+            {formData.description.length}/{MAX_PROJECT_DESCRIPTION_LENGTH}
+          </p>
         </div>
         <ProjectArtworkField
           artwork={artwork}

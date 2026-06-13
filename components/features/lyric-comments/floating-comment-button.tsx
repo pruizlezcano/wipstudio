@@ -9,6 +9,7 @@ import {
 } from "react";
 import { Editor } from "@tiptap/react";
 import { Button } from "@/components/ui/button";
+import { MAX_LYRICS_COMMENT_LENGTH } from "@/lib/validations/lyrics-comment";
 import { MessageSquarePlus, X } from "lucide-react";
 
 interface FloatingCommentButtonProps {
@@ -244,8 +245,12 @@ export function FloatingCommentButton({
               onKeyDown={handleKeyDown}
               placeholder="Write your comment..."
               className="w-full p-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+              maxLength={MAX_LYRICS_COMMENT_LENGTH}
               rows={3}
             />
+            <p className="text-right text-xs text-muted-foreground">
+              {commentContent.length}/{MAX_LYRICS_COMMENT_LENGTH}
+            </p>
             <div className="flex gap-2">
               <Button
                 type="submit"

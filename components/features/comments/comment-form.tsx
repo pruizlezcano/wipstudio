@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TextareaAutosize } from "@/components/ui/textarea";
 import { useCreateComment } from "@/hooks/use-comments";
+import { MAX_COMMENT_LENGTH } from "@/lib/validations/comment";
 import { useUIStore } from "@/stores/uiStore";
 import { usePlayerStore } from "@/stores/playerStore";
 
@@ -22,7 +23,9 @@ export const CommentForm = ({
   onSeek,
 }: CommentFormProps) => {
   const [content, setContent] = useState("");
-  const [timestamp, setTimestamp] = useState<number | undefined>(initialTimestamp);
+  const [timestamp, setTimestamp] = useState<number | undefined>(
+    initialTimestamp
+  );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { focusCommentInput, setFocusCommentInput } = useUIStore();
   const { waveSurfer } = usePlayerStore();
@@ -93,6 +96,7 @@ export const CommentForm = ({
               ? "Add a comment at this timestamp..."
               : "Add a general comment..."
           }
+          maxLength={MAX_COMMENT_LENGTH}
           minRows={1}
           maxRows={10}
         />
@@ -104,6 +108,9 @@ export const CommentForm = ({
           {createComment.isPending ? "Posting..." : "Post Comment"}
         </Button>
       </div>
+      <p className="text-right text-xs text-muted-foreground">
+        {content.length}/{MAX_COMMENT_LENGTH}
+      </p>
     </form>
   );
-}
+};

@@ -19,6 +19,10 @@ import { useCreateProject } from "@/hooks/use-projects";
 import { LoadingSpinner } from "@/components/common/loading-spinner";
 import { ProjectArtworkField } from "@/components/features/projects/project-artwork-field";
 import { prepareProjectArtwork } from "@/lib/project-artwork";
+import {
+  MAX_PROJECT_DESCRIPTION_LENGTH,
+  MAX_PROJECT_NAME_LENGTH,
+} from "@/lib/validations/project";
 
 interface ProjectCreateDialogProps {
   open: boolean;
@@ -101,8 +105,12 @@ export function ProjectCreateDialog({
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder="MY AWESOME TRACK"
+                maxLength={MAX_PROJECT_NAME_LENGTH}
                 required
               />
+              <p className="text-right text-xs text-muted-foreground">
+                {formData.name.length}/{MAX_PROJECT_NAME_LENGTH}
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
@@ -117,9 +125,13 @@ export function ProjectCreateDialog({
                   })
                 }
                 placeholder="Describe your project..."
+                maxLength={MAX_PROJECT_DESCRIPTION_LENGTH}
                 minRows={1}
                 maxRows={8}
               />
+              <p className="text-right text-xs text-muted-foreground">
+                {formData.description.length}/{MAX_PROJECT_DESCRIPTION_LENGTH}
+              </p>
             </div>
             <ProjectArtworkField
               artwork={artwork}

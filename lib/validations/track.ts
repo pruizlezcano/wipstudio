@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const MAX_TRACK_NAME_LENGTH = 100;
+
 // Allowed audio MIME types
 const ALLOWED_AUDIO_MIMETYPES = [
   "audio/mpeg", // MP3
@@ -38,10 +40,13 @@ const ALLOWED_AUDIO_EXTENSIONS = [
   ".wma",
 ] as const;
 
+const ALLOWED_AUDIO_MIMETYPE_SET = new Set<string>(ALLOWED_AUDIO_MIMETYPES);
+const ALLOWED_AUDIO_EXTENSION_SET = new Set<string>(ALLOWED_AUDIO_EXTENSIONS);
+
 // Validation helper for audio file type
 const audioFileTypeValidator = z
   .string()
-  .refine((fileType) => ALLOWED_AUDIO_MIMETYPES.includes(fileType as any), {
+  .refine((fileType) => ALLOWED_AUDIO_MIMETYPE_SET.has(fileType), {
     message: `Invalid audio file type. Allowed types: ${ALLOWED_AUDIO_MIMETYPES.join(", ")}`,
   });
 
@@ -52,7 +57,7 @@ const audioFileNameValidator = z
   .refine(
     (fileName) => {
       const extension = fileName.toLowerCase().slice(fileName.lastIndexOf("."));
-      return ALLOWED_AUDIO_EXTENSIONS.includes(extension as any);
+      return ALLOWED_AUDIO_EXTENSION_SET.has(extension);
     },
     {
       message: `Invalid audio file extension. Allowed extensions: ${ALLOWED_AUDIO_EXTENSIONS.join(", ")}`,
@@ -63,7 +68,10 @@ export const createTrackSchema = z.object({
   name: z
     .string()
     .min(1, "Track name is required")
-    .max(100, "Track name must be less than 100 characters"),
+    .max(
+      MAX_TRACK_NAME_LENGTH,
+      `Track name must be less than ${MAX_TRACK_NAME_LENGTH} characters`
+    ),
   projectId: z.uuid("Invalid project ID"),
   // Initial version data
   audioUrl: z.string().min(1, "Audio URL is required"), // S3 object key
@@ -75,7 +83,10 @@ export const updateTrackSchema = z.object({
   name: z
     .string()
     .min(1, "Track name is required")
-    .max(100, "Track name must be less than 100 characters")
+    .max(
+      MAX_TRACK_NAME_LENGTH,
+      `Track name must be less than ${MAX_TRACK_NAME_LENGTH} characters`
+    )
     .optional(),
 });
 

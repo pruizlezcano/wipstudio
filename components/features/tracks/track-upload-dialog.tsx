@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useUploadTrack } from "@/hooks/use-tracks";
+import { MAX_TRACK_NAME_LENGTH } from "@/lib/validations/track";
 
 interface TrackUploadDialogProps {
   open: boolean;
@@ -114,8 +115,12 @@ export function TrackUploadDialog({
               value={trackName}
               onChange={(e) => setTrackName(e.target.value)}
               placeholder="Enter track name"
+              maxLength={MAX_TRACK_NAME_LENGTH}
               required
             />
+            <p className="mt-1 text-right text-xs text-muted-foreground">
+              {trackName.length}/{MAX_TRACK_NAME_LENGTH}
+            </p>
           </div>
           <div className="overflow-hidden">
             <Label htmlFor="audio-file">Audio File</Label>

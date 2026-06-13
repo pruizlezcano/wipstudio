@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useUpdateTrack } from "@/hooks/use-tracks";
+import { MAX_TRACK_NAME_LENGTH } from "@/lib/validations/track";
 
 interface TrackEditDialogProps {
   open: boolean;
@@ -19,21 +20,19 @@ interface TrackEditDialogProps {
   currentName: string;
 }
 
-export function TrackEditDialog({
-  open,
-  onOpenChange,
+interface TrackEditDialogFormProps {
+  trackId: string;
+  currentName: string;
+  onOpenChange: (open: boolean) => void;
+}
+
+function TrackEditDialogForm({
   trackId,
   currentName,
-}: TrackEditDialogProps) {
+  onOpenChange,
+}: TrackEditDialogFormProps) {
   const [name, setName] = useState(currentName);
   const updateTrack = useUpdateTrack();
-
-  // Update name when dialog opens with new track
-  useEffect(() => {
-    if (open) {
-      setName(currentName);
-    }
-  }, [open, currentName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,33 +45,55 @@ export function TrackEditDialog({
   };
 
   return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Rename Track</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="editTrackName">Track Name</Label>
+          <Input
+            id="editTrackName"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter track name"
+            maxLength={MAX_TRACK_NAME_LENGTH}
+            required
+          />
+          <p className="mt-1 text-right text-xs text-muted-foreground">
+            {name.length}/{MAX_TRACK_NAME_LENGTH}
+          </p>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button type="submit">Save</Button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+export function TrackEditDialog({
+  open,
+  onOpenChange,
+  trackId,
+  currentName,
+}: TrackEditDialogProps) {
+  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Rename Track</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="editTrackName">Track Name</Label>
-            <Input
-              id="editTrackName"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter track name"
-              required
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Save</Button>
-          </div>
-        </form>
+        <TrackEditDialogForm
+          key={`${trackId}:${currentName}`}
+          trackId={trackId}
+          currentName={currentName}
+          onOpenChange={onOpenChange}
+        />
       </DialogContent>
     </Dialog>
   );

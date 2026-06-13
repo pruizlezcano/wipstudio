@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const MAX_PROJECT_NAME_LENGTH = 100;
+export const MAX_PROJECT_DESCRIPTION_LENGTH = 500;
+
 const dominantColorSchema = z
   .string()
   .regex(/^#[0-9A-Fa-f]{6}$/, "Dominant color must be a valid hex color");
@@ -10,10 +13,16 @@ export const createProjectSchema = z.object({
   name: z
     .string()
     .min(1, "Project name is required")
-    .max(100, "Project name must be less than 100 characters"),
+    .max(
+      MAX_PROJECT_NAME_LENGTH,
+      `Project name must be less than ${MAX_PROJECT_NAME_LENGTH} characters`
+    ),
   description: z
     .string()
-    .max(500, "Description must be less than 500 characters")
+    .max(
+      MAX_PROJECT_DESCRIPTION_LENGTH,
+      `Description must be less than ${MAX_PROJECT_DESCRIPTION_LENGTH} characters`
+    )
     .optional(),
   artwork: z
     .string()
@@ -28,11 +37,17 @@ export const updateProjectSchema = z.object({
   name: z
     .string()
     .min(1, "Project name is required")
-    .max(100, "Project name must be less than 100 characters")
+    .max(
+      MAX_PROJECT_NAME_LENGTH,
+      `Project name must be less than ${MAX_PROJECT_NAME_LENGTH} characters`
+    )
     .optional(),
   description: z
     .string()
-    .max(500, "Description must be less than 500 characters")
+    .max(
+      MAX_PROJECT_DESCRIPTION_LENGTH,
+      `Description must be less than ${MAX_PROJECT_DESCRIPTION_LENGTH} characters`
+    )
     .optional(),
   artwork: z
     .string()

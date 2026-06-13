@@ -25,6 +25,7 @@ import {
   useUnresolveComment,
   useUpdateComment,
 } from "@/hooks/use-comments";
+import { MAX_COMMENT_LENGTH } from "@/lib/validations/comment";
 import type { Comment } from "@/types";
 
 interface CommentThreadProps {
@@ -170,10 +171,14 @@ export function CommentThread({
                 }}
                 placeholder="Edit your comment..."
                 className="resize-none"
+                maxLength={MAX_COMMENT_LENGTH}
                 minRows={1}
                 maxRows={10}
                 autoFocus
               />
+              <p className="text-right text-xs text-muted-foreground">
+                {editContent.length}/{MAX_COMMENT_LENGTH}
+              </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   type="submit"
@@ -287,9 +292,13 @@ export function CommentThread({
                 }}
                 placeholder="Write a reply..."
                 className="resize-none"
+                maxLength={MAX_COMMENT_LENGTH}
                 minRows={1}
                 maxRows={10}
               />
+              <p className="text-right text-xs text-muted-foreground">
+                {replyContent.length}/{MAX_COMMENT_LENGTH}
+              </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   type="submit"
