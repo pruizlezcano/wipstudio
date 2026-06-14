@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useUploadVersion } from "@/hooks/use-tracks";
+import { MAX_VERSION_NOTES_LENGTH } from "@/lib/validations/track-version";
 
 interface VersionUploadDialogProps {
   open: boolean;
@@ -153,9 +154,13 @@ export function VersionUploadDialog({
               value={versionNotes}
               onChange={(e) => setVersionNotes(e.target.value)}
               placeholder="What changed in this version..."
+              maxLength={MAX_VERSION_NOTES_LENGTH}
               minRows={1}
               maxRows={8}
             />
+            <p className="mt-1 text-right text-xs text-muted-foreground">
+              {versionNotes.length}/{MAX_VERSION_NOTES_LENGTH}
+            </p>
           </div>
           {isUploadingVersion && (
             <div className="space-y-2">

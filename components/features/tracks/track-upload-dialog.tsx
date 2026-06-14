@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { useUploadTrack } from "@/hooks/use-tracks";
 import { MAX_TRACK_NAME_LENGTH } from "@/lib/validations/track";
+import { MAX_VERSION_NOTES_LENGTH } from "@/lib/validations/track-version";
 
 interface TrackUploadDialogProps {
   open: boolean;
@@ -178,9 +179,13 @@ export function TrackUploadDialog({
               value={versionNotes}
               onChange={(e) => setVersionNotes(e.target.value)}
               placeholder="What changed in this version..."
+              maxLength={MAX_VERSION_NOTES_LENGTH}
               minRows={1}
               maxRows={8}
             />
+            <p className="mt-1 text-right text-xs text-muted-foreground">
+              {versionNotes.length}/{MAX_VERSION_NOTES_LENGTH}
+            </p>
           </div>
           {isUploading && (
             <div className="space-y-2">
