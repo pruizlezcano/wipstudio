@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { TextareaAutosize } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ export function TrackUploadDialog({
 }: TrackUploadDialogProps) {
   const router = useRouter();
   const [trackName, setTrackName] = useState("");
+  const [versionNotes, setVersionNotes] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -53,6 +55,7 @@ export function TrackUploadDialog({
   useEffect(() => {
     if (!open) {
       setTrackName("");
+      setVersionNotes("");
       setAudioFile(null);
       setUploadProgress(0);
       if (fileInputRef.current) {
@@ -88,6 +91,7 @@ export function TrackUploadDialog({
         file: audioFile,
         trackName: trackName,
         projectId,
+        notes: versionNotes || undefined,
         onProgress: (loaded: number, total: number) => {
           setUploadProgress(Math.round((loaded / total) * 100));
         },
@@ -165,6 +169,18 @@ export function TrackUploadDialog({
                 Select Audio File
               </Button>
             )}
+          </div>
+          <div>
+            <Label htmlFor="version-notes">Version Notes (Optional)</Label>
+            <TextareaAutosize
+              id="version-notes"
+              className="resize-none"
+              value={versionNotes}
+              onChange={(e) => setVersionNotes(e.target.value)}
+              placeholder="What changed in this version..."
+              minRows={1}
+              maxRows={8}
+            />
           </div>
           {isUploading && (
             <div className="space-y-2">
