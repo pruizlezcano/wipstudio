@@ -66,8 +66,6 @@ import {
 import { BackButton } from "@/components/common/back-button";
 import { DateTime } from "@/components/common/date-time";
 import { useUIStore } from "@/stores/uiStore";
-import type { TrackVersion } from "@/types";
-import WaveSurfer from "wavesurfer.js";
 
 export default function TrackDetailPage() {
   const params = useParams();
@@ -102,8 +100,6 @@ export default function TrackDetailPage() {
     version: playerVersion,
     currentTime: playerCurrentTime,
     isPlaying: playerIsPlaying,
-    usesExternalWaveSurfer,
-    activateExternalWaveSurfer,
     loadVersion,
     setIsPlaying,
     clearPlayer,
@@ -133,8 +129,8 @@ export default function TrackDetailPage() {
     versionNumberParam !== null
       ? versions?.find((v) => v.versionNumber === versionNumberParam)
       : playingTrackVersion || defaultVersion;
-  const waveformInstancesRef = useRef<Record<string, WaveSurfer>>({});
-  const [loadedWaveformIds, setLoadedWaveformIds] = useState<string[]>([]);
+  const isSelectedVersionActive =
+    playerTrack?.id === trackId && playerVersion?.id === selectedVersion?.id;
 
   // Track the previous master version ID to detect new uploads
   const previousMasterIdRef = useRef<string | null>(null);
@@ -355,72 +351,6 @@ export default function TrackDetailPage() {
     0
   );
 
-  const activateVersionWaveSurfer = useCallback(
-    async (
-      version: TrackVersion,
-      targetWaveSurfer: WaveSurfer,
-      startTime: number,
-      autoPlay: boolean
-    ) => {
-      if (!track || !project) return;
-
-      const safeStartTime = Math.min(startTime, targetWaveSurfer.getDuration());
-      const previousWaveSurfer =
-        playerWaveSurfer && playerWaveSurfer !== targetWaveSurfer
-          ? playerWaveSurfer
-          : null;
-
-      targetWaveSurfer.setTime(safeStartTime);
-      activateExternalWaveSurfer(
-        track,
-        version,
-        project.name,
-        targetWaveSurfer,
-        safeStartTime
-      );
-
-      if (autoPlay) {
-        try {
-          targetWaveSurfer.setMuted(true);
-          targetWaveSurfer.setVolume(0);
-          await targetWaveSurfer.play();
-          Object.entries(waveformInstancesRef.current).forEach(
-            ([id, waveSurfer]) => {
-              const isActive = id === version.id;
-              waveSurfer.setMuted(!isActive);
-              waveSurfer.setVolume(isActive ? 1 : 0);
-            }
-          );
-          previousWaveSurfer?.pause();
-          setIsPlaying(true);
-        } catch (error) {
-          console.error("Failed to switch playback between versions:", error);
-          Object.entries(waveformInstancesRef.current).forEach(
-            ([id, waveSurfer]) => {
-              const isActive = id === version.id;
-              waveSurfer.setMuted(!isActive);
-              waveSurfer.setVolume(isActive ? 1 : 0);
-            }
-          );
-          previousWaveSurfer?.pause();
-          setIsPlaying(false);
-        }
-      } else {
-        previousWaveSurfer?.pause();
-        Object.entries(waveformInstancesRef.current).forEach(
-          ([id, waveSurfer]) => {
-            const isActive = id === version.id;
-            waveSurfer.setMuted(!isActive);
-            waveSurfer.setVolume(isActive ? 1 : 0);
-          }
-        );
-        targetWaveSurfer.pause();
-        setIsPlaying(false);
-      }
-    },
-    [activateExternalWaveSurfer, playerWaveSurfer, project, setIsPlaying, track]
-  );
-
   const handoffPlaybackToInternal = useCallback(() => {
     const state = usePlayerStore.getState();
     const activeExternalWaveSurfer =
@@ -429,12 +359,6 @@ export default function TrackDetailPage() {
       state.waveSurfer
         ? state.waveSurfer
         : null;
-
-    Object.values(waveformInstancesRef.current).forEach((waveSurfer) => {
-      if (waveSurfer === activeExternalWaveSurfer) return;
-      waveSurfer.setMuted(true);
-      waveSurfer.setVolume(0);
-    });
 
     if (!track || !project || !activeExternalWaveSurfer || !state.version) {
       return;
@@ -465,32 +389,6 @@ export default function TrackDetailPage() {
     };
   }, [handoffPlaybackToInternal]);
 
-  const registerWaveformInstance = useCallback(
-    (versionId: string, waveSurfer: WaveSurfer) => {
-      waveformInstancesRef.current[versionId] = waveSurfer;
-      setLoadedWaveformIds((current) =>
-        current.includes(versionId) ? current : [...current, versionId]
-      );
-
-      if (usesExternalWaveSurfer && playerVersion?.id === versionId) {
-        waveSurfer.setMuted(false);
-        waveSurfer.setVolume(1);
-      } else {
-        waveSurfer.setMuted(true);
-        waveSurfer.setVolume(0);
-      }
-    },
-    [playerVersion?.id, usesExternalWaveSurfer]
-  );
-
-  useEffect(() => {
-    if (!versions) return;
-
-    setLoadedWaveformIds((current) =>
-      current.filter((versionId) => versions.some((v) => v.id === versionId))
-    );
-  }, [versions]);
-
   useEffect(() => {
     if (!versions) return;
 
@@ -501,26 +399,14 @@ export default function TrackDetailPage() {
     });
   }, [setPeaks, versions]);
 
-  const areAllWaveformsLoaded =
-    !!versions &&
-    versions.length > 0 &&
-    versions.every((version) => loadedWaveformIds.includes(version.id));
-
   // Handle shortcut triggers
   useEffect(() => {
     if (triggerPlayback && defaultVersion && track && project) {
-      const targetWaveSurfer = waveformInstancesRef.current[defaultVersion.id];
-
-      if (targetWaveSurfer) {
-        activateVersionWaveSurfer(defaultVersion, targetWaveSurfer, 0, true);
-      } else {
-        loadVersion(track, defaultVersion, project.name, true);
-      }
+      loadVersion(track, defaultVersion, project.name, true);
 
       setTriggerPlayback(false);
     }
   }, [
-    activateVersionWaveSurfer,
     triggerPlayback,
     defaultVersion,
     track,
@@ -594,8 +480,6 @@ export default function TrackDetailPage() {
   };
 
   const handleSelectVersion = async (versionNumber: number) => {
-    if (!areAllWaveformsLoaded) return;
-
     const nextVersion = versions?.find(
       (v) => v.versionNumber === versionNumber
     );
@@ -609,24 +493,13 @@ export default function TrackDetailPage() {
     ) {
       const currentPlaybackTime =
         playerWaveSurfer?.getCurrentTime() ?? playerCurrentTime;
-      const targetWaveSurfer = waveformInstancesRef.current[nextVersion.id];
-
-      if (targetWaveSurfer) {
-        void activateVersionWaveSurfer(
-          nextVersion,
-          targetWaveSurfer,
-          currentPlaybackTime,
-          playerIsPlaying
-        );
-      } else {
-        loadVersion(
-          track,
-          nextVersion,
-          project.name,
-          playerIsPlaying,
-          currentPlaybackTime
-        );
-      }
+      loadVersion(
+        track,
+        nextVersion,
+        project.name,
+        playerIsPlaying,
+        currentPlaybackTime
+      );
     }
 
     setVersionNumberParam(versionNumber);
@@ -644,19 +517,7 @@ export default function TrackDetailPage() {
       // If no player or wrong version loaded, load the correct version first
       if (!playerWaveSurfer || playerVersion?.id !== selectedVersion?.id) {
         if (selectedVersion && track && project) {
-          const targetWaveSurfer =
-            waveformInstancesRef.current[selectedVersion.id];
-
-          if (targetWaveSurfer) {
-            void activateVersionWaveSurfer(
-              selectedVersion,
-              targetWaveSurfer,
-              time,
-              true
-            );
-          } else {
-            loadVersion(track, selectedVersion, project.name, true, time);
-          }
+          loadVersion(track, selectedVersion, project.name, true, time);
         }
       } else {
         // Player is already loaded with the correct version
@@ -671,7 +532,6 @@ export default function TrackDetailPage() {
       selectedVersion,
       track,
       project,
-      activateVersionWaveSurfer,
       loadVersion,
       setIsPlaying,
     ]
@@ -791,11 +651,7 @@ export default function TrackDetailPage() {
                 value={selectedVersion?.versionNumber.toString() || ""}
                 onValueChange={(value) => handleSelectVersion(parseInt(value))}
               >
-                <SelectTrigger
-                  className="border-foreground w-full sm:w-auto"
-                  size="sm"
-                  disabled={!areAllWaveformsLoaded}
-                >
+                <SelectTrigger className="border-foreground w-full sm:w-auto" size="sm">
                   <SelectValue placeholder="Select version" />
                 </SelectTrigger>
                 <SelectContent>
@@ -959,42 +815,21 @@ export default function TrackDetailPage() {
               <CardContent>
                 {versions && project && (
                   <div className="relative">
-                    {versions.map((version) => (
+                    {selectedVersion && (
                       <div
-                        key={version.id}
-                        aria-hidden={version.id !== selectedVersion?.id}
-                        className={
-                          version.id === selectedVersion?.id
-                            ? "relative opacity-100 pointer-events-auto"
-                            : "absolute inset-0 opacity-0 pointer-events-none"
-                        }
+                        key={`${selectedVersion.id}-${isSelectedVersionActive ? "active" : "idle"}`}
+                        className="relative"
                       >
                         <Waveform
                           track={track}
-                          version={version}
+                          version={selectedVersion}
                           projectName={project.name}
-                          comments={
-                            version.id === selectedVersion?.id ? comments : []
-                          }
+                          comments={comments}
                           onTimeClick={handleWaveformClick}
                           onCommentClick={handleCommentClick}
-                          onWaveSurferReady={registerWaveformInstance}
-                          onActivateVersion={(
-                            targetVersion,
-                            targetWaveSurfer,
-                            startTime,
-                            autoPlay
-                          ) => {
-                            void activateVersionWaveSurfer(
-                              targetVersion,
-                              targetWaveSurfer,
-                              startTime,
-                              autoPlay
-                            );
-                          }}
                         />
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </CardContent>
