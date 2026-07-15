@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.10.0](https://github.com/pruizlezcano/wipstudio/compare/v0.9.0...v0.10.0) (2026-07-15)
+
+
+### Features
+
+* **health:** add health check endpoint ([3574096](https://github.com/pruizlezcano/wipstudio/commit/35740962a838eb0d0773f9eb83f6ecb0446ecfd8))
+* **tracks:** add character limit and count for version notes ([d007512](https://github.com/pruizlezcano/wipstudio/commit/d007512b3ccbebea943a148a142f22b6e321ab80))
+* **tracks:** add version notes to track upload ([6a282c0](https://github.com/pruizlezcano/wipstudio/commit/6a282c023a022306a4879782e805d952c82c41ff)), closes [#25](https://github.com/pruizlezcano/wipstudio/issues/25)
+* **ui:** add character limits and counters to form inputs ([c4f339e](https://github.com/pruizlezcano/wipstudio/commit/c4f339e659d8da24ae0fc097b9ad11836ad47478)), closes [#18](https://github.com/pruizlezcano/wipstudio/issues/18)
+
+
+### Bug Fixes
+
+* **tracks:** undo version audio preload and only load selected audio ([4963a1f](https://github.com/pruizlezcano/wipstudio/commit/4963a1fe506a7a03dd43d2de17fa88d76aeb1739)), closes [#21](https://github.com/pruizlezcano/wipstudio/issues/21) [#24](https://github.com/pruizlezcano/wipstudio/issues/24)
+
 ## [0.9.0](https://github.com/pruizlezcano/wipstudio/compare/v0.8.0...v0.9.0) (2026-06-04)
 
 
